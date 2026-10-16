@@ -40,7 +40,8 @@ function onOpen() {
     .addItem('🛠️ 建立初始表格（空白試算表第一次使用）', 'setupStandardSheets')
     .addSeparator()
     .addItem('➕ 新增平時成績科目分頁（自動帶入學生名單）', 'createNewSubjectSheetFromRoster')
-    .addItem('🔄 用最新成績名單，更新「學生名冊」', 'syncStudentsFromSheet')
+    .addItem('📤 將「學生名冊」姓名同步至各科平時成績表', 'syncRosterToSubjectSheets')
+    .addItem('📥 從目前成績分頁匯入名單至「學生名冊」', 'syncStudentsFromSheet')
     .addItem('🔑 為全班產生「家長查詢代碼」', 'generateTokensForStudents')
     .addSeparator()
     .addItem('📊 查看全班各科平時總均與分項平均統計', 'previewClassStatistics')
@@ -54,6 +55,7 @@ function onOpen() {
 // 選單動作分發 (由 GitHub 核心即時執行最新邏輯)
 function setupStandardSheets() { getEngine().setupStandardSheets(); }
 function createNewSubjectSheetFromRoster() { getEngine().createNewSubjectSheetFromRoster(); }
+function syncRosterToSubjectSheets() { getEngine().syncRosterToSubjectSheets(false); }
 function syncStudentsFromSheet() { getEngine().syncStudentsFromSheet(); }
 function generateTokensForStudents() { getEngine().generateTokensForStudents(); }
 function previewClassStatistics() { getEngine().previewClassStatistics(); }
@@ -66,8 +68,9 @@ function doGet(e) {
     return getEngine().handleDoGet(e);
   } catch (err) {
     var out = {
+      status: "error",
       success: false,
-      message: "【Loader 熱更新執行異常】: " + err.toString() + "\n\n💡 快速解決：\n1. 請在 Apps Script 上方將函式選為「setup」，並點擊「執行」完成帳號授權；\n2. 或者直接複製網站【步驟 2】的【模式 B：完整單機版程式碼】(零外部依賴，100% 穩定秒連！)"
+      message: "【Loader 熱更新執行異常】: " + err.toString() + "\n\n💡 快速解決：\n1. 請在 Apps Script 上方將函式選為「setup」，並點擊「執行」完成帳號授權。"
     };
     return ContentService.createTextOutput(JSON.stringify(out))
       .setMimeType(ContentService.MimeType.JSON);

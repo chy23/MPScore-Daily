@@ -16,13 +16,80 @@ function onOpen() {
     .addItem('🛠️ 建立初始表格（空白試算表第一次使用）', 'setupStandardSheets')
     .addSeparator()
     .addItem('➕ 新增平時成績科目分頁（自動帶入學生名單）', 'createNewSubjectSheetFromRoster')
-    .addItem('🔄 用最新成績名單，更新「學生名冊」', 'syncStudentsFromSheet')
+    .addItem('📤 將「學生名冊」姓名同步至各科平時成績表', 'syncRosterToSubjectSheets')
+    .addItem('📥 從目前成績分頁匯入名單至「學生名冊」', 'syncStudentsFromSheet')
     .addItem('🔑 為全班產生「家長查詢代碼」', 'generateTokensForStudents')
     .addSeparator()
     .addItem('📊 查看全班各科平時總均與分項平均統計', 'previewClassStatistics')
     .addItem('📐 自動整理欄寬與表格排版', 'autoFormatAndResizeAllSheets')
     .addItem('🚀 立即更新雲端資料（改完分數點此）', 'clearSystemCache')
     .addToUi();
+}
+
+/**
+ * 安全設定凍結列與凍結欄（自動拆解跨越凍結線的合併儲存格，徹底杜絕「無法凍結僅包含部分合併儲存格的欄」例外錯誤）
+ */
+function safeFreezeSheet_(sheet, freezeRows, freezeCols) {
+  try {
+    if (freezeRows > 0) {
+      sheet.setFrozenRows(freezeRows);
+    }
+  } catch (e) {}
+
+  if (freezeCols > 0) {
+    try {
+      sheet.setFrozenColumns(freezeCols);
+    } catch (err) {
+      // 若前幾列有跨欄合併儲存格（例如第 1 列大標題 A1:Z1 合併），先將跨越 freezeCols 的合併拆開為左、右兩塊再凍結
+      try {
+        var maxCol = Math.max(freezeCols + 1, sheet.getLastColumn());
+        var checkRows = Math.max(2, freezeRows || 2);
+        var topRange = sheet.getRange(1, 1, checkRows, maxCol);
+        var mergedRanges = topRange.getMergedRanges();
+        for (var i = 0; i < mergedRanges.length; i++) {
+          var mr = mergedRanges[i];
+          var startCol = mr.getColumn();
+          var endCol = mr.getLastColumn();
+          var startRow = mr.getRow();
+          var numRows = mr.getNumRows();
+          if (startCol <= freezeCols && endCol > freezeCols) {
+            var originalVal = mr.getCell(1, 1).getValue();
+            var bg = mr.getCell(1, 1).getBackground();
+            var fc = mr.getCell(1, 1).getFontColor();
+            var fw = mr.getCell(1, 1).getFontWeight();
+            var fs = mr.getCell(1, 1).getFontSize();
+            mr.breakApart();
+
+            // 左側凍結區（A1:B1）
+            var leftRange = sheet.getRange(startRow, startCol, numRows, freezeCols - startCol + 1);
+            if (leftRange.getNumColumns() > 1 || numRows > 1) leftRange.merge();
+            leftRange.setValue('📌 學生名單')
+              .setBackground(bg)
+              .setFontColor(fc)
+              .setFontWeight(fw)
+              .setFontSize(fs)
+              .setHorizontalAlignment('center')
+              .setVerticalAlignment('middle');
+
+            // 右側成績區（C1:最後一欄）
+            var rightCols = endCol - freezeCols;
+            if (rightCols >= 1) {
+              var rightRange = sheet.getRange(startRow, freezeCols + 1, numRows, rightCols);
+              if (rightCols > 1 || numRows > 1) rightRange.merge();
+              rightRange.setValue(originalVal)
+                .setBackground(bg)
+                .setFontColor(fc)
+                .setFontWeight(fw)
+                .setFontSize(fs)
+                .setHorizontalAlignment('center')
+                .setVerticalAlignment('middle');
+            }
+          }
+        }
+        sheet.setFrozenColumns(freezeCols);
+      } catch (ignore) {}
+    }
+  }
 }
 
 /**
@@ -44,7 +111,7 @@ function clearSystemCache() {
       if (sSheet && sSheet.getLastRow() > 1) {
         var sData = sSheet.getDataRange().getValues();
         for (var r = 1; r < sData.length; r++) {
-          var tok = (sData[r][3] || '').toString().trim();
+          var tok = (sData[r][3] || '').toString().trim().toUpperCase();
           if (tok) keys.push('mpdaily_score_v2_' + tok);
         }
       }
@@ -72,13 +139,13 @@ function normalizeSeatNumber(val) {
 
 /**
  * 🛠️ 建立初始表格（空白試算表第一次使用）
- * 建立【學生名冊】、【國語平時】、【數學平時】、【社會平時】示範分頁
+ * 若【學生名冊】已有老師輸入的真實學生名單，會直接採用【學生名冊】的學生來建立各科平時成績表，絕不覆蓋真實名單！
  */
 function setupStandardSheets() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var ui = SpreadsheetApp.getUi();
 
-  // 1. 建立或格式化【學生名冊】
+  // 1. 建立或讀取【學生名冊】
   var sSheet = ss.getSheetByName('學生名冊') || ss.getSheets()[0];
   sSheet.setName('學生名冊');
   var sHeaders = [['班級', '座號', '姓名', '專屬代碼', '啟用狀態']];
@@ -88,35 +155,42 @@ function setupStandardSheets() {
     .setFontWeight('bold')
     .setHorizontalAlignment('center');
 
-  var sampleRoster = [
-    ['605', '01', '陳小明', 'DEMO01', true],
-    ['605', '02', '陳小華', 'DEMO02', true],
-    ['605', '03', '陳大美', 'DEMO03', true],
-    ['605', '04', '陳志豪', 'DEMO04', true],
-    ['605', '06', '黃小琪', 'DEMO06', true],
-    ['605', '07', '李大偉', 'DEMO07', true],
-    ['605', '08', '林子涵', 'DEMO08', true],
-    ['605', '09', '凌雅婷', 'DEMO09', true],
-    ['605', '10', '劉建銘', 'DEMO10', true],
-    ['605', '11', '王冠宇', 'DEMO11', true],
-    ['605', '12', '吳宗憲', 'DEMO12', true],
-    ['605', '13', '嚴立婷', 'DEMO13', true],
-    ['605', '14', '余承恩', 'DEMO14', true],
-    ['605', '15', '嚴佳慧', 'DEMO15', true],
-    ['605', '16', '羅品安', 'DEMO16', true],
-    ['605', '17', '羅廷宇', 'DEMO17', true],
-    ['605', '18', '蕭雅云', 'DEMO18', true],
-    ['605', '19', '張凱傑', 'DEMO19', true],
-    ['605', '20', '茅文傑', 'DEMO20', true],
-    ['605', '21', '洪宇成', 'DEMO21', true],
-    ['605', '22', '林郁潔', 'DEMO22', true],
-    ['605', '23', '周奕翔', 'DEMO23', true],
-    ['605', '24', '吳秉翰', 'DEMO24', true],
-    ['605', '25', '李勝吉', 'DEMO25', true]
+  var defaultSampleRoster = [
+    ['501', '01', '王小華', 'DEMO01', true],
+    ['501', '02', '陳品妍', 'DEMO02', true],
+    ['501', '03', '林宥廷', 'DEMO03', true],
+    ['501', '04', '張語恩', 'DEMO04', true],
+    ['501', '05', '李冠宇', 'DEMO05', true],
+    ['501', '06', '黃子軒', 'DEMO06', true],
+    ['501', '07', '吳采潔', 'DEMO07', true],
+    ['501', '08', '蔡承翰', 'DEMO08', true],
+    ['501', '09', '許芷晴', 'DEMO09', true],
+    ['501', '10', '鄭宇翔', 'DEMO10', true]
   ];
+
+  var activeRoster = [];
   if (sSheet.getLastRow() <= 1) {
-    sSheet.getRange(2, 1, sampleRoster.length, 5).setValues(sampleRoster);
+    sSheet.getRange(2, 1, defaultSampleRoster.length, 5).setValues(defaultSampleRoster);
+    activeRoster = defaultSampleRoster;
+  } else {
+    // 讀取【學生名冊】目前已有的真實學生名單，避免用範例名單蓋掉老師的學生！
+    var existingData = sSheet.getRange(2, 1, sSheet.getLastRow() - 1, 5).getValues();
+    for (var r = 0; r < existingData.length; r++) {
+      var cls = (existingData[r][0] || '501').toString().trim();
+      var seat = normalizeSeatNumber(existingData[r][1] || (r + 1));
+      var name = (existingData[r][2] || '').toString().trim();
+      var tok = (existingData[r][3] || '').toString().trim();
+      var en = existingData[r][4] !== false;
+      if (name) {
+        activeRoster.push([cls, seat, name, tok, en]);
+      }
+    }
+    if (activeRoster.length === 0) {
+      sSheet.getRange(2, 1, defaultSampleRoster.length, 5).setValues(defaultSampleRoster);
+      activeRoster = defaultSampleRoster;
+    }
   }
+
   sSheet.setColumnWidth(1, 90);
   sSheet.setColumnWidth(2, 80);
   sSheet.setColumnWidth(3, 120);
@@ -130,9 +204,9 @@ function setupStandardSheets() {
   sSheet.getRange(1, 1, sLastRow, 5)
     .setVerticalAlignment('middle')
     .setHorizontalAlignment('center');
-  sSheet.setFrozenRows(1);
+  safeFreezeSheet_(sSheet, 1, 0);
 
-  // 2. 建立【國語平時】分頁 (四大平時評量：國習L1~L6、作業卷L1~L6、語詞L1~L6、測驗卷L1~L6)
+  // 2. 建立【國語平時】分頁（若已存在則只更新名單不覆蓋既有成績）
   var chiHeaders = [
     '座號', '姓名',
     '國習L1', '國習L2', '國習L3', '國習L4', '國習L5', '國習L6',
@@ -140,104 +214,128 @@ function setupStandardSheets() {
     '語詞L1', '語詞L2', '語詞L3', '語詞L4', '語詞L5', '語詞L6',
     '測驗卷L1', '測驗卷L2', '測驗卷L3', '測驗卷L4', '測驗卷L5', '測驗卷L6'
   ];
-  var chiRows = sampleRoster.map(function(st, idx) {
+  var chiRows = activeRoster.map(function(st, idx) {
     var base = idx % 5 === 0 ? 94 : (idx % 5 === 1 ? 88 : (idx % 5 === 2 ? 91 : (idx % 5 === 3 ? 78 : 84)));
     return [
       st[1], st[2],
-      // 國習 L1~L6
       Math.min(100, base + 4), Math.min(100, base + 5), Math.min(100, base + 2), Math.min(100, base + 4), Math.min(100, base + 6), Math.min(100, base + 5),
-      // 作業卷 L1~L6
       Math.min(100, base + 3), Math.min(100, base + 4), Math.max(68, base - 4), Math.min(100, base + 5), Math.min(100, base + 3), Math.min(100, base + 4),
-      // 語詞 L1~L6
       Math.min(100, base + 2), Math.min(100, base), Math.max(62, base - 8), Math.min(100, base + 2), Math.min(100, base + 4), Math.min(100, base + 2),
-      // 測驗卷 L1~L6 (讓 L3 呈現單元成績波動示範，L4~L6 回升)
       Math.min(100, base + 2), Math.min(100, base + 4), Math.max(58, base - 14), Math.max(66, base - 6), Math.min(100, base + 2), Math.min(100, base + 4)
     ];
   });
-  var chiSheet = ss.getSheetByName('國語平時') || ss.insertSheet('國語平時');
-  formatDailySubjectSheet(chiSheet, '115學年度第一學期 國語科平時成績紀錄', chiHeaders, chiRows);
+  var chiSheet = ss.getSheetByName('國語平時');
+  if (!chiSheet) {
+    chiSheet = ss.insertSheet('國語平時');
+    formatDailySubjectSheet(chiSheet, '115學年度 國語科平時成績紀錄', chiHeaders, chiRows);
+  }
 
-  // 3. 建立【數學平時】分頁 (數習L1~L5、作業卷L1~L5、測驗卷L1~L5)
+  // 3. 建立【數學平時】分頁
   var mathHeaders = [
     '座號', '姓名',
-    '數習L1', '數習L2', '數習L3', '數習L4', '數習L5',
-    '作業卷L1', '作業卷L2', '作業卷L3', '作業卷L4', '作業卷L5',
-    '測驗卷L1', '測驗卷L2', '測驗卷L3', '測驗卷L4', '測驗卷L5'
+    '數習L1', '數習L2', '數習L3', '數習L4', '數習L5', '數習L6',
+    '作業卷L1', '作業卷L2', '作業卷L3', '作業卷L4', '作業卷L5', '作業卷L6',
+    '計算L1', '計算L2', '計算L3', '計算L4', '計算L5', '計算L6',
+    '測驗卷L1', '測驗卷L2', '測驗卷L3', '測驗卷L4', '測驗卷L5', '測驗卷L6'
   ];
-  var mathRows = sampleRoster.map(function(st, idx) {
+  var mathRows = activeRoster.map(function(st, idx) {
     var base = idx % 4 === 0 ? 90 : (idx % 4 === 1 ? 85 : (idx % 4 === 2 ? 93 : 76));
     return [
       st[1], st[2],
-      Math.min(100, base + 5), Math.min(100, base + 4), Math.min(100, base + 2), Math.min(100, base + 6), Math.min(100, base + 5),
-      Math.min(100, base + 2), Math.min(100, base + 3), Math.max(64, base - 6), Math.min(100, base + 4), Math.min(100, base + 3),
-      Math.min(100, base + 3), Math.max(60, base - 12), Math.min(100, base), Math.min(100, base + 2), Math.min(100, base + 4)
+      Math.min(100, base + 5), Math.min(100, base + 4), Math.min(100, base + 2), Math.min(100, base + 6), Math.min(100, base + 5), Math.min(100, base + 4),
+      Math.min(100, base + 2), Math.min(100, base + 3), Math.max(64, base - 6), Math.min(100, base + 4), Math.min(100, base + 3), Math.min(100, base + 4),
+      Math.min(100, base + 4), Math.min(100, base + 5), Math.max(70, base - 4), Math.min(100, base + 4), Math.min(100, base + 6), Math.min(100, base + 5),
+      Math.min(100, base + 3), Math.max(60, base - 12), Math.min(100, base), Math.min(100, base + 2), Math.min(100, base + 4), Math.min(100, base + 3)
     ];
   });
-  var mathSheet = ss.getSheetByName('數學平時') || ss.insertSheet('數學平時');
-  formatDailySubjectSheet(mathSheet, '115學年度第一學期 數學科平時成績紀錄', mathHeaders, mathRows);
+  var mathSheet = ss.getSheetByName('數學平時');
+  if (!mathSheet) {
+    mathSheet = ss.insertSheet('數學平時');
+    formatDailySubjectSheet(mathSheet, '115學年度 數學科平時成績紀錄', mathHeaders, mathRows);
+  }
 
-  // 4. 建立【社會平時】分頁 (社習L1~L4、作業卷L1~L4、測驗卷L1~L4)
+  // 4. 建立【社會平時】分頁
   var socHeaders = [
     '座號', '姓名',
-    '社習L1', '社習L2', '社習L3', '社習L4',
-    '作業卷L1', '作業卷L2', '作業卷L3', '作業卷L4',
-    '測驗卷L1', '測驗卷L2', '測驗卷L3', '測驗卷L4'
+    '社習L1', '社習L2', '社習L3', '社習L4', '社習L5', '社習L6',
+    '作業卷L1', '作業卷L2', '作業卷L3', '作業卷L4', '作業卷L5', '作業卷L6',
+    '重點L1', '重點L2', '重點L3', '重點L4', '重點L5', '重點L6',
+    '測驗卷L1', '測驗卷L2', '測驗卷L3', '測驗卷L4', '測驗卷L5', '測驗卷L6'
   ];
-  var socRows = sampleRoster.map(function(st, idx) {
+  var socRows = activeRoster.map(function(st, idx) {
     var base = idx % 4 === 0 ? 92 : (idx % 4 === 1 ? 88 : (idx % 4 === 2 ? 90 : 80));
     return [
       st[1], st[2],
-      Math.min(100, base + 4), Math.min(100, base + 6), Math.min(100, base + 3), Math.min(100, base + 5),
-      Math.min(100, base + 2), Math.min(100, base + 4), Math.min(100, base + 1), Math.min(100, base + 3),
-      Math.min(100, base), Math.min(100, base + 2), Math.max(68, base - 8), Math.min(100, base + 4)
+      Math.min(100, base + 4), Math.min(100, base + 6), Math.min(100, base + 3), Math.min(100, base + 5), Math.min(100, base + 4), Math.min(100, base + 6),
+      Math.min(100, base + 2), Math.min(100, base + 4), Math.min(100, base + 1), Math.min(100, base + 3), Math.min(100, base + 2), Math.min(100, base + 5),
+      Math.min(100, base + 3), Math.min(100, base + 5), Math.min(100, base + 2), Math.min(100, base + 4), Math.min(100, base + 3), Math.min(100, base + 5),
+      Math.min(100, base), Math.min(100, base + 2), Math.max(68, base - 8), Math.min(100, base + 4), Math.min(100, base + 2), Math.min(100, base + 5)
     ];
   });
-  var socSheet = ss.getSheetByName('社會平時') || ss.insertSheet('社會平時');
-  formatDailySubjectSheet(socSheet, '115學年度第一學期 社會科平時成績紀錄', socHeaders, socRows);
+  var socSheet = ss.getSheetByName('社會平時');
+  if (!socSheet) {
+    socSheet = ss.insertSheet('社會平時');
+    formatDailySubjectSheet(socSheet, '115學年度 社會科平時成績紀錄', socHeaders, socRows);
+  }
+
+  // 確保【學生名冊】的姓名也同步到各科分頁
+  syncRosterToSubjectSheets(true);
 
   ui.alert(
     '🎉 平時成績表格建置完成！\n\n' +
-    '已為您建立：\n' +
-    '1. 【學生名冊】(可與 MPScore 段考系統共用同一組學生代碼)\n' +
-    '2. 【國語平時】(含國習、作業卷、語詞、測驗卷 L1~L6 原始分數)\n' +
-    '3. 【數學平時】(含數習、作業卷、測驗卷 L1~L5 原始分數)\n' +
-    '4. 【社會平時】(含社習、作業卷、測驗卷 L1~L4 原始分數)\n\n' +
-    '💡 老師只需輸入各次平時原始分數，系統會全自動計算「各類平時分項平均、本科平時總平均、班級平均對比與各單元成績走勢圖」！'
+    '已為您備妥：\n' +
+    '1. 【學生名冊】(共 ' + activeRoster.length + ' 位學生，可與段考系統共用代碼)\n' +
+    '2. 【國語平時】、【數學平時】、【社會平時】\n\n' +
+    '💡 貼心提醒：\n' +
+    '・若您修改了【學生名冊】的學生姓名，請點選選單「📤 將『學生名冊』姓名同步至各科平時成績表」。\n' +
+    '・若您是將新名單貼在某個科目分頁，請切換到該分頁後點選「📥 從目前成績分頁匯入名單至『學生名冊』」。'
   );
 }
 
 /**
- * 格式化平時成績科目分頁
+ * 格式化平時成績科目分頁（第 1 列自動拆分為 A1:B1 與 C1:最後一欄，完美支援凍結前 2 列與前 2 欄！）
  */
 function formatDailySubjectSheet(sheet, titleText, headers, rowsData) {
   sheet.clear();
-  var numCols = headers.length;
+  var numCols = Math.max(3, headers.length);
 
-  // 第 1 列：大標題
-  sheet.getRange(1, 1, 1, numCols).merge()
-    .setValue(titleText)
-    .setBackground('#78350f')
-    .setFontColor('#ffffff')
+  // 第 1 列：將左側凍結欄 (A1:B1) 與右側成績標題欄 (C1:最後一欄) 分開合併，避免 Google 試算表凍結欄時發生合併衝突！
+  sheet.getRange(1, 1, 1, 2).merge()
+    .setValue('📌 學生名單')
+    .setBackground('#451a03')
+    .setFontColor('#fde68a')
     .setFontWeight('bold')
-    .setFontSize(12)
-    .setHorizontalAlignment('center');
+    .setFontSize(11)
+    .setHorizontalAlignment('center')
+    .setVerticalAlignment('middle');
+
+  if (numCols > 2) {
+    sheet.getRange(1, 3, 1, numCols - 2).merge()
+      .setValue(titleText)
+      .setBackground('#78350f')
+      .setFontColor('#ffffff')
+      .setFontWeight('bold')
+      .setFontSize(12)
+      .setHorizontalAlignment('center')
+      .setVerticalAlignment('middle');
+  }
 
   // 第 2 列：欄位標題 (依四大平時評量類別自動賦予底色區隔)
-  sheet.getRange(2, 1, 1, numCols).setValues([headers])
+  sheet.getRange(2, 1, 1, headers.length).setValues([headers])
     .setFontWeight('bold')
     .setHorizontalAlignment('center');
 
-  for (var c = 1; c <= numCols; c++) {
+  for (var c = 1; c <= headers.length; c++) {
     var h = headers[c - 1] || '';
     var cell = sheet.getRange(2, c);
     if (c <= 2) {
       cell.setBackground('#334155').setFontColor('#ffffff');
     } else if (h.indexOf('習') !== -1) {
       cell.setBackground('#d97706').setFontColor('#ffffff'); // 習作成績：暖陽琥珀
-    } else if (h.indexOf('作業') !== -1 || h.indexOf('練習') !== -1) {
+    } else if (h.indexOf('作業') !== -1 || h.indexOf('練習') !== -1 || h.indexOf('學習單') !== -1) {
       cell.setBackground('#059669').setFontColor('#ffffff'); // 作業卷成績：萌芽翠綠
-    } else if (h.indexOf('語詞') !== -1 || h.indexOf('聽寫') !== -1 || h.indexOf('圈詞') !== -1) {
-      cell.setBackground('#0284c7').setFontColor('#ffffff'); // 語詞測驗成績：晴空青藍
+    } else if (h.indexOf('語詞') !== -1 || h.indexOf('聽寫') !== -1 || h.indexOf('圈詞') !== -1 || h.indexOf('計算') !== -1 || h.indexOf('重點') !== -1) {
+      cell.setBackground('#0284c7').setFontColor('#ffffff'); // 語詞/基礎成績：晴空青藍
     } else {
       cell.setBackground('#b45309').setFontColor('#ffffff'); // 單元測驗卷成績：深金琥珀
     }
@@ -245,24 +343,24 @@ function formatDailySubjectSheet(sheet, titleText, headers, rowsData) {
 
   // 第 3 列起：原始成績
   if (rowsData && rowsData.length > 0) {
-    sheet.getRange(3, 1, rowsData.length, numCols).setValues(rowsData)
+    sheet.getRange(3, 1, rowsData.length, headers.length).setValues(rowsData)
       .setHorizontalAlignment('center');
   }
 
   sheet.setColumnWidth(1, 70);  // 座號
   sheet.setColumnWidth(2, 110); // 姓名
-  for (var col = 3; col <= numCols; col++) {
+  for (var col = 3; col <= headers.length; col++) {
     sheet.setColumnWidth(col, 82);
   }
-  sheet.setRowHeight(1, 38);
+  sheet.setRowHeight(1, 36);
   sheet.setRowHeight(2, 32);
   var lastRow = Math.max(2, sheet.getLastRow());
   for (var r = 3; r <= lastRow; r++) {
     sheet.setRowHeight(r, 28);
   }
-  sheet.getRange(1, 1, lastRow, numCols).setVerticalAlignment('middle').setHorizontalAlignment('center');
-  sheet.setFrozenRows(2);
-  sheet.setFrozenColumns(2);
+  sheet.getRange(1, 1, lastRow, headers.length).setVerticalAlignment('middle').setHorizontalAlignment('center');
+
+  safeFreezeSheet_(sheet, 2, 2);
 }
 
 /**
@@ -278,16 +376,16 @@ function doGet(e) {
       output = checkSystemStatus();
     } else if (action === 'query') {
       output = getStudentDailyPortfolioByToken(params.token);
-    } else if (action === 'getStudentsForPrint') {
+    } else if (action === 'getStudentsForPrint' || action === 'getRoster') {
       output = getStudentListForTeacher();
     } else if (action === 'appendDailyScores') {
       var body = params.payload || (e && e.postData && e.postData.contents ? e.postData.contents : '');
       output = appendDailyScores(body);
     } else {
-      output = { success: false, message: '未知的操作請求: ' + action };
+      output = { status: 'error', success: false, message: '未知的操作請求: ' + action };
     }
   } catch (err) {
-    output = { success: false, message: '系統處理錯誤: ' + err.toString() };
+    output = { status: 'error', success: false, message: '系統處理錯誤: ' + err.toString() };
   }
 
   return ContentService.createTextOutput(JSON.stringify(output))
@@ -326,8 +424,8 @@ function isSummaryColumnHeader(headerText) {
 /**
  * 智慧判斷單項平時評量所屬之「四大平時成績類別」
  * - workbook:   習作平時成績 (含「習」)
- * - homework:   作業卷成績   (含「作業」、「練習」、「學習單」)
- * - foundation: 語詞測驗成績 (含「語詞」、「聽寫」、「圈詞」、「生字」、「單字」、「計算」)
+ * - homework:   作業卷成績   (含「作業」、「練習」、「學習單」、「隨堂」、「甲卷」、「乙卷」)
+ * - foundation: 語詞測驗成績 (含「語詞」、「聽寫」、「圈詞」、「生字」、「單字」、「計算」、「重點」)
  * - quiz:       單元測驗成績 (含「測驗」、「考」、「卷」、「單元」或預設單元評量)
  */
 function classifyScoreCategory(itemName) {
@@ -335,11 +433,11 @@ function classifyScoreCategory(itemName) {
   if (h.indexOf('習') !== -1) {
     return { key: 'workbook', label: '習作平時成績', shortLabel: '習作', icon: '📘' };
   }
-  if (h.indexOf('作業') !== -1 || h.indexOf('練習') !== -1 || h.indexOf('學習單') !== -1) {
+  if (h.indexOf('作業') !== -1 || h.indexOf('練習') !== -1 || h.indexOf('學習單') !== -1 || h.indexOf('隨堂') !== -1) {
     return { key: 'homework', label: '作業卷平時成績', shortLabel: '作業卷', icon: '📝' };
   }
-  if (h.indexOf('語詞') !== -1 || h.indexOf('聽寫') !== -1 || h.indexOf('圈詞') !== -1 || h.indexOf('生字') !== -1 || h.indexOf('單字') !== -1 || h.indexOf('計算') !== -1) {
-    return { key: 'foundation', label: '語詞/聽寫成績', shortLabel: '語詞測驗', icon: '🔤' };
+  if (h.indexOf('語詞') !== -1 || h.indexOf('聽寫') !== -1 || h.indexOf('圈詞') !== -1 || h.indexOf('生字') !== -1 || h.indexOf('單字') !== -1 || h.indexOf('計算') !== -1 || h.indexOf('重點') !== -1) {
+    return { key: 'foundation', label: '語詞與基礎平時', shortLabel: '語詞/基礎', icon: '🔤' };
   }
   return { key: 'quiz', label: '單元測驗卷成績', shortLabel: '測驗卷', icon: '🎯' };
 }
@@ -349,47 +447,46 @@ function classifyScoreCategory(itemName) {
  */
 function extractUnitCode(itemName) {
   var h = (itemName || '').toString().trim();
-  var m1 = h.match(/[LUlu單元課第]\s*0*(\d{1,2})/);
-  if (m1 && m1[1]) {
-    return 'L' + m1[1];
+  var m1 = h.match(/[LUlu](\d{1,2})/);
+  if (m1) return 'L' + parseInt(m1[1], 10);
+
+  var m2 = h.match(/第([一二三四五六七八九十\d]+)[課單元回]/);
+  if (m2) {
+    var chMap = { '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9, '十': 10 };
+    var v = chMap[m2[1]] || parseInt(m2[1], 10);
+    if (!isNaN(v)) return 'L' + v;
   }
-  var m2 = h.match(/(\d{1,2})/);
-  if (m2 && m2[1]) {
-    return 'L' + m2[1];
-  }
-  return h;
+
+  var m3 = h.match(/(\d{1,2})$/);
+  if (m3) return 'L' + parseInt(m3[1], 10);
+
+  return '平時';
 }
 
 /**
- * 依據得分給予定向等第標籤
+ * 依分數取得平時表現等第標籤與色系
  */
 function getScoreGradeInfo(score) {
-  if (score === null || score === undefined || isNaN(score)) {
-    return { level: 'ungraded', label: '未計分', badgeColor: 'slate' };
+  if (score === null || score === undefined || score === '' || isNaN(Number(score))) {
+    return { level: 'none', label: '尚無成績', badgeColor: 'stone' };
   }
-  if (score >= 90) {
-    return { level: 'mastery', label: '🌟 精熟優異', badgeColor: 'emerald' };
-  }
-  if (score >= 80) {
-    return { level: 'solid', label: '⭐ 穩健良好', badgeColor: 'amber' };
-  }
-  if (score >= 60) {
-    return { level: 'basic', label: '🌿 基礎達標', badgeColor: 'sky' };
-  }
-  return { level: 'reinforce', label: '🌱 待加強複習', badgeColor: 'rose' };
+  var n = Number(score);
+  if (n >= 90) return { level: 'excellent', label: '🌟 精熟優異', badgeColor: 'emerald' };
+  if (n >= 80) return { level: 'good', label: '⭐ 穩健良好', badgeColor: 'amber' };
+  if (n >= 70) return { level: 'basic', label: '🌿 基礎達標', badgeColor: 'sky' };
+  return { level: 'needs_review', label: '🌱 待加強複習', badgeColor: 'rose' };
 }
 
 /**
- * 解析單一平時成績工作表（自動支援單列標題 & 雙列群組標題，計算各項平時平均、班級平均與單元走勢）
+ * 解析單一平時成績工作表（自動計算四大分項平均、各科平時總均、班級平均、PR值、單元走勢）
  */
 function parseDailySubjectSheet(sheet) {
+  var data = sheet.getDataRange().getValues();
+  if (!data || data.length < 2) return null;
+
   var sheetName = sheet.getName();
-  var range = sheet.getDataRange();
-  var data = range.getValues();
+  var sheetTitle = sheetName;
 
-  if (data.length < 2) return null;
-
-  // 尋找包含「座號」或「姓名」的主標題列
   var headerRowIdx = -1;
   for (var r = 0; r < Math.min(5, data.length); r++) {
     var rowStr = data[r].join(' ');
@@ -398,42 +495,33 @@ function parseDailySubjectSheet(sheet) {
       break;
     }
   }
-  if (headerRowIdx === -1) headerRowIdx = 1;
-
-  var groupRow = null;
-  var itemHeaderRow = data[headerRowIdx];
-  var dataStartRowIdx = headerRowIdx + 1;
+  if (headerRowIdx === -1) return null;
 
   if (headerRowIdx > 0) {
-    var prevRow = data[headerRowIdx - 1];
-    var nonEmptyPrev = 0;
-    for (var pc = 0; pc < prevRow.length; pc++) {
-      if ((prevRow[pc] || '').toString().trim()) nonEmptyPrev++;
-    }
-    if (nonEmptyPrev >= 2) {
-      groupRow = prevRow;
+    var titleCandidates = data[0].filter(function(cell) {
+      var s = (cell || '').toString().trim();
+      return s && s !== '📌 學生名單';
+    });
+    if (titleCandidates.length > 0) sheetTitle = titleCandidates[0].toString().trim();
+  }
+
+  var nextRow = (headerRowIdx + 1 < data.length) ? data[headerRowIdx + 1] : null;
+  var isTwoRowHeader = false;
+  if (nextRow) {
+    var firstSeatCandidate = (nextRow[0] !== null && nextRow[0] !== undefined) ? nextRow[0].toString().trim() : '';
+    var firstNameCandidate = (nextRow[1] !== null && nextRow[1] !== undefined) ? nextRow[1].toString().trim() : '';
+    var hasSubHeaders = nextRow.slice(2).some(function(c) {
+      var s = (c || '').toString().trim();
+      return /^[LUlu]?\d{1,2}$/.test(s) || s.indexOf('L') === 0 || s.indexOf('平時') !== -1 || s.indexOf('平均') !== -1;
+    });
+    if ((!firstSeatCandidate || isNaN(parseInt(firstSeatCandidate, 10))) && !firstNameCandidate && hasSubHeaders) {
+      isTwoRowHeader = true;
     }
   }
 
-  if (headerRowIdx + 1 < data.length) {
-    var nextRow = data[headerRowIdx + 1];
-    var nextRowSeat = (nextRow[0] || '').toString().trim();
-    var nextRowName = (nextRow[1] || '').toString().trim();
-    var nextRowJoined = nextRow.slice(2).join(' ');
-    if (!nextRowSeat && !nextRowName && (nextRowJoined.indexOf('L1') !== -1 || nextRowJoined.indexOf('1') !== -1)) {
-      groupRow = data[headerRowIdx];
-      itemHeaderRow = nextRow;
-      dataStartRowIdx = headerRowIdx + 2;
-    }
-  }
-
-  var sheetTitle = sheetName;
-  if (headerRowIdx >= 1 && data[0][0]) {
-    var firstCell = data[0][0].toString().trim();
-    if (firstCell && firstCell.indexOf('座號') === -1) {
-      sheetTitle = firstCell;
-    }
-  }
+  var groupRow = isTwoRowHeader ? data[headerRowIdx] : null;
+  var itemHeaderRow = isTwoRowHeader ? data[headerRowIdx + 1] : data[headerRowIdx];
+  var dataStartRowIdx = isTwoRowHeader ? headerRowIdx + 2 : headerRowIdx + 1;
 
   var seatCol = 0;
   var nameCol = 1;
@@ -477,11 +565,11 @@ function parseDailySubjectSheet(sheet) {
       pillarKey: catInfo.key,
       pillarLabel: catInfo.label,
       pillarShort: catInfo.shortLabel,
+      pillarIcon: catInfo.icon,
       unitCode: unitCode
     });
   }
 
-  // 第一階段：掃描全班學生各欄成績，計算每項平時評量的班級平均、最高分、最低分
   var rawStudents = [];
   var colSums = {};
   var colCounts = {};
@@ -524,7 +612,6 @@ function parseDailySubjectSheet(sheet) {
     colClassAvgs[cIdx] = colCounts[cIdx] > 0 ? Number((colSums[cIdx] / colCounts[cIdx]).toFixed(1)) : null;
   }
 
-  // 第二階段：計算每位學生的四大平時類別平均、本科平時總平均、各單元成績脈絡折線
   var studentMap = {};
   var classOverallSum = 0;
   var classOverallCount = 0;
@@ -558,6 +645,7 @@ function parseDailySubjectSheet(sheet) {
       var numScore = (rawVal !== '' && rawVal !== null && !isNaN(Number(rawVal))) ? Number(rawVal) : null;
       var classAvg = colClassAvgs[colMeta.colIdx];
       var gradeInfo = getScoreGradeInfo(numScore);
+      var diffVal = (numScore !== null && classAvg !== null) ? Number((numScore - classAvg).toFixed(1)) : null;
 
       var bkt = pillarBuckets[colMeta.pillarKey] || pillarBuckets.quiz;
       if (numScore !== null) {
@@ -565,51 +653,57 @@ function parseDailySubjectSheet(sheet) {
         allValidScores.push(numScore);
       }
 
-      var uKey = colMeta.unitCode;
-      if (uKey) {
-        if (!unitMap[uKey]) {
-          unitMap[uKey] = {
-            unit: uKey,
-            scores: [],
-            classAvgs: [],
-            byPillar: {}
-          };
-          unitOrder.push(uKey);
-        }
-        if (numScore !== null) {
-          unitMap[uKey].scores.push(numScore);
-          unitMap[uKey].byPillar[colMeta.pillarKey] = numScore;
-        }
-        if (classAvg !== null) {
-          unitMap[uKey].classAvgs.push(classAvg);
-          unitMap[uKey].byPillar[colMeta.pillarKey + '_classAvg'] = classAvg;
-        }
+      var uKey = colMeta.unitCode || '平時';
+      if (!unitMap[uKey]) {
+        unitMap[uKey] = {
+          unit: uKey,
+          scores: [],
+          classAvgs: [],
+          byPillar: { workbook: [], homework: [], foundation: [], quiz: [] },
+          classByPillar: { workbook: [], homework: [], foundation: [], quiz: [] }
+        };
+        unitOrder.push(uKey);
+      }
+      if (numScore !== null) {
+        unitMap[uKey].scores.push(numScore);
+        unitMap[uKey].byPillar[colMeta.pillarKey].push(numScore);
+      }
+      if (classAvg !== null) {
+        unitMap[uKey].classAvgs.push(classAvg);
+        unitMap[uKey].classByPillar[colMeta.pillarKey].push(classAvg);
       }
 
       items.push({
+        name: colMeta.title,
         title: colMeta.title,
         shortTitle: colMeta.shortTitle,
+        unit: uKey,
+        unitCode: uKey,
+        category: colMeta.pillarKey,
         pillarKey: colMeta.pillarKey,
+        categoryLabel: colMeta.pillarShort,
         pillarLabel: colMeta.pillarLabel,
         pillarShort: colMeta.pillarShort,
-        unitCode: colMeta.unitCode,
+        categoryIcon: colMeta.pillarIcon,
         score: numScore,
         classAvg: classAvg,
-        diffFromClass: (numScore !== null && classAvg !== null) ? Number((numScore - classAvg).toFixed(1)) : null,
+        diffFromClass: diffVal,
         gradeLevel: gradeInfo.level,
         gradeLabel: gradeInfo.label,
         badgeColor: gradeInfo.badgeColor
       });
     }
 
-    var pillarsSummary = {};
     var pillarKeys = ['workbook', 'homework', 'foundation', 'quiz'];
     var pillarMetaMap = {
       workbook: { label: '習作平時成績', shortLabel: '習作平均', icon: '📘' },
       homework: { label: '作業卷平時成績', shortLabel: '作業卷平均', icon: '📝' },
-      foundation: { label: '語詞/聽寫平時成績', shortLabel: '語詞平均', icon: '🔤' },
+      foundation: { label: '語詞與基礎平時', shortLabel: '語詞/基礎均', icon: '🔤' },
       quiz: { label: '單元測驗卷成績', shortLabel: '測驗卷平均', icon: '🎯' }
     };
+
+    var pillarsArray = [];
+    var pillarsSummaryObj = {};
 
     for (var pkIdx = 0; pkIdx < pillarKeys.length; pkIdx++) {
       var pk = pillarKeys[pkIdx];
@@ -630,7 +724,7 @@ function parseDailySubjectSheet(sheet) {
         pillarClassCounts[pk] += 1;
       }
       var pGrade = getScoreGradeInfo(pAvg);
-      pillarsSummary[pk] = {
+      var pObj = {
         key: pk,
         label: pillarMetaMap[pk].label,
         shortLabel: pillarMetaMap[pk].shortLabel,
@@ -642,6 +736,8 @@ function parseDailySubjectSheet(sheet) {
         badge: pGrade.label,
         badgeColor: pGrade.badgeColor
       };
+      pillarsArray.push(pObj);
+      pillarsSummaryObj[pk] = pObj;
     }
 
     var overallAvg = null;
@@ -654,42 +750,57 @@ function parseDailySubjectSheet(sheet) {
       allStudentAverages.push(overallAvg);
     }
 
+    var avgHelper = function(arr) {
+      if (!arr || arr.length === 0) return null;
+      var sum = 0;
+      for (var idx = 0; idx < arr.length; idx++) sum += arr[idx];
+      return Number((sum / arr.length).toFixed(1));
+    };
+
     var unitTimeline = unitOrder.map(function(u) {
       var uObj = unitMap[u];
-      var uAvg = null;
-      if (uObj.scores.length > 0) {
-        var us = 0;
-        for (var ui = 0; ui < uObj.scores.length; ui++) us += uObj.scores[ui];
-        uAvg = Number((us / uObj.scores.length).toFixed(1));
-      }
-      var cAvg = null;
-      if (uObj.classAvgs.length > 0) {
-        var cs = 0;
-        for (var ci = 0; ci < uObj.classAvgs.length; ci++) cs += uObj.classAvgs[ci];
-        cAvg = Number((cs / uObj.classAvgs.length).toFixed(1));
-      }
+      var uAvg = avgHelper(uObj.scores);
+      var cAvg = avgHelper(uObj.classAvgs);
+      var wbAvg = avgHelper(uObj.byPillar.workbook);
+      var wbClass = avgHelper(uObj.classByPillar.workbook);
+      var hwAvg = avgHelper(uObj.byPillar.homework);
+      var hwClass = avgHelper(uObj.classByPillar.homework);
+      var fdAvg = avgHelper(uObj.byPillar.foundation);
+      var fdClass = avgHelper(uObj.classByPillar.foundation);
+      var qzAvg = avgHelper(uObj.byPillar.quiz);
+      var qzClass = avgHelper(uObj.classByPillar.quiz);
+
       return {
         unit: u,
         overallScore: uAvg,
+        classOverallAvg: cAvg,
         classAvg: cAvg,
-        workbook: uObj.byPillar.workbook !== undefined ? uObj.byPillar.workbook : null,
-        workbookClassAvg: uObj.byPillar.workbook_classAvg !== undefined ? uObj.byPillar.workbook_classAvg : cAvg,
-        homework: uObj.byPillar.homework !== undefined ? uObj.byPillar.homework : null,
-        homeworkClassAvg: uObj.byPillar.homework_classAvg !== undefined ? uObj.byPillar.homework_classAvg : cAvg,
-        foundation: uObj.byPillar.foundation !== undefined ? uObj.byPillar.foundation : null,
-        foundationClassAvg: uObj.byPillar.foundation_classAvg !== undefined ? uObj.byPillar.foundation_classAvg : cAvg,
-        quiz: uObj.byPillar.quiz !== undefined ? uObj.byPillar.quiz : null,
-        quizClassAvg: uObj.byPillar.quiz_classAvg !== undefined ? uObj.byPillar.quiz_classAvg : cAvg
+        workbook: wbAvg,
+        classWorkbook: wbClass !== null ? wbClass : cAvg,
+        workbookClassAvg: wbClass !== null ? wbClass : cAvg,
+        homework: hwAvg,
+        classHomework: hwClass !== null ? hwClass : cAvg,
+        homeworkClassAvg: hwClass !== null ? hwClass : cAvg,
+        foundation: fdAvg,
+        classFoundation: fdClass !== null ? fdClass : cAvg,
+        foundationClassAvg: fdClass !== null ? fdClass : cAvg,
+        quiz: qzAvg,
+        classQuiz: qzClass !== null ? qzClass : cAvg,
+        quizClassAvg: qzClass !== null ? qzClass : cAvg
       };
     });
 
+    var shortSubj = inferSubjectShortName(sheetName, sheetTitle);
     studentMap[st.seat] = {
+      subject: shortSubj,
       sheetName: sheetName,
       subjectTitle: sheetTitle,
-      subjectShortName: inferSubjectShortName(sheetName, sheetTitle),
+      subjectShortName: shortSubj,
       overallAverage: overallAvg,
+      totalItems: allValidScores.length,
       totalScoresCount: allValidScores.length,
-      pillars: pillarsSummary,
+      pillars: pillarsArray,
+      pillarsMap: pillarsSummaryObj,
       unitTimeline: unitTimeline,
       items: items
     };
@@ -706,7 +817,6 @@ function parseDailySubjectSheet(sheet) {
     stRecord.classOverallAverage = subjectClassAvg;
     stRecord.diffFromClassAvg = stRecord.overallAverage !== null ? Number((stRecord.overallAverage - subjectClassAvg).toFixed(1)) : null;
 
-    // 計算平時總均 PR 值
     if (stRecord.overallAverage !== null && allStudentAverages.length > 0) {
       var belowCnt = 0;
       for (var idx = 0; idx < allStudentAverages.length; idx++) {
@@ -717,13 +827,10 @@ function parseDailySubjectSheet(sheet) {
       stRecord.prValue = null;
     }
 
-    ['workbook', 'homework', 'foundation', 'quiz'].forEach(function(pk) {
-      if (stRecord.pillars[pk]) {
-        stRecord.pillars[pk].classAverage = pillarClassAvgs[pk];
-        stRecord.pillars[pk].diffFromClass = stRecord.pillars[pk].average !== null
-          ? Number((stRecord.pillars[pk].average - pillarClassAvgs[pk]).toFixed(1))
-          : null;
-      }
+    stRecord.pillars.forEach(function(pItem) {
+      var cAvg = pillarClassAvgs[pItem.key];
+      pItem.classAverage = cAvg;
+      pItem.diffFromClass = pItem.average !== null ? Number((pItem.average - cAvg).toFixed(1)) : null;
     });
     stRecord.teacherAdvice = buildDailyScoreDiagnosticAdvice(stRecord);
   });
@@ -757,40 +864,38 @@ function buildDailyScoreDiagnosticAdvice(stRecord) {
   var sub = stRecord.subjectShortName || '本科';
   var parts = [];
 
-  var wb = stRecord.pillars && stRecord.pillars.workbook ? stRecord.pillars.workbook.average : null;
-  var hw = stRecord.pillars && stRecord.pillars.homework ? stRecord.pillars.homework.average : null;
-  var qz = stRecord.pillars && stRecord.pillars.quiz ? stRecord.pillars.quiz.average : null;
+  var pMap = stRecord.pillarsMap || {};
+  var wb = pMap.workbook ? pMap.workbook.average : null;
+  var qz = pMap.quiz ? pMap.quiz.average : null;
 
   if (stRecord.overallAverage !== null) {
     if (stRecord.overallAverage >= 90) {
-      parts.push('孩子在' + sub + '科的平時總平均達 ' + stRecord.overallAverage + ' 分（班均 ' + stRecord.classOverallAverage + ' 分），整體基礎非常扎實穩健！');
+      parts.push('【' + sub + '】平時總平均達 ' + stRecord.overallAverage + ' 分（班均 ' + stRecord.classOverallAverage + ' 分），平時表現非常扎實穩健！');
     } else if (stRecord.overallAverage >= 80) {
-      parts.push('孩子在' + sub + '科的平時總平均為 ' + stRecord.overallAverage + ' 分，各類平時表現穩定良好。');
+      parts.push('【' + sub + '】平時總平均為 ' + stRecord.overallAverage + ' 分（班均 ' + stRecord.classOverallAverage + ' 分），各類平時表現穩定良好。');
     } else {
-      parts.push('孩子在' + sub + '科的平時總平均為 ' + stRecord.overallAverage + ' 分，建議透過各單元平時測驗的分數變化，逐步鞏固核心概念。');
+      parts.push('【' + sub + '】平時總平均為 ' + stRecord.overallAverage + ' 分（班均 ' + stRecord.classOverallAverage + ' 分），建議透過各單元平時測驗的分數變化，逐步鞏固核心概念。');
     }
   }
 
-  // 對比習作/作業卷平時分數 vs 單元測驗卷分數
   if (wb !== null && qz !== null && (wb - qz >= 8)) {
-    parts.push('從四大分項成績觀察，孩子的【習作/作業平時成績】（' + wb + '分）明顯高於【單元測驗卷成績】（' + qz + '分），代表平時課堂練習很認真，但面對綜合性單元測驗時較容易緊張或遇到變化題型卡關，建議考前多練習綜合應用題型。');
+    parts.push('從分項平均觀察，習作平時平均（' + wb + '分）明顯高於單元測驗卷平均（' + qz + '分），代表平時隨堂練習認真，但面對綜合測驗卷變化題型時較易失分，考前建議多練習綜合應用題。');
   } else if (qz !== null && qz >= 90) {
-    parts.push('【單元測驗卷】平均達 ' + qz + ' 分，顯示各課核心觀念融會貫通，應試穩定度極佳！');
+    parts.push('單元測驗卷平均達 ' + qz + ' 分，顯示各課核心觀念融會貫通，應試穩定度極佳！');
   }
 
-  // 尋找單元折線圖中的最高與最弱單元
   if (stRecord.unitTimeline && stRecord.unitTimeline.length >= 2) {
     var lowestUnit = null;
     var highestUnit = null;
     stRecord.unitTimeline.forEach(function(u) {
-      var val = u.quiz !== null ? u.quiz : u.overallScore;
+      var val = u.overallScore !== null ? u.overallScore : u.quiz;
       if (val !== null) {
         if (!lowestUnit || val < lowestUnit.val) lowestUnit = { unit: u.unit, val: val };
         if (!highestUnit || val > highestUnit.val) highestUnit = { unit: u.unit, val: val };
       }
     });
-    if (highestUnit && lowestUnit && highestUnit.unit !== lowestUnit.unit && (highestUnit.val - lowestUnit.val >= 10)) {
-      parts.push('在單元歷程走勢中，【' + highestUnit.unit + '】（' + highestUnit.val + '分）表現最為出色；而【' + lowestUnit.unit + '】（' + lowestUnit.val + '分）分數相對回落，建議段考前優先針對【' + lowestUnit.unit + '】的錯題觀念進行重點複習！');
+    if (highestUnit && lowestUnit && highestUnit.unit !== lowestUnit.unit && (highestUnit.val - lowestUnit.val >= 8)) {
+      parts.push('在單元歷程走勢中，' + highestUnit.unit + '（均分 ' + highestUnit.val + '分）表現最佳；而 ' + lowestUnit.unit + '（均分 ' + lowestUnit.val + '分）相對偏低，建議期中/期末考前優先複習 ' + lowestUnit.unit + '！');
     }
   }
 
@@ -815,6 +920,7 @@ function checkSystemStatus() {
 
   if (!sSheet) {
     return {
+      status: 'error',
       success: false,
       message: '找不到【學生名冊】分頁！請在試算表上方點選【⚡ MPScore-Daily 平時成績工具 > 🛠️ 建立初始表格】。'
     };
@@ -822,6 +928,7 @@ function checkSystemStatus() {
 
   var studentCount = Math.max(0, sSheet.getLastRow() - 1);
   return {
+    status: 'success',
     success: true,
     message: '連線成功！已載入 ' + studentCount + ' 位學生名冊與 ' + subjectNames.length + ' 個平時成績分頁。',
     spreadsheetName: ss.getName(),
@@ -836,7 +943,7 @@ function checkSystemStatus() {
 function getStudentDailyPortfolioByToken(token) {
   var cleanToken = (token || '').toString().trim().toUpperCase();
   if (!cleanToken) {
-    return { success: false, message: '請輸入或掃描有效的專屬查詢代碼！' };
+    return { status: 'error', success: false, message: '請輸入或掃描有效的專屬查詢代碼！' };
   }
 
   var cache = CacheService.getScriptCache();
@@ -851,7 +958,7 @@ function getStudentDailyPortfolioByToken(token) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sSheet = ss.getSheetByName('學生名冊');
   if (!sSheet) {
-    return { success: false, message: '系統尚未初始化【學生名冊】分頁。' };
+    return { status: 'error', success: false, message: '系統尚未初始化【學生名冊】分頁。' };
   }
 
   var sData = sSheet.getDataRange().getValues();
@@ -861,10 +968,11 @@ function getStudentDailyPortfolioByToken(token) {
     var rowTok = (sData[r][3] || '').toString().trim().toUpperCase();
     var enabled = sData[r][4] !== false && sData[r][4].toString().toUpperCase() !== 'FALSE';
     if (rowTok === cleanToken && enabled) {
-      var cls = (sData[r][0] || '605').toString().trim();
+      var cls = (sData[r][0] || '501班').toString().trim();
       var seat = normalizeSeatNumber(sData[r][1]);
       matchedStudent = {
         className: cls,
+        seatNo: seat,
         seatNumber: seat,
         name: (sData[r][2] || '').toString().trim(),
         token: (sData[r][3] || '').toString().trim(),
@@ -875,26 +983,34 @@ function getStudentDailyPortfolioByToken(token) {
   }
 
   if (!matchedStudent) {
-    return { success: false, message: '查無此專屬代碼或尚未啟用，請確認通知單上的代碼是否正確。' };
+    return { status: 'error', success: false, message: '查無此專屬代碼或尚未啟用，請確認通知單上的代碼是否正確。' };
   }
 
   var sheets = ss.getSheets();
   var subjectsData = [];
+  var combinedAdvice = [];
 
   for (var i = 0; i < sheets.length; i++) {
     var sh = sheets[i];
     if (isSystemSheet(sh.getName())) continue;
     var parsed = parseDailySubjectSheet(sh);
     if (parsed && parsed.studentMap[matchedStudent.seatNumber]) {
-      subjectsData.push(parsed.studentMap[matchedStudent.seatNumber]);
+      var stSubj = parsed.studentMap[matchedStudent.seatNumber];
+      subjectsData.push(stSubj);
+      if (stSubj.teacherAdvice) combinedAdvice.push(stSubj.teacherAdvice);
     }
   }
 
+  matchedStudent.subjects = subjectsData;
+  matchedStudent.teacherAdvice = combinedAdvice.join(' ');
+
+  var nowStr = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'Asia/Taipei', 'yyyy-MM-dd HH:mm');
   var responseObj = {
+    status: 'success',
     success: true,
     student: matchedStudent,
     subjects: subjectsData,
-    updatedAt: new Date().toISOString()
+    updatedAt: nowStr
   };
 
   try {
@@ -905,29 +1021,31 @@ function getStudentDailyPortfolioByToken(token) {
 }
 
 /**
- * 教師端同步名冊與全班各科平時成績統計（供 A4 通知小卡 PDF 預覽與手機沙盒模擬使用）
+ * 教師端同步名冊與全班各科平時成績統計（供 A4 通知小卡 PDF 預覽與全班總表使用）
  */
 function getStudentListForTeacher() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sSheet = ss.getSheetByName('學生名冊');
   if (!sSheet) {
-    return { success: false, message: '找不到【學生名冊】分頁！請先建立初始表格。' };
+    return { status: 'error', success: false, message: '找不到【學生名冊】分頁！請先建立初始表格。' };
   }
 
   var sData = sSheet.getDataRange().getValues();
   var students = [];
   for (var r = 1; r < sData.length; r++) {
-    var cls = (sData[r][0] || '605').toString().trim();
+    var cls = (sData[r][0] || '501班').toString().trim();
     var seat = normalizeSeatNumber(sData[r][1]);
     var name = (sData[r][2] || '').toString().trim();
     var token = (sData[r][3] || '').toString().trim();
     if (!seat && !name) continue;
     students.push({
       className: cls,
+      seatNo: seat,
       seatNumber: seat,
       name: name,
       token: token,
       studentId: cls + '-' + seat,
+      subjects: [],
       subjectStats: {}
     });
   }
@@ -946,38 +1064,110 @@ function getStudentListForTeacher() {
       var st = students[s];
       var stSub = parsed.studentMap[st.seatNumber];
       if (stSub) {
+        st.subjects.push(stSub);
         st.subjectStats[parsed.sheetName] = stSub;
       }
     }
   }
 
+  var nowStr = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'Asia/Taipei', 'yyyy-MM-dd HH:mm');
   return {
+    status: 'success',
     success: true,
+    updatedAt: nowStr,
     students: students,
     subjectList: subjectList
   };
 }
 
 /**
- * 🔄 用最新成績名單，更新「學生名冊」
+ * 📤 將「學生名冊」的座號與姓名同步至所有科目平時成績分頁（只更新座號與姓名，100% 保留已輸入的各欄分數！）
+ */
+function syncRosterToSubjectSheets(silent) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ui = SpreadsheetApp.getUi();
+  var sSheet = ss.getSheetByName('學生名冊');
+  if (!sSheet || sSheet.getLastRow() <= 1) {
+    if (!silent) ui.alert('【學生名冊】中尚無學生資料！');
+    return;
+  }
+
+  var sData = sSheet.getRange(2, 1, sSheet.getLastRow() - 1, 5).getValues();
+  var rosterList = [];
+  for (var i = 0; i < sData.length; i++) {
+    var seat = normalizeSeatNumber(sData[i][1] || (i + 1));
+    var name = (sData[i][2] || '').toString().trim();
+    if (seat || name) {
+      rosterList.push([seat, name]);
+    }
+  }
+
+  if (rosterList.length === 0) return;
+
+  var sheets = ss.getSheets();
+  var updatedSheets = [];
+
+  for (var idx = 0; idx < sheets.length; idx++) {
+    var sh = sheets[idx];
+    if (isSystemSheet(sh.getName())) continue;
+
+    var data = sh.getDataRange().getValues();
+    var headerRowIdx = 1;
+    for (var r = 0; r < Math.min(5, data.length); r++) {
+      var rowStr = data[r].join(' ');
+      if (rowStr.indexOf('座號') !== -1 || rowStr.indexOf('姓名') !== -1) {
+        headerRowIdx = r;
+        break;
+      }
+    }
+
+    var startRow = headerRowIdx + 2; // 1-indexed 資料起始列
+    sh.getRange(startRow, 1, rosterList.length, 2).setValues(rosterList).setHorizontalAlignment('center');
+    updatedSheets.push(sh.getName());
+  }
+
+  if (!silent) {
+    ui.alert(
+      '✅ 姓名同步完成！\n\n' +
+      '已將【學生名冊】的 ' + rosterList.length + ' 位學生姓名同步更新至：\n' +
+      '【' + updatedSheets.join('、') + '】\n\n' +
+      '（各科原有的平時成績分數皆完整保留）'
+    );
+  }
+}
+
+/**
+ * 📥 從成績分頁匯入名單至「學生名冊」（含雙向防呆保護與名單預覽確認，絕不誤蓋老師在學生名冊輸入的真實姓名！）
  */
 function syncStudentsFromSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var ui = SpreadsheetApp.getUi();
+  var activeSheet = ss.getActiveSheet();
 
-  var sSheet = ss.getSheetByName('學生名冊');
-  if (!sSheet) {
-    sSheet = ss.insertSheet('學生名冊', 0);
-    sSheet.getRange(1, 1, 1, 5).setValues([['班級', '座號', '姓名', '專屬代碼', '啟用狀態']])
-      .setBackground('#b45309').setFontColor('#ffffff').setFontWeight('bold').setHorizontalAlignment('center');
+  // 若老師目前停留在【學生名冊】分頁點擊此功能，代表老師其實是剛改完【學生名冊】，想要把【學生名冊】同步到各科成績表！
+  if (activeSheet && activeSheet.getName() === '學生名冊') {
+    var resp = ui.alert(
+      '💡 請選擇名單同步方向',
+      '您目前停留在【學生名冊】分頁。\n\n' +
+      '請問您是要將【學生名冊】裡修改好的真實學生姓名，同步更新到「國語平時 / 數學平時 / 社會平時」等各科分頁嗎？\n' +
+      '（點選「是」將把學生名冊的姓名寫入各科分頁，且保留原本分數！）',
+      ui.ButtonSet.YES_NO
+    );
+    if (resp === ui.Button.YES) {
+      syncRosterToSubjectSheets(false);
+    }
+    return;
   }
 
-  var sheets = ss.getSheets();
-  var targetSheet = null;
-  for (var i = 0; i < sheets.length; i++) {
-    if (!isSystemSheet(sheets[i].getName())) {
-      targetSheet = sheets[i];
-      break;
+  // 若老師停留在某個科目分頁（例如：國語平時），則以該分頁為來源；否則找第一個科目分頁
+  var targetSheet = (!isSystemSheet(activeSheet.getName())) ? activeSheet : null;
+  if (!targetSheet) {
+    var sheets = ss.getSheets();
+    for (var i = 0; i < sheets.length; i++) {
+      if (!isSystemSheet(sheets[i].getName())) {
+        targetSheet = sheets[i];
+        break;
+      }
     }
   }
 
@@ -986,38 +1176,66 @@ function syncStudentsFromSheet() {
     return;
   }
 
+  var data = targetSheet.getDataRange().getValues();
+  var headerRowIdx = -1;
+  var seatCol = 0;
+  var nameCol = 1;
+
+  for (var r = 0; r < Math.min(5, data.length); r++) {
+    var rowStr = data[r].join(' ');
+    if (rowStr.indexOf('座號') !== -1 || rowStr.indexOf('姓名') !== -1) {
+      headerRowIdx = r;
+      for (var c = 0; c < data[r].length; c++) {
+        var hText = (data[r][c] || '').toString().trim();
+        if (hText.indexOf('座號') !== -1) seatCol = c;
+        if (hText.indexOf('姓名') !== -1) nameCol = c;
+      }
+      break;
+    }
+  }
+  if (headerRowIdx === -1) headerRowIdx = 1;
+
+  // 檢查是否為雙列標題
+  var dataStartRow = headerRowIdx + 1;
+  if (dataStartRow < data.length) {
+    var testSeat = (data[dataStartRow][seatCol] || '').toString().trim();
+    var testName = (data[dataStartRow][nameCol] || '').toString().trim();
+    if ((!testSeat || isNaN(parseInt(testSeat, 10))) && !testName) {
+      dataStartRow++;
+    }
+  }
+
+  var sSheet = ss.getSheetByName('學生名冊');
+  if (!sSheet) {
+    sSheet = ss.insertSheet('學生名冊', 0);
+    sSheet.getRange(1, 1, 1, 5).setValues([['班級', '座號', '姓名', '專屬代碼', '啟用狀態']])
+      .setBackground('#b45309').setFontColor('#ffffff').setFontWeight('bold').setHorizontalAlignment('center');
+  }
+
   var existingBySeat = {};
-  var fallbackClass = '605';
+  var fallbackClass = '501';
   var sData = sSheet.getDataRange().getValues();
   for (var s = 1; s < sData.length; s++) {
     var exCls = (sData[s][0] || '').toString().trim();
     var exSeat = normalizeSeatNumber(sData[s][1]);
+    var exName = (sData[s][2] || '').toString().trim();
     var exTok = (sData[s][3] || '').toString().trim();
     if (exCls) fallbackClass = exCls;
     if (exSeat) {
-      existingBySeat[exSeat] = { className: exCls || fallbackClass, token: exTok };
-    }
-  }
-
-  var data = targetSheet.getDataRange().getValues();
-  var headerRowIdx = 1;
-  for (var r = 0; r < Math.min(4, data.length); r++) {
-    if (data[r].join(' ').indexOf('座號') !== -1 || data[r].join(' ').indexOf('姓名') !== -1) {
-      headerRowIdx = r;
-      break;
+      existingBySeat[exSeat] = { className: exCls || fallbackClass, name: exName, token: exTok };
     }
   }
 
   var chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
   var newRoster = [];
 
-  for (var rowIdx = headerRowIdx + 1; rowIdx < data.length; rowIdx++) {
-    var seatVal = data[rowIdx][0] !== undefined ? data[rowIdx][0].toString().trim() : '';
-    var nameVal = data[rowIdx][1] !== undefined ? data[rowIdx][1].toString().trim() : '';
+  for (var rowIdx = dataStartRow; rowIdx < data.length; rowIdx++) {
+    var seatVal = data[rowIdx][seatCol] !== undefined ? data[rowIdx][seatCol].toString().trim() : '';
+    var nameVal = data[rowIdx][nameCol] !== undefined ? data[rowIdx][nameCol].toString().trim() : '';
     if (!seatVal && !nameVal) continue;
     if (seatVal.indexOf('平均') !== -1 || nameVal.indexOf('平均') !== -1) break;
 
-    var normSeat = normalizeSeatNumber(seatVal);
+    var normSeat = normalizeSeatNumber(seatVal || (newRoster.length + 1));
     var prev = existingBySeat[normSeat] || {};
     var token = prev.token;
     if (!token) {
@@ -1033,6 +1251,29 @@ function syncStudentsFromSheet() {
     return;
   }
 
+  // 防呆確認：顯示前 3 位學生姓名，讓老師確認是否真的要用該分頁覆蓋【學生名冊】
+  var previewNames = newRoster.slice(0, 3).map(function(r) { return r[1] + '號 ' + r[2]; }).join('、');
+  var confirmRes = ui.alert(
+    '📥 確認從【' + targetSheet.getName() + '】匯入學生名單？',
+    '系統偵測到【' + targetSheet.getName() + '】共有 ' + newRoster.length + ' 位學生：\n' +
+    '（前三位：' + previewNames + '...）\n\n' +
+    '・點選「是 (YES)」：將用【' + targetSheet.getName() + '】的姓名更新【學生名冊】。\n' +
+    '・點選「否 (NO)」：若您是想把【學生名冊】的真實姓名同步去覆蓋各科成績表，請點「否」！',
+    ui.ButtonSet.YES_NO
+  );
+
+  if (confirmRes !== ui.Button.YES) {
+    var reverseRes = ui.alert(
+      '📤 是否改為將【學生名冊】同步至各科成績表？',
+      '請問您是否要將【學生名冊】目前的學生姓名，反向同步更新到【國語平時 / 數學平時 / 社會平時】等所有科目分頁？',
+      ui.ButtonSet.YES_NO
+    );
+    if (reverseRes === ui.Button.YES) {
+      syncRosterToSubjectSheets(false);
+    }
+    return;
+  }
+
   if (sSheet.getLastRow() > 1) {
     sSheet.getRange(2, 1, sSheet.getLastRow() - 1, 5).clearContent();
   }
@@ -1044,7 +1285,7 @@ function syncStudentsFromSheet() {
   sSheet.setColumnWidth(4, 130);
   sSheet.setColumnWidth(5, 100);
 
-  ui.alert('🎉 同步完成！已從【' + targetSheet.getName() + '】更新 ' + newRoster.length + ' 位學生名冊，並完整保留班級名稱與專屬代碼！');
+  ui.alert('🎉 匯入完成！已從【' + targetSheet.getName() + '】更新 ' + newRoster.length + ' 位學生至【學生名冊】，並完整保留班級名稱與專屬代碼！');
 }
 
 /**
@@ -1108,9 +1349,9 @@ function createNewSubjectSheetFromRoster() {
   var subShort = inferSubjectShortName(sheetTitle, sheetTitle).charAt(0);
   var headers = [
     '座號', '姓名',
-    subShort + '習L1', subShort + '習L2', subShort + '習L3', subShort + '習L4', subShort + '習L5',
-    '作業卷L1', '作業卷L2', '作業卷L3', '作業卷L4', '作業卷L5',
-    '測驗卷L1', '測驗卷L2', '測驗卷L3', '測驗卷L4', '測驗卷L5'
+    subShort + '習L1', subShort + '習L2', subShort + '習L3', subShort + '習L4', subShort + '習L5', subShort + '習L6',
+    '作業卷L1', '作業卷L2', '作業卷L3', '作業卷L4', '作業卷L5', '作業卷L6',
+    '測驗卷L1', '測驗卷L2', '測驗卷L3', '測驗卷L4', '測驗卷L5', '測驗卷L6'
   ];
 
   var sData = sSheet.getDataRange().getValues();
@@ -1125,7 +1366,7 @@ function createNewSubjectSheetFromRoster() {
 
   var newSheet = ss.insertSheet(sheetTitle);
   formatDailySubjectSheet(newSheet, sheetTitle + ' 平時成績紀錄', headers, rows);
-  ui.alert('🎉 已成功建立【' + sheetTitle + '】並自動帶入全班 ' + rows.length + ' 位學生名單！');
+  ui.alert('🎉 已成功建立【' + sheetTitle + '】並自動帶入【學生名冊】全班 ' + rows.length + ' 位學生名單！');
 }
 
 /**
@@ -1154,7 +1395,7 @@ function previewClassStatistics() {
 }
 
 /**
- * 📐 自動整理欄寬與表格排版
+ * 📐 自動整理欄寬與表格排版（內建安全凍結保護，絕不觸發合併儲存格凍結錯誤）
  */
 function autoFormatAndResizeAllSheets() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1174,7 +1415,7 @@ function autoFormatAndResizeAllSheets() {
       sh.setColumnWidth(5, 100);
       var lr = Math.max(2, sh.getLastRow());
       sh.getRange(1, 1, lr, 5).setVerticalAlignment('middle').setHorizontalAlignment('center');
-      sh.setFrozenRows(1);
+      safeFreezeSheet_(sh, 1, 0);
       count++;
     } else {
       var maxCol = Math.max(2, sh.getLastColumn());
@@ -1185,8 +1426,7 @@ function autoFormatAndResizeAllSheets() {
         sh.setColumnWidth(c, 82);
       }
       sh.getRange(1, 1, maxRow, maxCol).setVerticalAlignment('middle').setHorizontalAlignment('center');
-      sh.setFrozenRows(2);
-      sh.setFrozenColumns(2);
+      safeFreezeSheet_(sh, 2, 2);
       count++;
     }
   }
@@ -1205,13 +1445,14 @@ function appendDailyScores(body) {
   var rows = payload.rows || [];
 
   if (rows.length === 0) {
-    return { success: false, message: '沒有平時成績資料可儲存' };
+    return { status: 'error', success: false, message: '沒有平時成績資料可儲存' };
   }
 
   var sheet = ss.getSheetByName(sheetName) || ss.insertSheet(sheetName);
   formatDailySubjectSheet(sheet, sheetName + ' 平時成績紀錄', headers, rows);
 
   return {
+    status: 'success',
     success: true,
     message: '成功建立並更新【' + sheetName + '】，共 ' + rows.length + ' 位學生平時成績！',
     sheetName: sheetName,
@@ -1219,10 +1460,18 @@ function appendDailyScores(body) {
   };
 }
 
+// 相容別名（確保無論舊版或新版 Loader.gs 呼叫皆 100% 正常運作）
+function handleGetRequest(e) { return doGet(e); }
+function handlePostRequest(e) { return doPost(e); }
+function generateOrUpdateStudentTokens() { return generateTokensForStudents(); }
+function previewClassScoreSummary() { return previewClassStatistics(); }
+function createDemoDailySheets() { return setupStandardSheets(); }
+
 // 導出核心引擎供 Loader.gs 熱更新調用
 var MPScoreDailyEngine = {
   setupStandardSheets: setupStandardSheets,
   createNewSubjectSheetFromRoster: createNewSubjectSheetFromRoster,
+  syncRosterToSubjectSheets: syncRosterToSubjectSheets,
   syncStudentsFromSheet: syncStudentsFromSheet,
   generateTokensForStudents: generateTokensForStudents,
   previewClassStatistics: previewClassStatistics,

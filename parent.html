@@ -1468,15 +1468,88 @@
         function switchDemoStudent(demoToken) {
             const selectEl = document.getElementById('demoStudentSelect');
             if (selectEl) selectEl.value = demoToken;
-            loadStudentPortfolioByToken(demoToken);
+            loadStudentPortfolioByToken(demoToken, true);
         }
 
-        async function loadStudentPortfolioByToken(token) {
+        function normalizeCloudPayload(data) {
+            const st = data.student || {};
+            const rawSubjects = Array.isArray(st.subjects) ? st.subjects : (Array.isArray(data.subjects) ? data.subjects : []);
+            const adviceList = [];
+
+            const normalizedSubjects = rawSubjects.map(s => {
+                const rawPillars = Array.isArray(s.pillars)
+                    ? s.pillars
+                    : (s.pillars ? Object.values(s.pillars) : []);
+
+                const rawTimeline = (s.unitTimeline || []).map(u => ({
+                    unit: u.unit,
+                    overallScore: u.overallScore,
+                    classOverallAvg: u.classOverallAvg !== undefined ? u.classOverallAvg : u.classAvg,
+                    workbook: u.workbook,
+                    classWorkbook: u.classWorkbook !== undefined ? u.classWorkbook : u.workbookClassAvg,
+                    homework: u.homework,
+                    classHomework: u.classHomework !== undefined ? u.classHomework : u.homeworkClassAvg,
+                    foundation: u.foundation,
+                    classFoundation: u.classFoundation !== undefined ? u.classFoundation : u.foundationClassAvg,
+                    quiz: u.quiz,
+                    classQuiz: u.classQuiz !== undefined ? u.classQuiz : u.quizClassAvg
+                }));
+
+                const rawItems = (s.items || []).map(it => ({
+                    name: it.name || it.title || it.shortTitle || '平時評量',
+                    unit: it.unit || it.unitCode || '平時',
+                    category: it.category || it.pillarKey || 'workbook',
+                    categoryLabel: it.categoryLabel || it.pillarShort || '平時',
+                    categoryIcon: it.categoryIcon || '📊',
+                    score: it.score,
+                    classAvg: it.classAvg,
+                    diffFromClass: it.diffFromClass,
+                    gradeLabel: it.gradeLabel || getScoreBadgeInfo(it.score).label,
+                    gradeLevel: it.gradeLevel || getScoreBadgeInfo(it.score).level
+                }));
+
+                if (s.teacherAdvice) adviceList.push(s.teacherAdvice);
+
+                return {
+                    subject: s.subject || s.subjectShortName || s.sheetName || '平時',
+                    overallAverage: s.overallAverage,
+                    classOverallAverage: s.classOverallAverage,
+                    diffFromClassAvg: s.diffFromClassAvg,
+                    prValue: s.prValue || 80,
+                    totalItems: s.totalItems || s.totalScoresCount || rawItems.length,
+                    pillars: rawPillars,
+                    unitTimeline: rawTimeline,
+                    items: rawItems
+                };
+            });
+
+            return {
+                status: 'success',
+                updatedAt: (data.updatedAt || '最新學期平時成績').replace('T', ' ').slice(0, 16),
+                student: {
+                    seatNo: st.seatNo || st.seatNumber || '',
+                    name: st.name || '',
+                    className: st.className || '本班',
+                    token: st.token || '',
+                    subjects: normalizedSubjects,
+                    teacherAdvice: st.teacherAdvice || adviceList.join(' ')
+                }
+            };
+        }
+
+        async function loadStudentPortfolioByToken(token, forceDemo = false) {
             const cleanToken = String(token || '').trim().toUpperCase();
             document.getElementById('searchBanner').classList.add('hidden');
 
-            // 1. 優先檢查是否為內建 DEMO01 ~ DEMO05 範例代碼
-            if (DEMO_STUDENTS_DB[cleanToken]) {
+            const params = new URLSearchParams(window.location.search);
+            const urlApi = params.get('api');
+            if (urlApi) {
+                localStorage.setItem('mpdaily_api_url', urlApi);
+            }
+            const apiUrl = (urlApi || localStorage.getItem('mpdaily_api_url') || ((typeof CONFIG !== 'undefined' && CONFIG.API_URL) ? CONFIG.API_URL : '')).trim();
+
+            // 1. 若強制預覽範例或尚未綁定雲端試算表，且代碼屬於 DEMO01~DEMO05，載入內建範例
+            if ((forceDemo || !apiUrl) && DEMO_STUDENTS_DB[cleanToken]) {
                 document.getElementById('demoSwitcherWrap').classList.remove('hidden');
                 document.getElementById('demoSwitcherWrap').classList.add('flex');
                 const selectEl = document.getElementById('demoStudentSelect');
@@ -1486,27 +1559,33 @@
                 return;
             }
 
-            // 2. 若已綁定真實 Google Apps Script API_URL，向雲端拉取該學生的平時成績
-            const apiUrl = (typeof CONFIG !== 'undefined' && CONFIG.API_URL) ? CONFIG.API_URL.trim() : '';
             if (!apiUrl) {
                 showErrorState('尚未設定雲端試算表連線或代碼無效', `找不到代碼「${cleanToken}」的資料。若要測試展示模式，請輸入 DEMO01 ~ DEMO05。`);
                 return;
             }
 
+            // 2. 向雲端 Google Apps Script 試算表拉取該學生的平時成績
             document.getElementById('portfolioContainer').classList.add('hidden');
             document.getElementById('errorSection').classList.add('hidden');
             document.getElementById('loadingSection').classList.remove('hidden');
 
             try {
-                const res = await fetch(`${apiUrl}?token=${encodeURIComponent(cleanToken)}`);
+                const sep = apiUrl.includes('?') ? '&' : '?';
+                const res = await fetch(`${apiUrl}${sep}token=${encodeURIComponent(cleanToken)}`, { redirect: 'follow' });
                 const data = await res.json();
-                if (data && data.status === 'success' && data.student) {
-                    renderPortfolio(data);
+                if (data && (data.status === 'success' || data.success === true) && data.student) {
+                    renderPortfolio(normalizeCloudPayload(data));
+                } else if (DEMO_STUDENTS_DB[cleanToken]) {
+                    renderPortfolio(buildDemoPortfolio(DEMO_STUDENTS_DB[cleanToken]));
                 } else {
                     showErrorState('查無此平時成績代碼', data.message || `找不到查詢代碼「${cleanToken}」對應的平時成績紀錄，請確認代碼是否輸入正確。`);
                 }
             } catch (err) {
-                showErrorState('雲端連線失敗', '無法連線至 Google 試算表平時成績資料庫，請稍後再試或檢查網路連線。');
+                if (DEMO_STUDENTS_DB[cleanToken]) {
+                    renderPortfolio(buildDemoPortfolio(DEMO_STUDENTS_DB[cleanToken]));
+                } else {
+                    showErrorState('雲端連線失敗', '無法連線至 Google 試算表平時成績資料庫，請稍後再試或檢查網路連線。');
+                }
             }
         }
 
@@ -1524,7 +1603,7 @@
             const params = new URLSearchParams(window.location.search);
             const urlToken = params.get('token');
             if (urlToken) {
-                loadStudentPortfolioByToken(urlToken);
+                loadStudentPortfolioByToken(urlToken, false);
             } else {
                 // 預設啟動 DEMO01 讓使用者打開就能看到完整平時成績分析
                 document.getElementById('demoSwitcherWrap').classList.remove('hidden');

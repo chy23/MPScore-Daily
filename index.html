@@ -478,44 +478,79 @@
         // 1. 免維護 Loader.gs 啟動碼內容
         // =========================================================================
         const LOADER_GS_SOURCE = `/**
- * ⚡ MPScore-Daily — 免維護遠端載入器 (Loader.gs)
- * 請將此段程式碼貼入 Google 試算表「擴充功能 ➔ Apps Script」，存檔後重新整理試算表即可！
+ * MPScore-Daily - 學生平時成績歷程系統 GitHub 自動熱更新引導核心
+ * 只要在 Apps Script 貼上這段程式碼，未來 GitHub (chy23/MPScore-Daily) 有任何更新，
+ * 您的 Google 試算表都會全自動即時抓取最新版！
  */
-const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/chy23/MPScore-Daily/main/gas/';
+var GITHUB_CORE_URL = "https://raw.githubusercontent.com/chy23/MPScore-Daily/main/gas/Code.gs";
+var _cachedEngine = null;
 
-function loadRemoteCore_() {
-  const cache = CacheService.getScriptCache();
-  let code = cache.get('mpdaily_remote_core_v2');
-  if (!code) {
-    const res = UrlFetchApp.fetch(GITHUB_RAW_BASE + 'Code.gs?t=' + new Date().getTime());
-    code = res.getContentText();
-    cache.put('mpdaily_remote_core_v2', code, 21600);
+function setup() {
+  getEngine();
+  SpreadsheetApp.getActiveSpreadsheet();
+}
+
+function getEngine() {
+  if (!_cachedEngine) {
+    var t = new Date().getTime();
+    var response = UrlFetchApp.fetch(GITHUB_CORE_URL + "?t=" + t);
+    var code = response.getContentText();
+    (1, eval)(code);
+    if (typeof MPScoreDailyEngine !== 'undefined') {
+      _cachedEngine = MPScoreDailyEngine;
+    } else {
+      throw new Error("無法載入 MPScore-Daily 核心模組，請檢查 GitHub 網路連線。");
+    }
   }
-  eval(code);
+  return _cachedEngine;
 }
 
 function onOpen() {
-  SpreadsheetApp.getUi()
-    .createMenu('⚡ MPScore-Daily 平時成績工具')
-    .addItem('🔑 1. 產生或更新學生專屬查詢代碼', 'menuGenerateStudentTokens')
+  var ui = SpreadsheetApp.getUi();
+  ui.createMenu('⚡ MPScore-Daily 平時成績工具')
+    .addItem('🛠️ 建立初始表格（空白試算表第一次使用）', 'setupStandardSheets')
     .addSeparator()
-    .addItem('📊 2. 查看全班各科平時總均與分項平均統計', 'menuPreviewClassScoreSummary')
-    .addItem('🌱 3. 產生「國語/數學/社會」範例平時成績資料表', 'menuCreateDemoDailySheets')
+    .addItem('➕ 新增平時成績科目分頁（自動帶入學生名單）', 'createNewSubjectSheetFromRoster')
+    .addItem('📤 將「學生名冊」姓名同步至各科平時成績表', 'syncRosterToSubjectSheets')
+    .addItem('📥 從目前成績分頁匯入名單至「學生名冊」', 'syncStudentsFromSheet')
+    .addItem('🔑 為全班產生「家長查詢代碼」', 'generateTokensForStudents')
     .addSeparator()
-    .addItem('🔄 4. 清除快取並更新至最新雲端版本', 'menuClearCache')
+    .addItem('📊 查看全班各科平時總均與分項平均統計', 'previewClassStatistics')
+    .addItem('📐 自動整理欄寬與表格排版', 'autoFormatAndResizeAllSheets')
+    .addItem('🚀 立即更新雲端資料（改完分數點此）', 'clearSystemCache')
+    .addSeparator()
+    .addItem('📶 檢查系統連線狀態', 'testGitHubConnection')
     .addToUi();
 }
 
-function menuGenerateStudentTokens() { loadRemoteCore_(); generateOrUpdateStudentTokens(); }
-function menuPreviewClassScoreSummary() { loadRemoteCore_(); previewClassScoreSummary(); }
-function menuCreateDemoDailySheets() { loadRemoteCore_(); createDemoDailySheets(); }
-function menuClearCache() {
-  CacheService.getScriptCache().remove('mpdaily_remote_core_v2');
-  SpreadsheetApp.getUi().alert('✅ 已成功清除快取並同步至最新雲端版本！');
+function setupStandardSheets() { getEngine().setupStandardSheets(); }
+function createNewSubjectSheetFromRoster() { getEngine().createNewSubjectSheetFromRoster(); }
+function syncRosterToSubjectSheets() { getEngine().syncRosterToSubjectSheets(false); }
+function syncStudentsFromSheet() { getEngine().syncStudentsFromSheet(); }
+function generateTokensForStudents() { getEngine().generateTokensForStudents(); }
+function previewClassStatistics() { getEngine().previewClassStatistics(); }
+function autoFormatAndResizeAllSheets() { getEngine().autoFormatAndResizeAllSheets(); }
+function clearSystemCache() { getEngine().clearSystemCache(); }
+
+function doGet(e) {
+  try {
+    return getEngine().handleDoGet(e);
+  } catch (err) {
+    var out = { status: "error", success: false, message: "【Loader 熱更新執行異常】: " + err.toString() };
+    return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
+  }
 }
 
-function doGet(e) { loadRemoteCore_(); return handleGetRequest(e); }
-function doPost(e) { loadRemoteCore_(); return handlePostRequest(e); }`;
+function doPost(e) { return doGet(e); }
+
+function testGitHubConnection() {
+  try {
+    getEngine();
+    SpreadsheetApp.getUi().alert("🎉 連線成功！已成功載入最新版 MPScore-Daily 平時成績歷程核心模組。");
+  } catch (err) {
+    SpreadsheetApp.getUi().alert("⚠️ 連線失敗: " + err.toString());
+  }
+}`;
 
         // =========================================================================
         // 2. 內建 10 位範例學生平時成績資料（涵蓋國語、數學、社會三大科與四大分項平均）
@@ -674,24 +709,47 @@ function doPost(e) { loadRemoteCore_(); return handlePostRequest(e); }`;
                 return;
             }
 
+            if (inputUrl.includes('docs.google.com/spreadsheets')) {
+                statusMsg.textContent = '⚠️ 您貼上的是試算表網址，請貼上 Apps Script「部署 ➔ 網頁應用程式」取得的 https://script.google.com/macros/s/.../exec 網址。';
+                statusMsg.className = 'text-[11px] text-rose-600 font-bold';
+                return;
+            }
+
             statusMsg.textContent = '⏳ 正在從 Google 試算表同步全班各科平時成績與分項平均...';
             statusMsg.className = 'text-[11px] text-amber-700 font-bold';
 
             try {
-                const res = await fetch(`${inputUrl}?action=getRoster`);
-                const data = await res.json();
-                if (data && data.status === 'success' && Array.isArray(data.students)) {
+                const sep = inputUrl.includes('?') ? '&' : '?';
+                const res = await fetch(`${inputUrl}${sep}action=getStudentsForPrint`, { redirect: 'follow' });
+                const text = await res.text();
+                let data = null;
+                try {
+                    data = JSON.parse(text);
+                } catch (parseErr) {
+                    statusMsg.textContent = '⚠️ Apps Script 回傳非 JSON 頁面。請確認：(1) 已在 Apps Script 點選「執行 ➔ setup」完成授權；(2) 部署權限為「所有人 (Anyone)」。';
+                    statusMsg.className = 'text-[11px] text-rose-600 font-bold';
+                    return;
+                }
+
+                if (data && (data.status === 'success' || data.success === true) && Array.isArray(data.students)) {
                     localStorage.setItem('mpdaily_api_url', inputUrl);
                     currentRoster = data.students.map(st => {
-                        const normalizedSubjs = (st.subjects || []).map(s => {
+                        const rawSubjs = (Array.isArray(st.subjects) && st.subjects.length > 0)
+                            ? st.subjects
+                            : (st.subjectStats ? Object.values(st.subjectStats) : []);
+
+                        const normalizedSubjs = rawSubjs.map(s => {
                             const pillarObj = { workbook: null, homework: null, foundation: null, quiz: null };
                             if (Array.isArray(s.pillars)) {
                                 s.pillars.forEach(p => { pillarObj[p.key] = p.average; });
                             } else if (s.pillars) {
-                                Object.assign(pillarObj, s.pillars);
+                                Object.keys(s.pillars).forEach(k => {
+                                    const val = s.pillars[k];
+                                    pillarObj[k] = (val && typeof val === 'object') ? val.average : val;
+                                });
                             }
                             return {
-                                subject: s.subject,
+                                subject: s.subject || s.subjectShortName || s.sheetName || '平時',
                                 overallAverage: s.overallAverage,
                                 classOverallAverage: s.classOverallAverage,
                                 diffFromClassAvg: s.diffFromClassAvg,
@@ -699,23 +757,25 @@ function doPost(e) { loadRemoteCore_(); return handlePostRequest(e); }`;
                             };
                         });
                         return {
-                            seatNo: st.seatNo,
-                            name: st.name,
+                            seatNo: st.seatNo || st.seatNumber || '',
+                            name: st.name || '',
                             className: st.className || '本班',
-                            token: st.token,
+                            token: st.token || '',
                             selected: true,
                             subjects: normalizedSubjs
                         };
                     });
+                    statusMsg.textContent = `✅ 連線成功！已載入全班 ${currentRoster.length} 位學生平時成績。`;
+                    statusMsg.className = 'text-[11px] text-emerald-700 font-bold';
                     document.getElementById('rosterBadgeSource').textContent = `☁️ 已連線雲端試算表（共 ${currentRoster.length} 位學生）`;
                     document.getElementById('rosterUpdatedTime').textContent = `更新時間：${data.updatedAt || '剛剛'}`;
                     switchMainTab('print');
                 } else {
-                    statusMsg.textContent = '⚠️ 無法解析試算表資料，請確認已執行選單「1. 產生或更新學生專屬查詢代碼」。';
+                    statusMsg.textContent = `⚠️ ${data && data.message ? data.message : '無法解析試算表資料，請確認已執行選單「🛠️ 建立初始表格」。'}`;
                     statusMsg.className = 'text-[11px] text-rose-600 font-bold';
                 }
             } catch (e) {
-                statusMsg.textContent = '⚠️ 連線失敗，請確認部署權限已設為「所有人 (Anyone)」。';
+                statusMsg.textContent = '⚠️ 網路連線失敗，請確認：(1) 網址結尾為 /exec；(2) 部署權限已設為「所有人 (Anyone)」。';
                 statusMsg.className = 'text-[11px] text-rose-600 font-bold';
             }
         }
@@ -737,7 +797,10 @@ function doPost(e) { loadRemoteCore_(); return handlePostRequest(e); }`;
         function buildParentPortalUrl(token) {
             const base = window.location.href.replace(/\/[^\/]*$/, '/parent.html');
             const cfgMask = computeWebConfigBitmask();
-            return `${base}?token=${encodeURIComponent(token)}&cfg=${cfgMask}`;
+            const customApi = document.getElementById('apiUrlInput')?.value.trim() || localStorage.getItem('mpdaily_api_url') || '';
+            const defaultApi = (typeof CONFIG !== 'undefined' && CONFIG.API_URL) ? CONFIG.API_URL.trim() : '';
+            const apiParam = (customApi && customApi !== defaultApi) ? `&api=${encodeURIComponent(customApi)}` : '';
+            return `${base}?token=${encodeURIComponent(token)}&cfg=${cfgMask}${apiParam}`;
         }
 
         function handleOptionsChange() {
