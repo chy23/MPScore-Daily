@@ -114,7 +114,7 @@
                         <span class="font-black text-stone-800 tracking-tight text-sm sm:text-base">MPScore-Daily</span>
                         <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200/80">平時成績歷程手札</span>
                     </div>
-                    <p class="text-[11px] text-stone-500 hidden sm:block">各科平時成績統計 ‧ 四大分項平時均標 ‧ L1~L6 單元成績走勢</p>
+                    <p class="text-[11px] text-stone-500 hidden sm:block">各科平時成績統計 ‧ 四大分項平時均標 ‧ 掌握孩子學習趨勢</p>
                 </div>
             </div>
 
@@ -185,8 +185,8 @@
             <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto animate-spin text-2xl">
                 ⏳
             </div>
-            <p class="font-bold text-stone-700 text-base">正在彙整各科平時成績與單元常模資料...</p>
-            <p class="text-xs text-stone-400">正在同步最新習作、作業卷、語詞與單元測驗卷分數</p>
+            <p class="font-bold text-stone-700 text-base">正在彙整各科平時成績與班級常模資料...</p>
+            <p class="text-xs text-stone-400">正在同步最新作業與考試各項平時分數</p>
         </section>
 
         <!-- 錯誤提示狀態 -->
@@ -225,7 +225,7 @@
                             <span class="text-sm font-bold text-amber-100">平時評量歷程與各科均標分析</span>
                         </div>
                         <p id="heroSubtext" class="text-xs sm:text-sm text-amber-50/95 leading-relaxed max-w-xl">
-                            彙整本學期各單元「習作、作業卷、語詞聽寫、單元測驗卷」之平時得分表現，協助家長掌握平時學習穩定度與各單元強弱項。
+                            彙整本學期平時學習各項表現，協助家長掌握平時學習穩定度與各單元程度。
                         </p>
                     </div>
 
@@ -256,68 +256,53 @@
                     <h2 class="text-xs font-extrabold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
                         <span>📚</span> 選擇科目查看平時成績明細（點擊切換科目）
                     </h2>
-                    <span id="subjectCountTag" class="text-xs font-bold text-stone-500">共 3 科平時成績</span>
+                    <span id="subjectCountTag" class="text-xs font-bold text-stone-500">共 -- 科平時成績</span>
                 </div>
                 <div id="subjectTabsContainer" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <!-- JS 動態渲染各科平時總均卡片 -->
                 </div>
             </section>
 
-            <!-- 3. 模組一：四大平時評量分項平均剖析 (4 Formative Score Pillars) -->
+            <!-- 3. 模組一：平時評量分項平均剖析（僅顯示試算表有登記的分項） -->
             <section id="sectionPillars" class="warm-card rounded-3xl p-5 sm:p-6 space-y-4">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-200/80 pb-3.5">
                     <div>
                         <div class="flex items-center gap-2">
                             <span class="text-lg">📊</span>
                             <h3 class="font-black text-stone-800 text-base sm:text-lg">
-                                <span id="pillarSubjectTitle">國語</span> — 四大平時評量分項平均
+                                <span id="pillarSubjectTitle">--</span> — 平時評量分項平均
                             </h3>
                         </div>
-                        <p class="text-xs text-stone-500 mt-0.5">依評量性質自動歸納為「習作、作業卷、語詞/基礎、單元測驗卷」，對比班級該分項平均分數</p>
+                        <p id="pillarSubjectDesc" class="text-xs text-stone-500 mt-0.5">依評量性質自動歸納，對比班級該分項平均分數</p>
                     </div>
                     <div id="subjectSummaryPill" class="inline-flex items-center gap-2 bg-amber-50 border border-amber-200/90 px-3 py-1.5 rounded-xl self-start sm:self-auto">
                         <span class="text-xs font-bold text-stone-600">本科平時總平均：</span>
-                        <span id="currentSubjAvg" class="text-base font-black font-mono text-amber-700 tabular-nums">92.8</span>
-                        <span id="currentSubjClassAvg" class="text-[11px] font-bold text-stone-500 font-mono">(班均 88.5)</span>
+                        <span id="currentSubjAvg" class="text-base font-black font-mono text-amber-700 tabular-nums">--</span>
+                        <span id="currentSubjClassAvg" class="text-[11px] font-bold text-stone-500 font-mono">(--)</span>
                     </div>
                 </div>
 
-                <!-- 四大分項卡片網格 -->
-                <div id="pillarsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-                    <!-- JS 動態渲染 4 張平時分項平均卡 -->
+                <!-- 動態分項卡片網格 -->
+                <div id="pillarsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <!-- JS 動態渲染本科實際存在的分項平均卡 -->
                 </div>
             </section>
 
-            <!-- 4. 模組二：L1 ➔ L6 各單元平時成績走勢與常模對比圖 -->
+            <!-- 4. 模組二：各項平時成績表現走勢與班均對比圖 -->
             <section id="sectionTimeline" class="warm-card rounded-3xl p-5 sm:p-6 space-y-4">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-200/80 pb-3.5">
                     <div>
                         <div class="flex items-center gap-2">
                             <span class="text-lg">📈</span>
                             <h3 class="font-black text-stone-800 text-base sm:text-lg">
-                                各單元（L1 ➔ L6）平時成績走勢與班均對比
+                                平時成績表現走勢與班級平均對比
                             </h3>
                         </div>
-                        <p class="text-xs text-stone-500 mt-0.5">實線為「學生個人得分」，虛線為「全班該單元平均」，一眼掌握哪一課單元最穩健、哪一單元需考前加強</p>
+                        <p class="text-xs text-stone-500 mt-0.5">實線為「學生個人得分」，虛線為「全班該項平均」，一眼掌握每次作業與考試的穩定度</p>
                     </div>
 
-                    <!-- 走勢圖指標切換按鈕 -->
+                    <!-- 走勢圖指標切換按鈕（JS 依試算表實際存在的類別動態產生） -->
                     <div id="chartMetricTabs" class="flex flex-wrap items-center gap-1.5 bg-stone-100/90 p-1 rounded-xl border border-stone-200/70">
-                        <button onclick="switchChartMetric('overallScore')" data-metric="overallScore" class="chart-tab-btn px-2.5 py-1 rounded-lg text-xs font-bold transition bg-amber-500 text-white shadow-sm">
-                            🌟 單元總均
-                        </button>
-                        <button onclick="switchChartMetric('quiz')" data-metric="quiz" class="chart-tab-btn px-2.5 py-1 rounded-lg text-xs font-bold transition text-stone-600 hover:text-stone-900">
-                            🎯 測驗卷
-                        </button>
-                        <button onclick="switchChartMetric('workbook')" data-metric="workbook" class="chart-tab-btn px-2.5 py-1 rounded-lg text-xs font-bold transition text-stone-600 hover:text-stone-900">
-                            📘 習作
-                        </button>
-                        <button onclick="switchChartMetric('homework')" data-metric="homework" class="chart-tab-btn px-2.5 py-1 rounded-lg text-xs font-bold transition text-stone-600 hover:text-stone-900">
-                            📝 作業卷
-                        </button>
-                        <button onclick="switchChartMetric('foundation')" data-metric="foundation" class="chart-tab-btn px-2.5 py-1 rounded-lg text-xs font-bold transition text-stone-600 hover:text-stone-900">
-                            🔤 語詞聽寫
-                        </button>
                     </div>
                 </div>
 
@@ -326,68 +311,69 @@
                     <canvas id="unitTrendChart"></canvas>
                 </div>
 
-                <!-- 單元強弱落點快篩橫幅 -->
+                <!-- 強弱項目快篩橫幅 -->
                 <div id="unitDiagnosticStrip" class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                    <!-- JS 自動計算最佳單元與待加強複習單元 -->
+                    <!-- JS 自動計算本科最佳表現項目與待加強項目 -->
                 </div>
             </section>
 
-            <!-- 5. 模組三：各單元平時成績橫向總表 & 各次評量得分明細 -->
+            <!-- 5. 模組三：各次平時成績得分明細（每個項目旁直接顯示「作業」或「考試」） -->
             <section id="sectionScoreMatrix" class="warm-card rounded-3xl p-5 sm:p-6 space-y-4">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-200/80 pb-3.5">
                     <div>
                         <div class="flex items-center gap-2">
                             <span class="text-lg">📋</span>
                             <h3 class="font-black text-stone-800 text-base sm:text-lg">
-                                各單元平時成績總表與單項得分明細
+                                各次平時成績得分明細
                             </h3>
                         </div>
-                        <p class="text-xs text-stone-500 mt-0.5">可切換「單元橫向成績對照表」或「各次評量得分卡片」，檢視每次小考與平時成績與班均差值</p>
+                        <p class="text-xs text-stone-500 mt-0.5">完整列出試算表登記的每一項平時成績，並於項目旁標註「📝 作業」或「🎯 考試」及班均比較</p>
                     </div>
 
-                    <!-- 檢視模式切換 -->
+                    <!-- 檢視模式切換：卡片明細 vs 列表總表 -->
                     <div class="flex items-center gap-1.5 bg-stone-100 p-1 rounded-xl border border-stone-200/80 self-start sm:self-auto">
-                        <button id="btnViewMatrix" onclick="switchScoreViewMode('matrix')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white text-stone-800 shadow-sm">
-                            📊 單元橫向成績表
+                        <button id="btnViewCards" onclick="switchScoreViewMode('cards')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white text-stone-800 shadow-sm">
+                            🗂️ 卡片明細
                         </button>
-                        <button id="btnViewCards" onclick="switchScoreViewMode('cards')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition text-stone-600 hover:text-stone-900">
-                            🗂️ 各次評量得分明細
+                        <button id="btnViewMatrix" onclick="switchScoreViewMode('matrix')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition text-stone-600 hover:text-stone-900">
+                            📋 列表總表
                         </button>
                     </div>
                 </div>
 
-                <!-- 視圖 A：單元橫向成績對照表 (L1 ~ L6 x 習作/作業卷/語詞/測驗卷/單元平均) -->
-                <div id="matrixTableView" class="overflow-x-auto custom-scrollbar rounded-2xl border border-stone-200/90">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-stone-100/90 text-stone-600 text-xs font-extrabold border-b border-stone-200/90">
-                                <th class="py-3 px-3.5 whitespace-nowrap">單元進度</th>
-                                <th class="py-3 px-3 text-center whitespace-nowrap">📘 習作成績</th>
-                                <th class="py-3 px-3 text-center whitespace-nowrap">📝 作業卷成績</th>
-                                <th class="py-3 px-3 text-center whitespace-nowrap">🔤 語詞/基礎</th>
-                                <th class="py-3 px-3 text-center whitespace-nowrap">🎯 單元測驗卷</th>
-                                <th class="py-3 px-3.5 text-right whitespace-nowrap">🌟 該單元總均 (班均)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="unitMatrixTableBody" class="divide-y divide-stone-200/70 text-xs sm:text-sm bg-white">
-                            <!-- JS 動態填入 L1 ~ L6 橫向成績列 -->
-                        </tbody>
-                    </table>
+                <!-- 動態分類篩選列（僅顯示本科試算表實際存在的作業/考試與類別） -->
+                <div id="itemCategoryFilterBar" class="flex flex-wrap items-center gap-1.5">
+                    <!-- JS 動態渲染分項篩選膠囊 -->
                 </div>
 
-                <!-- 視圖 B：各次評量得分明細卡片 (支援依四大分項篩選) -->
-                <div id="cardsDetailView" class="hidden space-y-3.5">
-                    <div id="itemCategoryFilterBar" class="flex flex-wrap items-center gap-1.5">
-                        <!-- JS 動態渲染分項篩選膠囊 -->
-                    </div>
+                <!-- 視圖 A (預設)：各次評量得分卡片 (項目旁顯示「📝 作業」或「🎯 考試」) -->
+                <div id="cardsDetailView" class="space-y-3.5">
                     <div id="scoreItemsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         <!-- JS 動態渲染每次平時成績得分卡 -->
                     </div>
                 </div>
+
+                <!-- 視圖 B：各次評量列表總表 (逐項清晰對照，不再出現看不懂的空白 -- 橫向表格) -->
+                <div id="matrixTableView" class="hidden overflow-x-auto custom-scrollbar rounded-2xl border border-stone-200/90">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-stone-100/90 text-stone-600 text-xs font-extrabold border-b border-stone-200/90">
+                                <th class="py-3 px-4 whitespace-nowrap">平時評量項目（作業 / 考試）</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">分項類別</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">個人得分</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">全班平均</th>
+                                <th class="py-3 px-4 text-right whitespace-nowrap">與班均比較</th>
+                            </tr>
+                        </thead>
+                        <tbody id="unitMatrixTableBody" class="divide-y divide-stone-200/70 text-xs sm:text-sm bg-white">
+                            <!-- JS 動態填入各次評量項目列 -->
+                        </tbody>
+                    </table>
+                </div>
             </section>
 
-            <!-- 6. 模組四：平時成績綜合診斷與考前複習建議 -->
-            <section id="sectionAdvice" class="warm-card rounded-3xl p-5 sm:p-6 bg-gradient-to-br from-amber-50/90 via-white to-emerald-50/40 border border-amber-200/80">
+            <!-- 6. 模組四：平時成績綜合診斷與考前複習建議（預設不勾選隱藏） -->
+            <section id="sectionAdvice" class="hidden warm-card rounded-3xl p-5 sm:p-6 bg-gradient-to-br from-amber-50/90 via-white to-emerald-50/40 border border-amber-200/80">
                 <div class="flex items-start gap-3.5">
                     <div class="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-400/30 text-amber-700 flex items-center justify-center text-xl shrink-0 mt-0.5">
                         💡
@@ -920,25 +906,25 @@
         // =========================================================================
         let currentPortfolio = null;
         let currentSubjectIdx = 0;
-        let currentChartMetric = 'overallScore';
-        let currentScoreViewMode = 'matrix'; // 'matrix' | 'cards'
+        let currentChartMetric = 'all';
+        let currentScoreViewMode = 'cards'; // 預設顯示「🗂️ 卡片明細」（亦可切換「📋 列表總表」）
         let currentCategoryFilter = 'all';
         let unitChartInstance = null;
 
         // 支援來自教師端 QR Code 的顯示模組設定 (cfg bitmask)
         // bit0(1): 顯示各科平時總均與班均對比
-        // bit1(2): 顯示四大分項平時平均剖析
+        // bit1(2): 顯示分項平時平均剖析
         // bit2(4): 顯示班級平均常模對比線與差值
-        // bit3(8): 顯示 L1~L6 單元成績走勢圖
-        // bit4(16): 顯示單元橫向成績總表与得分明細
-        // bit5(32): 顯示平時成績綜合診斷建議
+        // bit3(8): 顯示平時成績表現走勢圖
+        // bit4(16): 顯示各次平時成績得分明細
+        // bit5(32): 顯示平時成績綜合診斷建議（預設不勾選 false）
         let displayFlags = {
             showOverallHero: true,
             showPillars: true,
             showClassNorm: true,
             showTimeline: true,
             showScoreMatrix: true,
-            showAdvice: true
+            showAdvice: false
         };
 
         function parseUrlDisplayConfig() {
@@ -953,6 +939,37 @@
                 displayFlags.showScoreMatrix = Boolean(mask & 16);
                 displayFlags.showAdvice = Boolean(mask & 32);
             }
+        }
+
+        function inferAssessmentTypeClient(itemName, categoryKey) {
+            const h = String(itemName || '').trim();
+            if (/測驗|考卷|小考|平時考|評量|聽寫|圈詞|抽考|默寫|口試|背誦|計算測驗|單字測驗|L\d+.*卷|U\d+.*卷|第.+卷/i.test(h)) {
+                return '考試';
+            }
+            if (/習作|國習|數習|社習|自習|英習|甲本|乙本|生字本|語詞本|作業|學習單|練習簿|訂正|筆記/i.test(h)) {
+                return '作業';
+            }
+            if (/卷/.test(h) && !/作業卷/.test(h)) {
+                return '考試';
+            }
+            if (categoryKey === 'quiz') return '考試';
+            return '作業';
+        }
+
+        function formatAssessmentTypeBadge(typeStr) {
+            const t = String(typeStr || '作業').trim();
+            if (t === '考試' || t === '測驗') {
+                return `<span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-purple-100 text-purple-800 border border-purple-200/90 shrink-0">🎯 考試</span>`;
+            }
+            return `<span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200/90 shrink-0">📝 作業</span>`;
+        }
+
+        function getPillarDisplayShortName(pKey, fallbackLabel) {
+            if (pKey === 'workbook') return '習作';
+            if (pKey === 'homework') return '作業卷';
+            if (pKey === 'foundation') return '語詞/基礎';
+            if (pKey === 'quiz') return '單元測驗卷';
+            return fallbackLabel || '平時';
         }
 
         function getSubjectIcon(subjName) {
@@ -990,7 +1007,7 @@
             document.getElementById('heroUpdatedAt').textContent = `資料更新：${payload.updatedAt || '最新學期平時成績'}`;
             document.getElementById('heroStudentName').textContent = st.name;
 
-            // 計算跨科平時總均与最佳科目
+            // 計算跨科平時總均與最佳科目
             const validSubjs = subjects.filter(s => s.overallAverage !== null && !isNaN(s.overallAverage));
             if (validSubjs.length > 0) {
                 const totalAvg = validSubjs.reduce((acc, s) => acc + s.overallAverage, 0) / validSubjs.length;
@@ -1031,7 +1048,7 @@
             if (currentSubjectIdx >= subjects.length) currentSubjectIdx = 0;
             renderActiveSubjectModules();
 
-            // 4. 渲染教師平時成績診斷建議
+            // 4. 渲染教師平時成績診斷建議（預設不勾選隱藏，僅在教師勾選時顯示）
             const adviceSec = document.getElementById('sectionAdvice');
             if (displayFlags.showAdvice && st.teacherAdvice) {
                 adviceSec.classList.remove('hidden');
@@ -1080,8 +1097,24 @@
         function selectSubject(idx) {
             currentSubjectIdx = idx;
             currentCategoryFilter = 'all';
+            currentChartMetric = 'all';
             renderSubjectTabs();
             renderActiveSubjectModules();
+        }
+
+        // 取得該科目試算表「實際存在」的分項類別（試算表沒有的項目絕不出現！）
+        function getExistingPillarsForSubject(subj) {
+            const items = subj.items || [];
+            const itemCatCounts = {};
+            items.forEach(it => {
+                itemCatCounts[it.category] = (itemCatCounts[it.category] || 0) + 1;
+            });
+            return (subj.pillars || []).filter(p => {
+                if (items.length > 0) {
+                    return (itemCatCounts[p.key] || 0) > 0;
+                }
+                return p.count && p.count > 0;
+            });
         }
 
         function renderActiveSubjectModules() {
@@ -1093,15 +1126,34 @@
             document.getElementById('sectionTimeline').classList.toggle('hidden', !displayFlags.showTimeline);
             document.getElementById('sectionScoreMatrix').classList.toggle('hidden', !displayFlags.showScoreMatrix);
 
-            // A. 四大分項平時平均卡片
+            // A. 平時評量分項平均卡片（僅顯示試算表實際有的項目！）
             document.getElementById('pillarSubjectTitle').textContent = subj.subject;
             document.getElementById('currentSubjAvg').textContent = subj.overallAverage !== null ? subj.overallAverage.toFixed(1) : '--';
             document.getElementById('currentSubjClassAvg').textContent = (displayFlags.showClassNorm && subj.classOverallAverage !== null)
                 ? `(班均 ${subj.classOverallAverage.toFixed(1)})`
                 : `(共 ${subj.totalItems || 0} 次評量)`;
 
+            const activePillars = getExistingPillarsForSubject(subj);
+            const pillarNamesStr = activePillars.map(p => getPillarDisplayShortName(p.key, p.shortLabel || p.label)).join('、');
+            const descEl = document.getElementById('pillarSubjectDesc');
+            if (descEl) {
+                descEl.textContent = pillarNamesStr
+                    ? `依評量性質自動歸納為「${pillarNamesStr}」，對比班級該分項平均分數`
+                    : `彙整本科各項平時評量，對比班級平均分數`;
+            }
+
             const pillarsGrid = document.getElementById('pillarsGrid');
-            pillarsGrid.innerHTML = (subj.pillars || []).map(p => {
+            if (activePillars.length === 1) {
+                pillarsGrid.className = 'grid grid-cols-1 gap-3.5';
+            } else if (activePillars.length === 2) {
+                pillarsGrid.className = 'grid grid-cols-1 sm:grid-cols-2 gap-3.5';
+            } else if (activePillars.length === 3) {
+                pillarsGrid.className = 'grid grid-cols-1 sm:grid-cols-3 gap-3.5';
+            } else {
+                pillarsGrid.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5';
+            }
+
+            pillarsGrid.innerHTML = activePillars.map(p => {
                 const hasData = p.average !== null && p.count > 0;
                 const avgStr = hasData ? p.average.toFixed(1) : '--';
                 const classStr = (displayFlags.showClassNorm && p.classAverage !== null) ? `班均 ${p.classAverage.toFixed(1)}` : `共 ${p.count} 次成績`;
@@ -1110,18 +1162,21 @@
                 const rangeStr = hasData ? `最高 ${p.maxScore} ‧ 最低 ${p.minScore}` : '尚無該類成績';
                 const barWidth = hasData ? Math.min(100, Math.max(20, p.average)) : 0;
                 const classMarkerLeft = (displayFlags.showClassNorm && p.classAverage !== null) ? Math.min(98, Math.max(10, p.classAverage)) : null;
+                const pType = p.assessmentType || (p.key === 'quiz' ? '考試' : '作業');
+                const typeBadgeHtml = formatAssessmentTypeBadge(pType);
 
                 return `
                     <div class="p-4 rounded-2xl bg-stone-50/70 border border-stone-200/90 flex flex-col justify-between space-y-3 hover:border-amber-300/90 transition">
                         <div class="flex items-start justify-between gap-2">
-                            <div>
-                                <div class="flex items-center gap-1.5">
+                            <div class="space-y-1">
+                                <div class="flex items-center gap-1.5 flex-wrap">
                                     <span class="text-base">${p.icon}</span>
                                     <h4 class="font-extrabold text-stone-800 text-sm">${p.label}</h4>
+                                    ${typeBadgeHtml}
                                 </div>
-                                <span class="text-[11px] text-stone-400 font-medium">採計 ${p.count} 次平時分數</span>
+                                <span class="block text-[11px] text-stone-400 font-medium">採計 ${p.count} 次平時分數</span>
                             </div>
-                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${badgeInfo.badgeClass}">${badgeInfo.label}</span>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${badgeInfo.badgeClass}">${badgeInfo.label}</span>
                         </div>
 
                         <div class="flex items-baseline justify-between pt-1">
@@ -1152,13 +1207,50 @@
                 `;
             }).join('');
 
-            // B. 渲染 L1 ~ L6 單元成績走勢圖與單元落點快篩
+            // B. 動態渲染走勢圖分項切換按鈕（試算表沒有的類別絕不出現！）與走勢圖
+            renderChartTabsForSubject(subj, activePillars);
             renderUnitTrendChart(subj);
             renderUnitDiagnosticStrip(subj);
 
-            // C. 渲染單元橫向成績總表 & 各次評量得分明細
+            // C. 渲染各次評量得分明細（卡片檢視 + 列表檢視）
+            renderScoreItemCards(subj, activePillars);
             renderUnitMatrixTable(subj);
-            renderScoreItemCards(subj);
+            switchScoreViewMode(currentScoreViewMode);
+        }
+
+        function renderChartTabsForSubject(subj, activePillars) {
+            const tabContainer = document.getElementById('chartMetricTabs');
+            if (!tabContainer) return;
+
+            const items = subj.items || [];
+            const hwCount = items.filter(it => it.assessmentType === '作業').length;
+            const examCount = items.filter(it => it.assessmentType === '考試').length;
+
+            const tabs = [
+                { key: 'all', label: '🌟 全部項目' }
+            ];
+            if (hwCount > 0 && examCount > 0) {
+                tabs.push({ key: 'type_作業', label: `📝 作業 (${hwCount})` });
+                tabs.push({ key: 'type_考試', label: `🎯 考試 (${examCount})` });
+            }
+            (activePillars || []).forEach(p => {
+                const shortName = getPillarDisplayShortName(p.key, p.shortLabel || p.label);
+                tabs.push({ key: p.key, label: `${p.icon} ${shortName}` });
+            });
+
+            if (!tabs.some(t => t.key === currentChartMetric)) {
+                currentChartMetric = 'all';
+            }
+
+            tabContainer.innerHTML = tabs.map(t => {
+                const isSelected = t.key === currentChartMetric;
+                return `
+                    <button onclick="switchChartMetric('${t.key}')" data-metric="${t.key}"
+                        class="chart-tab-btn px-2.5 py-1 rounded-lg text-xs font-bold transition ${isSelected ? 'bg-amber-500 text-white shadow-sm' : 'text-stone-600 hover:text-stone-900'}">
+                        ${t.label}
+                    </button>
+                `;
+            }).join('');
         }
 
         function switchChartMetric(metricKey) {
@@ -1174,39 +1266,37 @@
         }
 
         function renderUnitTrendChart(subj) {
-            const timeline = subj.unitTimeline || [];
-            const metricMap = {
-                overallScore: { studentKey: 'overallScore', classKey: 'classOverallAvg', label: '個人單元總平均', classLabel: '班級單元總平均' },
-                quiz: { studentKey: 'quiz', classKey: 'classQuiz', label: '個人測驗卷成績', classLabel: '班級測驗卷平均' },
-                workbook: { studentKey: 'workbook', classKey: 'classWorkbook', label: '個人習作成績', classLabel: '班級習作平均' },
-                homework: { studentKey: 'homework', classKey: 'classHomework', label: '個人作業卷成績', classLabel: '班級作業卷平均' },
-                foundation: { studentKey: 'foundation', classKey: 'classFoundation', label: '個人語詞/基礎成績', classLabel: '班級語詞/基礎平均' }
-            };
+            const allItems = Array.isArray(subj.items) ? subj.items : [];
+            let filteredItems = allItems;
+            let studentLegend = '個人得分';
+            let classLegend = '班級平均';
 
-            const cfg = metricMap[currentChartMetric] || metricMap.overallScore;
-            let labels = [];
-            let studentData = [];
-            let classData = [];
-
-            // 若選擇特定評量分項（習作、作業卷、語詞、測驗卷），直接繪製該分項實際各次評量項目（完整支援 L1-2、L1-3、L4-5、L1-6 等範圍考卷！）
-            if (currentChartMetric !== 'overallScore' && Array.isArray(subj.items)) {
-                const catItems = subj.items.filter(it => it.category === currentChartMetric);
-                if (catItems.length > 0) {
-                    labels = catItems.map(it => it.name);
-                    studentData = catItems.map(it => it.score);
-                    classData = catItems.map(it => it.classAvg);
-                }
+            if (currentChartMetric === 'type_作業') {
+                filteredItems = allItems.filter(it => it.assessmentType === '作業');
+                studentLegend = '個人作業得分';
+                classLegend = '班級作業平均';
+            } else if (currentChartMetric === 'type_考試') {
+                filteredItems = allItems.filter(it => it.assessmentType === '考試');
+                studentLegend = '個人考試得分';
+                classLegend = '班級考試平均';
+            } else if (currentChartMetric !== 'all' && currentChartMetric !== 'overallScore') {
+                filteredItems = allItems.filter(it => it.category === currentChartMetric);
+                const shortName = getPillarDisplayShortName(currentChartMetric, '分項');
+                studentLegend = `個人${shortName}得分`;
+                classLegend = `班級${shortName}平均`;
             }
 
-            if (labels.length === 0) {
-                labels = timeline.map(u => u.unit);
-                studentData = timeline.map(u => u[cfg.studentKey]);
-                classData = timeline.map(u => u[cfg.classKey]);
+            if (filteredItems.length === 0) {
+                filteredItems = allItems;
             }
+
+            const labels = filteredItems.map(it => it.name);
+            const studentData = filteredItems.map(it => it.score);
+            const classData = filteredItems.map(it => it.classAvg);
 
             // 自動計算合適的 Y 軸範圍
             const allNums = [...studentData, ...(displayFlags.showClassNorm ? classData : [])].filter(v => v !== null && !isNaN(v));
-            const minVal = allNums.length ? Math.max(50, Math.floor((Math.min(...allNums) - 6) / 5) * 5) : 60;
+            const minVal = allNums.length ? Math.max(40, Math.floor((Math.min(...allNums) - 6) / 5) * 5) : 60;
 
             const ctx = document.getElementById('unitTrendChart').getContext('2d');
             if (unitChartInstance) {
@@ -1215,7 +1305,7 @@
 
             const datasets = [
                 {
-                    label: cfg.label,
+                    label: studentLegend,
                     data: studentData,
                     borderColor: '#D97706',
                     backgroundColor: 'rgba(245, 158, 11, 0.14)',
@@ -1225,7 +1315,7 @@
                     pointBorderWidth: 3,
                     pointRadius: 5.5,
                     pointHoverRadius: 7,
-                    tension: 0.32,
+                    tension: 0.3,
                     fill: true,
                     spanGaps: true
                 }
@@ -1233,7 +1323,7 @@
 
             if (displayFlags.showClassNorm) {
                 datasets.push({
-                    label: cfg.classLabel,
+                    label: classLegend,
                     data: classData,
                     borderColor: '#059669',
                     backgroundColor: 'transparent',
@@ -1244,7 +1334,7 @@
                     pointBorderWidth: 1.5,
                     pointRadius: 4,
                     pointHoverRadius: 6,
-                    tension: 0.32,
+                    tension: 0.3,
                     fill: false,
                     spanGaps: true
                 });
@@ -1278,6 +1368,13 @@
                             padding: 12,
                             cornerRadius: 12,
                             callbacks: {
+                                title: function (itemsCtx) {
+                                    if (!itemsCtx || !itemsCtx.length) return '';
+                                    const idx = itemsCtx[0].dataIndex;
+                                    const itemObj = filteredItems[idx];
+                                    if (!itemObj) return itemsCtx[0].label;
+                                    return `${itemObj.name} 【${itemObj.assessmentType || '作業'}】`;
+                                },
                                 label: function (context) {
                                     const val = context.parsed.y;
                                     return ` ${context.dataset.label}: ${val !== null && val !== undefined ? val.toFixed(1) + ' 分' : '無資料'}`;
@@ -1304,7 +1401,7 @@
                                 display: false
                             },
                             ticks: {
-                                font: { family: '"JetBrains Mono", "Noto Sans TC", sans-serif', size: 12, weight: '700' },
+                                font: { family: '"JetBrains Mono", "Noto Sans TC", sans-serif', size: 11, weight: '700' },
                                 color: '#44403c'
                             }
                         }
@@ -1315,43 +1412,51 @@
 
         function renderUnitDiagnosticStrip(subj) {
             const strip = document.getElementById('unitDiagnosticStrip');
-            const validUnits = (subj.unitTimeline || []).filter(u => u.overallScore !== null && !isNaN(u.overallScore));
-            if (validUnits.length === 0) {
+            const validItems = (subj.items || []).filter(it => it.score !== null && it.score !== undefined && !isNaN(it.score));
+            if (validItems.length === 0) {
                 strip.innerHTML = '';
                 return;
             }
-            const sorted = [...validUnits].sort((a, b) => b.overallScore - a.overallScore);
-            const bestUnit = sorted[0];
-            const weakestUnit = sorted[sorted.length - 1];
+            const sorted = [...validItems].sort((a, b) => b.score - a.score);
+            const bestItem = sorted[0];
+            const weakestItem = sorted[sorted.length - 1];
 
-            const bestDiff = (displayFlags.showClassNorm && bestUnit.classOverallAvg !== null)
-                ? `（高於班均 +${(bestUnit.overallScore - bestUnit.classOverallAvg).toFixed(1)} 分）`
+            const bestDiff = (displayFlags.showClassNorm && bestItem.classAvg !== null)
+                ? `（班均 ${bestItem.classAvg.toFixed(1)} 分）`
                 : '';
-            const weakDiff = (displayFlags.showClassNorm && weakestUnit.classOverallAvg !== null)
-                ? `（班均 ${weakestUnit.classOverallAvg.toFixed(1)} 分）`
+            const weakDiff = (displayFlags.showClassNorm && weakestItem.classAvg !== null)
+                ? `（班均 ${weakestItem.classAvg.toFixed(1)} 分）`
                 : '';
 
             strip.innerHTML = `
                 <div class="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 flex items-center justify-between gap-3">
-                    <div class="flex items-center gap-2.5">
-                        <span class="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-700 flex items-center justify-center font-black text-base">🌟</span>
-                        <div>
-                            <div class="text-[11px] font-bold text-emerald-800">表現最穩健單元</div>
-                            <div class="text-xs sm:text-sm font-black text-stone-800">${subj.subject} ${bestUnit.unit} 單元 <span class="text-xs font-normal text-stone-500">${bestDiff}</span></div>
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <span class="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-700 flex items-center justify-center font-black text-base shrink-0">🌟</span>
+                        <div class="min-w-0">
+                            <div class="text-[11px] font-bold text-emerald-800">本科最高分表現項目</div>
+                            <div class="text-xs sm:text-sm font-black text-stone-800 flex items-center gap-1.5 flex-wrap">
+                                <span>${bestItem.name}</span>
+                                ${formatAssessmentTypeBadge(bestItem.assessmentType)}
+                                <span class="text-xs font-normal text-stone-500">${bestDiff}</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="text-right font-mono font-black text-lg text-emerald-700 tabular-nums shrink-0">${bestUnit.overallScore.toFixed(1)} 分</div>
+                    <div class="text-right font-mono font-black text-lg text-emerald-700 tabular-nums shrink-0">${bestItem.score} 分</div>
                 </div>
 
                 <div class="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200/80 flex items-center justify-between gap-3">
-                    <div class="flex items-center gap-2.5">
-                        <span class="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-700 flex items-center justify-center font-black text-base">🔍</span>
-                        <div>
-                            <div class="text-[11px] font-bold text-amber-800">考前建議優先複習單元</div>
-                            <div class="text-xs sm:text-sm font-black text-stone-800">${subj.subject} ${weakestUnit.unit} 單元 <span class="text-xs font-normal text-stone-500">${weakDiff}</span></div>
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <span class="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-700 flex items-center justify-center font-black text-base shrink-0">🔍</span>
+                        <div class="min-w-0">
+                            <div class="text-[11px] font-bold text-amber-800">建議優先複習加強項目</div>
+                            <div class="text-xs sm:text-sm font-black text-stone-800 flex items-center gap-1.5 flex-wrap">
+                                <span>${weakestItem.name}</span>
+                                ${formatAssessmentTypeBadge(weakestItem.assessmentType)}
+                                <span class="text-xs font-normal text-stone-500">${weakDiff}</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="text-right font-mono font-black text-lg text-amber-700 tabular-nums shrink-0">${weakestUnit.overallScore.toFixed(1)} 分</div>
+                    <div class="text-right font-mono font-black text-lg text-amber-700 tabular-nums shrink-0">${weakestItem.score} 分</div>
                 </div>
             `;
         }
@@ -1362,60 +1467,64 @@
             document.getElementById('matrixTableView').classList.toggle('hidden', !isMatrix);
             document.getElementById('cardsDetailView').classList.toggle('hidden', isMatrix);
 
-            document.getElementById('btnViewMatrix').className = isMatrix
-                ? 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white text-stone-800 shadow-sm'
-                : 'px-3 py-1.5 rounded-lg text-xs font-bold transition text-stone-600 hover:text-stone-900';
             document.getElementById('btnViewCards').className = !isMatrix
                 ? 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white text-stone-800 shadow-sm'
                 : 'px-3 py-1.5 rounded-lg text-xs font-bold transition text-stone-600 hover:text-stone-900';
+            document.getElementById('btnViewMatrix').className = isMatrix
+                ? 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white text-stone-800 shadow-sm'
+                : 'px-3 py-1.5 rounded-lg text-xs font-bold transition text-stone-600 hover:text-stone-900';
         }
 
-        function formatMatrixCell(score, classAvg) {
-            if (score === null || score === undefined || isNaN(score)) {
-                return `<span class="text-stone-300 font-mono">--</span>`;
-            }
-            const scoreColor = score >= 90 ? 'text-emerald-700 font-black' : (score < 80 ? 'text-rose-600 font-black' : 'text-stone-800 font-bold');
-            const normSub = (displayFlags.showClassNorm && classAvg !== null && !isNaN(classAvg))
-                ? `<div class="text-[10px] font-mono text-stone-400">班均 ${classAvg.toFixed(1)}</div>`
-                : '';
-            return `
-                <div class="font-mono tabular-nums ${scoreColor} text-sm">${score}</div>
-                ${normSub}
-            `;
+        function getFilteredSubjectItems(subj) {
+            const items = subj.items || [];
+            if (currentCategoryFilter === 'all') return items;
+            if (currentCategoryFilter === 'type_作業') return items.filter(i => i.assessmentType === '作業');
+            if (currentCategoryFilter === 'type_考試') return items.filter(i => i.assessmentType === '考試');
+            return items.filter(i => i.category === currentCategoryFilter);
         }
 
+        // 渲染列表總表（逐項清晰對照，每個項目旁直接顯示「📝 作業」或「🎯 考試」）
         function renderUnitMatrixTable(subj) {
             const tbody = document.getElementById('unitMatrixTableBody');
-            const timeline = subj.unitTimeline || [];
-            if (timeline.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-stone-400">尚無各單元平時成績資料</td></tr>`;
+            const filtered = getFilteredSubjectItems(subj);
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-stone-400">尚無平時成績資料</td></tr>`;
                 return;
             }
 
-            tbody.innerHTML = timeline.map(u => {
-                const overallStr = u.overallScore !== null ? u.overallScore.toFixed(1) : '--';
-                const diffHtml = (u.overallScore !== null && u.classOverallAvg !== null)
-                    ? formatDiffTag(Math.round((u.overallScore - u.classOverallAvg) * 10) / 10)
-                    : '';
-                const classAvgText = (displayFlags.showClassNorm && u.classOverallAvg !== null)
-                    ? `<span class="text-[11px] text-stone-400 font-mono ml-1">(班均 ${u.classOverallAvg.toFixed(1)})</span>`
-                    : '';
+            tbody.innerHTML = filtered.map(item => {
+                const hasScore = item.score !== null && item.score !== undefined && !isNaN(item.score);
+                const scoreColor = !hasScore
+                    ? 'text-stone-300 font-normal'
+                    : (item.score >= 90 ? 'text-emerald-700 font-black' : (item.score < 80 ? 'text-rose-600 font-black' : 'text-stone-800 font-bold'));
+                const classAvgStr = (displayFlags.showClassNorm && item.classAvg !== null && !isNaN(item.classAvg))
+                    ? `${item.classAvg.toFixed(1)} 分`
+                    : '--';
+                const diffHtml = hasScore ? formatDiffTag(item.diffFromClass) : '<span class="text-stone-300">--</span>';
+                const typeBadge = formatAssessmentTypeBadge(item.assessmentType);
 
                 return `
                     <tr class="hover:bg-amber-50/40 transition">
-                        <td class="py-3 px-3.5 font-mono font-black text-stone-800 whitespace-nowrap">
-                            <span class="inline-flex items-center justify-center px-2.5 py-1 rounded-lg bg-stone-100 text-stone-800 text-xs">${u.unit}</span>
-                        </td>
-                        <td class="py-3 px-3 text-center">${formatMatrixCell(u.workbook, u.classWorkbook)}</td>
-                        <td class="py-3 px-3 text-center">${formatMatrixCell(u.homework, u.classHomework)}</td>
-                        <td class="py-3 px-3 text-center">${formatMatrixCell(u.foundation, u.classFoundation)}</td>
-                        <td class="py-3 px-3 text-center">${formatMatrixCell(u.quiz, u.classQuiz)}</td>
-                        <td class="py-3 px-3.5 text-right whitespace-nowrap">
-                            <div class="flex items-center justify-end gap-1.5">
-                                <span class="font-mono font-black text-base text-amber-700 tabular-nums">${overallStr}</span>
-                                ${diffHtml}
+                        <td class="py-3 px-4 whitespace-nowrap">
+                            <div class="flex items-center gap-2">
+                                <span class="font-extrabold text-stone-800 text-sm">${item.name}</span>
+                                ${typeBadge}
                             </div>
-                            ${classAvgText}
+                        </td>
+                        <td class="py-3 px-3 text-center whitespace-nowrap">
+                            <span class="inline-flex items-center gap-1 text-xs font-bold text-stone-600">
+                                <span>${item.categoryIcon || '📊'}</span>
+                                <span>${item.categoryLabel || '平時'}</span>
+                            </span>
+                        </td>
+                        <td class="py-3 px-3 text-center whitespace-nowrap">
+                            <span class="font-mono text-base tabular-nums ${scoreColor}">${hasScore ? item.score + ' 分' : '--'}</span>
+                        </td>
+                        <td class="py-3 px-3 text-center font-mono text-xs text-stone-500 whitespace-nowrap">
+                            ${classAvgStr}
+                        </td>
+                        <td class="py-3 px-4 text-right whitespace-nowrap">
+                            ${diffHtml}
                         </td>
                     </tr>
                 `;
@@ -1425,21 +1534,43 @@
         function filterItemCategory(catKey) {
             currentCategoryFilter = catKey;
             const subj = currentPortfolio.student.subjects[currentSubjectIdx];
-            if (subj) renderScoreItemCards(subj);
+            if (subj) {
+                const activePillars = getExistingPillarsForSubject(subj);
+                renderScoreItemCards(subj, activePillars);
+                renderUnitMatrixTable(subj);
+            }
         }
 
-        function renderScoreItemCards(subj) {
+        function renderScoreItemCards(subj, activePillarsOpt) {
             const items = subj.items || [];
+            const activePillars = activePillarsOpt || getExistingPillarsForSubject(subj);
             const filterBar = document.getElementById('itemCategoryFilterBar');
             const grid = document.getElementById('scoreItemsGrid');
 
+            const hwCount = items.filter(i => i.assessmentType === '作業').length;
+            const examCount = items.filter(i => i.assessmentType === '考試').length;
+
+            // 僅建立試算表「實際存在」的篩選膠囊（試算表沒有的項目絕不顯示！）
             const categories = [
-                { key: 'all', label: `全部平時成績 (${items.length})` },
-                { key: 'workbook', label: '📘 習作平時' },
-                { key: 'homework', label: '📝 作業卷平時' },
-                { key: 'foundation', label: '🔤 語詞/基礎' },
-                { key: 'quiz', label: '🎯 單元測驗卷' }
+                { key: 'all', label: `全部平時成績 (${items.length})` }
             ];
+            if (hwCount > 0) {
+                categories.push({ key: 'type_作業', label: `📝 作業 (${hwCount})` });
+            }
+            if (examCount > 0) {
+                categories.push({ key: 'type_考試', label: `🎯 考試 (${examCount})` });
+            }
+            activePillars.forEach(p => {
+                const cnt = items.filter(i => i.category === p.key).length;
+                if (cnt > 0) {
+                    const shortName = getPillarDisplayShortName(p.key, p.shortLabel || p.label);
+                    categories.push({ key: p.key, label: `${p.icon} ${shortName} (${cnt})` });
+                }
+            });
+
+            if (!categories.some(c => c.key === currentCategoryFilter)) {
+                currentCategoryFilter = 'all';
+            }
 
             filterBar.innerHTML = categories.map(c => {
                 const active = currentCategoryFilter === c.key;
@@ -1451,9 +1582,7 @@
                 `;
             }).join('');
 
-            const filtered = currentCategoryFilter === 'all'
-                ? items
-                : items.filter(i => i.category === currentCategoryFilter);
+            const filtered = getFilteredSubjectItems(subj);
 
             if (filtered.length === 0) {
                 grid.innerHTML = `<div class="col-span-full py-8 text-center text-stone-400 text-xs">此分類下尚無平時成績紀錄</div>`;
@@ -1467,14 +1596,15 @@
                 const classNormText = (displayFlags.showClassNorm && item.classAvg !== null)
                     ? `班級平均 ${item.classAvg.toFixed(1)} 分`
                     : `${item.categoryLabel}`;
+                const typeBadgeHtml = formatAssessmentTypeBadge(item.assessmentType);
 
                 return `
                     <div class="p-3.5 rounded-2xl bg-stone-50/70 border border-stone-200/80 flex items-center justify-between gap-3 hover:border-amber-300/80 transition">
-                        <div class="space-y-1 min-w-0">
-                            <div class="flex items-center gap-1.5">
+                        <div class="space-y-1.5 min-w-0">
+                            <div class="flex items-center gap-1.5 flex-wrap">
                                 <span class="text-sm">${item.categoryIcon || '📊'}</span>
                                 <span class="font-extrabold text-stone-800 text-sm truncate">${item.name}</span>
-                                <span class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-stone-200/70 text-stone-600">${item.unit}</span>
+                                ${typeBadgeHtml}
                             </div>
                             <div class="flex items-center gap-2 text-[11px] text-stone-500 font-mono">
                                 <span>${classNormText}</span>
@@ -1710,9 +1840,12 @@
             const adviceList = [];
 
             const normalizedSubjects = rawSubjects.map(s => {
-                const rawPillars = Array.isArray(s.pillars)
+                const rawPillars = (Array.isArray(s.pillars)
                     ? s.pillars
-                    : (s.pillars ? Object.values(s.pillars) : []);
+                    : (s.pillars ? Object.values(s.pillars) : [])).map(p => ({
+                    ...p,
+                    assessmentType: p.assessmentType || (p.key === 'quiz' ? '考試' : '作業')
+                }));
 
                 const rawTimeline = (s.unitTimeline || []).map(u => ({
                     unit: u.unit,
@@ -1728,18 +1861,23 @@
                     classQuiz: u.classQuiz !== undefined ? u.classQuiz : u.quizClassAvg
                 }));
 
-                const rawItems = (s.items || []).map(it => ({
-                    name: it.name || it.title || it.shortTitle || '平時評量',
-                    unit: it.unit || it.unitCode || '平時',
-                    category: it.category || it.pillarKey || 'workbook',
-                    categoryLabel: it.categoryLabel || it.pillarShort || '平時',
-                    categoryIcon: it.categoryIcon || '📊',
-                    score: it.score,
-                    classAvg: it.classAvg,
-                    diffFromClass: it.diffFromClass,
-                    gradeLabel: it.gradeLabel || getScoreBadgeInfo(it.score).label,
-                    gradeLevel: it.gradeLevel || getScoreBadgeInfo(it.score).level
-                }));
+                const rawItems = (s.items || []).map(it => {
+                    const itemName = it.name || it.title || it.shortTitle || '平時評量';
+                    const catKey = it.category || it.pillarKey || 'workbook';
+                    return {
+                        name: itemName,
+                        unit: it.unit || it.unitCode || '平時',
+                        category: catKey,
+                        categoryLabel: it.categoryLabel || it.pillarShort || '平時',
+                        categoryIcon: it.categoryIcon || '📊',
+                        assessmentType: it.assessmentType || inferAssessmentTypeClient(itemName, catKey),
+                        score: it.score,
+                        classAvg: it.classAvg,
+                        diffFromClass: it.diffFromClass,
+                        gradeLabel: it.gradeLabel || getScoreBadgeInfo(it.score).label,
+                        gradeLevel: it.gradeLevel || getScoreBadgeInfo(it.score).level
+                    };
+                });
 
                 if (s.teacherAdvice) adviceList.push(s.teacherAdvice);
 

@@ -298,7 +298,7 @@ function setupStandardSheets() {
 }
 
 /**
- * 格式化平時成績科目分頁（第 1 列自動拆分為 A1:B1 與 C1:最後一欄，完美支援凍結前 2 列與前 2 欄！）
+ * 格式化平時成績科目分頁（包含：第 1 列標題、第 2 列項目名稱、第 3 列「作業／考試」類別下拉列、第 4 列起學生成績）
  */
 function formatDailySubjectSheet(sheet, titleText, headers, rowsData) {
   sheet.clear();
@@ -325,47 +325,94 @@ function formatDailySubjectSheet(sheet, titleText, headers, rowsData) {
       .setVerticalAlignment('middle');
   }
 
-  // 第 2 列：欄位標題 (依四大平時評量類別自動賦予底色區隔)
+  // 第 2 列：項目名稱標題列
   sheet.getRange(2, 1, 1, headers.length).setValues([headers])
     .setFontWeight('bold')
     .setHorizontalAlignment('center');
 
+  // 第 3 列：電腦初步判斷之「作業／考試」列（教師可手動下拉或直接修改）
+  var typeRowValues = [];
+  var typeBgColors = [];
+  var typeFontColors = [];
+
   for (var c = 1; c <= headers.length; c++) {
-    var h = headers[c - 1] || '';
+    var h = (headers[c - 1] || '').toString().trim();
     var cell = sheet.getRange(2, c);
-    if (c <= 2) {
+    if (c === 1) {
       cell.setBackground('#334155').setFontColor('#ffffff');
-    } else if (h.indexOf('習') !== -1) {
-      cell.setBackground('#d97706').setFontColor('#ffffff'); // 習作成績：暖陽琥珀
-    } else if (h.indexOf('作業') !== -1 || h.indexOf('練習') !== -1 || h.indexOf('學習單') !== -1) {
-      cell.setBackground('#059669').setFontColor('#ffffff'); // 作業卷成績：萌芽翠綠
-    } else if (h.indexOf('語詞') !== -1 || h.indexOf('聽寫') !== -1 || h.indexOf('圈詞') !== -1 || h.indexOf('計算') !== -1 || h.indexOf('重點') !== -1) {
-      cell.setBackground('#0284c7').setFontColor('#ffffff'); // 語詞/基礎成績：晴空青藍
+      typeRowValues.push('評量');
+      typeBgColors.push('#475569');
+      typeFontColors.push('#ffffff');
+    } else if (c === 2) {
+      cell.setBackground('#334155').setFontColor('#ffffff');
+      typeRowValues.push('作業/考試');
+      typeBgColors.push('#475569');
+      typeFontColors.push('#ffffff');
     } else {
-      cell.setBackground('#b45309').setFontColor('#ffffff'); // 單元測驗卷成績：深金琥珀
+      var defaultType = inferDefaultAssessmentType(h);
+      typeRowValues.push(defaultType);
+      if (h.indexOf('習') !== -1) {
+        cell.setBackground('#d97706').setFontColor('#ffffff');
+      } else if (defaultType === '作業') {
+        cell.setBackground('#059669').setFontColor('#ffffff');
+      } else if (h.indexOf('語詞') !== -1 || h.indexOf('聽寫') !== -1 || h.indexOf('圈詞') !== -1) {
+        cell.setBackground('#0284c7').setFontColor('#ffffff');
+      } else {
+        cell.setBackground('#b45309').setFontColor('#ffffff');
+      }
+
+      if (defaultType === '作業') {
+        typeBgColors.push('#fef3c7');
+        typeFontColors.push('#92400e');
+      } else if (defaultType === '考試') {
+        typeBgColors.push('#e0f2fe');
+        typeFontColors.push('#075985');
+      } else {
+        typeBgColors.push('#f5f5f4');
+        typeFontColors.push('#78716c');
+      }
     }
   }
 
-  // 第 3 列起：原始成績
+  sheet.getRange(3, 1, 1, headers.length)
+    .setValues([typeRowValues])
+    .setBackgrounds([typeBgColors])
+    .setFontColors([typeFontColors])
+    .setFontWeight('bold')
+    .setFontSize(10)
+    .setHorizontalAlignment('center');
+
+  if (headers.length > 2) {
+    try {
+      var rule = SpreadsheetApp.newDataValidation()
+        .requireValueInList(['作業', '考試', '不計分'], true)
+        .setAllowInvalid(true)
+        .build();
+      sheet.getRange(3, 3, 1, headers.length - 2).setDataValidation(rule);
+    } catch (ignore) {}
+  }
+
+  // 第 4 列起：學生成績資料
   if (rowsData && rowsData.length > 0) {
-    sheet.getRange(3, 1, rowsData.length, headers.length).setValues(rowsData)
+    sheet.getRange(4, 1, rowsData.length, headers.length).setValues(rowsData)
       .setHorizontalAlignment('center');
   }
 
   sheet.setColumnWidth(1, 70);  // 座號
   sheet.setColumnWidth(2, 110); // 姓名
   for (var col = 3; col <= headers.length; col++) {
-    sheet.setColumnWidth(col, 82);
+    sheet.setColumnWidth(col, 84);
   }
   sheet.setRowHeight(1, 36);
   sheet.setRowHeight(2, 32);
-  var lastRow = Math.max(2, sheet.getLastRow());
-  for (var r = 3; r <= lastRow; r++) {
+  sheet.setRowHeight(3, 26);
+  var lastRow = Math.max(3, sheet.getLastRow());
+  for (var r = 4; r <= lastRow; r++) {
     sheet.setRowHeight(r, 28);
   }
   sheet.getRange(1, 1, lastRow, headers.length).setVerticalAlignment('middle').setHorizontalAlignment('center');
 
-  safeFreezeSheet_(sheet, 2, 2);
+  safeFreezeSheet_(sheet, 3, 2);
 }
 
 /**
@@ -427,24 +474,191 @@ function isSummaryColumnHeader(headerText) {
 }
 
 /**
- * 智慧判斷單項平時評量所屬之「四大平時成績類別」
- * - workbook:   習作平時成績 (含「習」)
- * - homework:   作業卷成績   (含「作業」、「練習」、「學習單」、「隨堂」、「甲卷」、「乙卷」)
- * - foundation: 語詞測驗成績 (含「語詞」、「聽寫」、「圈詞」、「生字」、「單字」、「計算」、「重點」)
- * - quiz:       單元測驗成績 (含「測驗」、「考」、「卷」、「單元」或預設單元評量)
+ * 電腦初步判斷單項評量屬於「作業」或「考試」
  */
-function classifyScoreCategory(itemName) {
+function inferDefaultAssessmentType(itemName) {
   var h = (itemName || '').toString().trim();
+  if (!h) return '';
+  if (isSummaryColumnHeader(h)) return '不計分';
+  if (h.indexOf('習') !== -1 || h.indexOf('作業') !== -1 || h.indexOf('練習') !== -1 || h.indexOf('學習單') !== -1 || h.indexOf('訂正') !== -1 || h.indexOf('筆記') !== -1) {
+    return '作業';
+  }
+  if (h.indexOf('測驗') !== -1 || h.indexOf('考') !== -1 || h.indexOf('聽寫') !== -1 || h.indexOf('圈詞') !== -1 || h.indexOf('卷') !== -1) {
+    return '考試';
+  }
+  return '作業';
+}
+
+/**
+ * 判斷某列是否為「作業／考試」類別設定列
+ */
+function isAssessmentTypeRow_(row, seatCol, nameCol) {
+  if (!row || row.length === 0) return false;
+  var sCell = (row[seatCol] !== undefined && row[seatCol] !== null) ? row[seatCol].toString().trim() : '';
+  var nCell = (row[nameCol] !== undefined && row[nameCol] !== null) ? row[nameCol].toString().trim() : '';
+  if (sCell === '評量' || sCell === '類別' || sCell === '類型' || sCell === '性質' || nCell === '作業/考試' || nCell === '類別' || nCell === '評量類別') {
+    return true;
+  }
+  var isNotStudentSeat = (!sCell || isNaN(parseInt(sCell, 10)));
+  if (isNotStudentSeat && !nCell) {
+    for (var i = 2; i < row.length; i++) {
+      var v = (row[i] || '').toString().trim();
+      if (v === '作業' || v === '考試' || v === '不計分' || v === '習作' || v === '測驗') {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * 確保平時成績分頁在「項目列」與「學生成績列」之間擁有「作業／考試」類別列（若無則由電腦自動判斷並插入，若有新增欄位則自動補齊空白格，不覆蓋老師手動修改值）
+ */
+function ensureAssessmentTypeRow_(sheet) {
+  try {
+    var data = sheet.getDataRange().getValues();
+    if (!data || data.length < 2) return;
+
+    var headerRowIdx = -1;
+    for (var r = 0; r < Math.min(5, data.length); r++) {
+      var rowStr = data[r].join(' ');
+      if (rowStr.indexOf('座號') !== -1 || rowStr.indexOf('姓名') !== -1) {
+        headerRowIdx = r;
+        break;
+      }
+    }
+    if (headerRowIdx === -1) return;
+
+    var itemHeaderRow = data[headerRowIdx];
+    var seatCol = 0;
+    var nameCol = 1;
+    for (var c = 0; c < itemHeaderRow.length; c++) {
+      var hText = (itemHeaderRow[c] || '').toString().trim();
+      if (hText.indexOf('座號') !== -1) seatCol = c;
+      if (hText.indexOf('姓名') !== -1) nameCol = c;
+    }
+
+    var nextRow = (headerRowIdx + 1 < data.length) ? data[headerRowIdx + 1] : null;
+    var numCols = itemHeaderRow.length;
+
+    if (!nextRow || !isAssessmentTypeRow_(nextRow, seatCol, nameCol)) {
+      // 尚未建立「作業／考試」列 -> 自動在項目列下方插入一列並填入電腦初步判斷
+      sheet.insertRowAfter(headerRowIdx + 1);
+      var typeRow1Idx = headerRowIdx + 2; // 1-indexed
+      var typeValues = [];
+      var bgColors = [];
+      var fontColors = [];
+
+      for (var col = 0; col < numCols; col++) {
+        if (col === seatCol) {
+          typeValues.push('評量');
+          bgColors.push('#475569');
+          fontColors.push('#ffffff');
+        } else if (col === nameCol) {
+          typeValues.push('作業/考試');
+          bgColors.push('#475569');
+          fontColors.push('#ffffff');
+        } else {
+          var rawTitle = (itemHeaderRow[col] || '').toString().trim();
+          var autoType = inferDefaultAssessmentType(rawTitle);
+          typeValues.push(autoType);
+          if (autoType === '作業') {
+            bgColors.push('#fef3c7');
+            fontColors.push('#92400e');
+          } else if (autoType === '考試') {
+            bgColors.push('#e0f2fe');
+            fontColors.push('#075985');
+          } else {
+            bgColors.push('#f5f5f4');
+            fontColors.push('#78716c');
+          }
+        }
+      }
+
+      sheet.getRange(typeRow1Idx, 1, 1, numCols)
+        .setValues([typeValues])
+        .setBackgrounds([bgColors])
+        .setFontColors([fontColors])
+        .setFontWeight('bold')
+        .setFontSize(10)
+        .setHorizontalAlignment('center')
+        .setVerticalAlignment('middle');
+      sheet.setRowHeight(typeRow1Idx, 26);
+
+      if (numCols > 2) {
+        var rule = SpreadsheetApp.newDataValidation()
+          .requireValueInList(['作業', '考試', '不計分'], true)
+          .setAllowInvalid(true)
+          .build();
+        sheet.getRange(typeRow1Idx, 3, 1, numCols - 2).setDataValidation(rule);
+      }
+      safeFreezeSheet_(sheet, typeRow1Idx, 2);
+    } else {
+      // 已有「作業／考試」列 -> 檢查老師是否有新增欄位尚未填入預設類別（僅補齊空白格，100% 保留老師手動修改）
+      var typeRow1IdxExisting = headerRowIdx + 2;
+      var ruleExisting = null;
+      for (var colIdx = 0; colIdx < numCols; colIdx++) {
+        if (colIdx === seatCol || colIdx === nameCol) continue;
+        var itemTitle = (itemHeaderRow[colIdx] || '').toString().trim();
+        var currentType = (nextRow[colIdx] || '').toString().trim();
+        if (itemTitle && !currentType) {
+          var inferred = inferDefaultAssessmentType(itemTitle);
+          if (inferred) {
+            var targetCell = sheet.getRange(typeRow1IdxExisting, colIdx + 1);
+            targetCell.setValue(inferred)
+              .setFontWeight('bold')
+              .setFontSize(10)
+              .setHorizontalAlignment('center')
+              .setBackground(inferred === '作業' ? '#fef3c7' : (inferred === '考試' ? '#e0f2fe' : '#f5f5f4'))
+              .setFontColor(inferred === '作業' ? '#92400e' : (inferred === '考試' ? '#075985' : '#78716c'));
+            if (!ruleExisting) {
+              ruleExisting = SpreadsheetApp.newDataValidation()
+                .requireValueInList(['作業', '考試', '不計分'], true)
+                .setAllowInvalid(true)
+                .build();
+            }
+            targetCell.setDataValidation(ruleExisting);
+          }
+        }
+      }
+    }
+  } catch (ignore) {}
+}
+
+/**
+ * 結合「項目名稱」與老師在試算表設定的「作業／考試」類別，判斷平時評量所屬分項
+ */
+function classifyScoreCategory(itemName, manualAssessmentType) {
+  var h = (itemName || '').toString().trim();
+  var aType = (manualAssessmentType || '').toString().trim() || inferDefaultAssessmentType(h);
+
+  // 若老師設定為「作業」（或預設判為作業）
+  if (aType === '作業' || aType.indexOf('作業') !== -1 || aType.indexOf('習') !== -1) {
+    if (h.indexOf('習') !== -1 || aType.indexOf('習') !== -1) {
+      return { key: 'workbook', label: '習作平時成績', shortLabel: '習作', icon: '📘', assessmentType: aType || '作業' };
+    }
+    return { key: 'homework', label: '作業卷平時成績', shortLabel: '作業卷', icon: '📝', assessmentType: aType || '作業' };
+  }
+
+  // 若老師設定為「考試」（或預設判為考試）
+  if (aType === '考試' || aType.indexOf('考') !== -1 || aType.indexOf('測') !== -1) {
+    if (h.indexOf('語詞') !== -1 || h.indexOf('聽寫') !== -1 || h.indexOf('圈詞') !== -1 || h.indexOf('生字') !== -1 || h.indexOf('單字') !== -1) {
+      return { key: 'foundation', label: '語詞與基礎平時', shortLabel: '語詞/基礎', icon: '🔤', assessmentType: aType || '考試' };
+    }
+    return { key: 'quiz', label: '單元測驗卷成績', shortLabel: '測驗卷', icon: '🎯', assessmentType: aType || '考試' };
+  }
+
+  // 其他自訂標籤則依項目名稱回退判斷，並保留老師自訂的 assessmentType 標籤顯示於網站上
   if (h.indexOf('習') !== -1) {
-    return { key: 'workbook', label: '習作平時成績', shortLabel: '習作', icon: '📘' };
+    return { key: 'workbook', label: '習作平時成績', shortLabel: '習作', icon: '📘', assessmentType: aType };
   }
-  if (h.indexOf('作業') !== -1 || h.indexOf('練習') !== -1 || h.indexOf('學習單') !== -1 || h.indexOf('隨堂') !== -1) {
-    return { key: 'homework', label: '作業卷平時成績', shortLabel: '作業卷', icon: '📝' };
+  if (h.indexOf('作業') !== -1 || h.indexOf('練習') !== -1 || h.indexOf('學習單') !== -1) {
+    return { key: 'homework', label: '作業卷平時成績', shortLabel: '作業卷', icon: '📝', assessmentType: aType };
   }
-  if (h.indexOf('語詞') !== -1 || h.indexOf('聽寫') !== -1 || h.indexOf('圈詞') !== -1 || h.indexOf('生字') !== -1 || h.indexOf('單字') !== -1 || h.indexOf('計算') !== -1 || h.indexOf('重點') !== -1) {
-    return { key: 'foundation', label: '語詞與基礎平時', shortLabel: '語詞/基礎', icon: '🔤' };
+  if (h.indexOf('語詞') !== -1 || h.indexOf('聽寫') !== -1 || h.indexOf('圈詞') !== -1) {
+    return { key: 'foundation', label: '語詞與基礎平時', shortLabel: '語詞/基礎', icon: '🔤', assessmentType: aType };
   }
-  return { key: 'quiz', label: '單元測驗卷成績', shortLabel: '測驗卷', icon: '🎯' };
+  return { key: 'quiz', label: '單元測驗卷成績', shortLabel: '測驗卷', icon: '🎯', assessmentType: aType };
 }
 
 /**
@@ -491,9 +705,11 @@ function getScoreGradeInfo(score) {
 }
 
 /**
- * 解析單一平時成績工作表（自動計算四大分項平均、各科平時總均、班級平均、PR值、單元走勢）
+ * 解析單一平時成績工作表（自動確保「作業／考試」列存在，並僅回傳該試算表實際存在的評量分項！）
  */
 function parseDailySubjectSheet(sheet) {
+  ensureAssessmentTypeRow_(sheet);
+
   var data = sheet.getDataRange().getValues();
   if (!data || data.length < 2) return null;
 
@@ -518,64 +734,46 @@ function parseDailySubjectSheet(sheet) {
     if (titleCandidates.length > 0) sheetTitle = titleCandidates[0].toString().trim();
   }
 
-  var nextRow = (headerRowIdx + 1 < data.length) ? data[headerRowIdx + 1] : null;
-  var isTwoRowHeader = false;
-  if (nextRow) {
-    var firstSeatCandidate = (nextRow[0] !== null && nextRow[0] !== undefined) ? nextRow[0].toString().trim() : '';
-    var firstNameCandidate = (nextRow[1] !== null && nextRow[1] !== undefined) ? nextRow[1].toString().trim() : '';
-    var hasSubHeaders = nextRow.slice(2).some(function(c) {
-      var s = (c || '').toString().trim();
-      return /^[LUlu]?\d{1,2}$/.test(s) || s.indexOf('L') === 0 || s.indexOf('平時') !== -1 || s.indexOf('平均') !== -1;
-    });
-    if ((!firstSeatCandidate || isNaN(parseInt(firstSeatCandidate, 10))) && !firstNameCandidate && hasSubHeaders) {
-      isTwoRowHeader = true;
-    }
-  }
-
-  var groupRow = isTwoRowHeader ? data[headerRowIdx] : null;
-  var itemHeaderRow = isTwoRowHeader ? data[headerRowIdx + 1] : data[headerRowIdx];
-  var dataStartRowIdx = isTwoRowHeader ? headerRowIdx + 2 : headerRowIdx + 1;
-
+  var itemHeaderRow = data[headerRowIdx];
   var seatCol = 0;
   var nameCol = 1;
   for (var c = 0; c < itemHeaderRow.length; c++) {
-    var hText = (itemHeaderRow[c] || (groupRow ? groupRow[c] : '') || '').toString().trim();
+    var hText = (itemHeaderRow[c] || '').toString().trim();
     if (hText.indexOf('座號') !== -1) seatCol = c;
     if (hText.indexOf('姓名') !== -1) nameCol = c;
   }
 
-  var activeGroupLabel = '';
+  var nextRow = (headerRowIdx + 1 < data.length) ? data[headerRowIdx + 1] : null;
+  var hasAssessmentTypeRow = nextRow ? isAssessmentTypeRow_(nextRow, seatCol, nameCol) : false;
+  var typeRow = hasAssessmentTypeRow ? nextRow : null;
+  var dataStartRowIdx = hasAssessmentTypeRow ? headerRowIdx + 2 : headerRowIdx + 1;
+
   var itemCols = [];
+  var sheetPillarColCounts = { workbook: 0, homework: 0, foundation: 0, quiz: 0 };
 
   for (var col = 0; col < itemHeaderRow.length; col++) {
     if (col === seatCol || col === nameCol) continue;
 
-    if (groupRow) {
-      var gCell = (groupRow[col] || '').toString().trim();
-      if (gCell && gCell.indexOf('座號') === -1 && gCell.indexOf('姓名') === -1) {
-        activeGroupLabel = gCell;
-      }
-    }
-
     var rawItemTitle = (itemHeaderRow[col] || '').toString().trim();
-    if (!rawItemTitle && !activeGroupLabel) continue;
-    if (rawItemTitle && isSummaryColumnHeader(rawItemTitle)) continue;
-    if (activeGroupLabel && isSummaryColumnHeader(activeGroupLabel)) continue;
+    if (!rawItemTitle) continue;
 
-    var fullItemTitle = rawItemTitle;
-    if (activeGroupLabel && (/^[LUlu]?\d{1,2}/.test(rawItemTitle) || rawItemTitle.length <= 3) && rawItemTitle.indexOf(activeGroupLabel) === -1) {
-      fullItemTitle = activeGroupLabel + rawItemTitle;
-    } else if (!rawItemTitle && activeGroupLabel) {
-      fullItemTitle = activeGroupLabel;
+    var manualType = typeRow ? (typeRow[col] || '').toString().trim() : '';
+    if (manualType === '不計分' || manualType === '略過' || manualType === '加分' || manualType === '扣分') {
+      continue;
+    }
+    if (!manualType && isSummaryColumnHeader(rawItemTitle)) {
+      continue;
     }
 
-    var catInfo = classifyScoreCategory(fullItemTitle);
-    var unitCode = extractUnitCode(fullItemTitle);
+    var catInfo = classifyScoreCategory(rawItemTitle, manualType);
+    var unitCode = extractUnitCode(rawItemTitle);
+    sheetPillarColCounts[catInfo.key] = (sheetPillarColCounts[catInfo.key] || 0) + 1;
 
     itemCols.push({
       colIdx: col,
-      title: fullItemTitle,
-      shortTitle: rawItemTitle || fullItemTitle,
+      title: rawItemTitle,
+      shortTitle: rawItemTitle,
+      assessmentType: catInfo.assessmentType || '作業',
       pillarKey: catInfo.key,
       pillarLabel: catInfo.label,
       pillarShort: catInfo.shortLabel,
@@ -694,6 +892,7 @@ function parseDailySubjectSheet(sheet) {
         shortTitle: colMeta.shortTitle,
         unit: uKey,
         unitCode: uKey,
+        assessmentType: colMeta.assessmentType,
         category: colMeta.pillarKey,
         pillarKey: colMeta.pillarKey,
         categoryLabel: colMeta.pillarShort,
@@ -711,10 +910,10 @@ function parseDailySubjectSheet(sheet) {
 
     var pillarKeys = ['workbook', 'homework', 'foundation', 'quiz'];
     var pillarMetaMap = {
-      workbook: { label: '習作平時成績', shortLabel: '習作平均', icon: '📘' },
-      homework: { label: '作業卷平時成績', shortLabel: '作業卷平均', icon: '📝' },
-      foundation: { label: '語詞與基礎平時', shortLabel: '語詞/基礎均', icon: '🔤' },
-      quiz: { label: '單元測驗卷成績', shortLabel: '測驗卷平均', icon: '🎯' }
+      workbook: { label: '習作平時成績', shortLabel: '習作平均', icon: '📘', assessmentType: '作業' },
+      homework: { label: '作業卷平時成績', shortLabel: '作業卷平均', icon: '📝', assessmentType: '作業' },
+      foundation: { label: '語詞與基礎平時', shortLabel: '語詞/基礎均', icon: '🔤', assessmentType: '考試' },
+      quiz: { label: '單元測驗卷成績', shortLabel: '測驗卷平均', icon: '🎯', assessmentType: '考試' }
     };
 
     var pillarsArray = [];
@@ -722,6 +921,9 @@ function parseDailySubjectSheet(sheet) {
 
     for (var pkIdx = 0; pkIdx < pillarKeys.length; pkIdx++) {
       var pk = pillarKeys[pkIdx];
+      // 若該試算表分頁根本沒有此類別的欄位（例如數學科沒有語詞測驗或作業卷），則不產生該分項卡片！
+      if (!sheetPillarColCounts[pk]) continue;
+
       var pb = pillarBuckets[pk];
       var pAvg = null;
       var pMax = null;
@@ -744,6 +946,7 @@ function parseDailySubjectSheet(sheet) {
         label: pillarMetaMap[pk].label,
         shortLabel: pillarMetaMap[pk].shortLabel,
         icon: pillarMetaMap[pk].icon,
+        assessmentType: pillarMetaMap[pk].assessmentType,
         average: pAvg,
         maxScore: pMax,
         minScore: pMin,
@@ -963,7 +1166,7 @@ function getStudentDailyPortfolioByToken(token) {
   }
 
   var cache = CacheService.getScriptCache();
-  var cacheKey = 'mpdaily_score_v4_' + cleanToken;
+  var cacheKey = 'mpdaily_score_v5_' + cleanToken;
   var cachedJson = cache.get(cacheKey);
   if (cachedJson) {
     try {
@@ -1129,8 +1332,11 @@ function syncRosterToSubjectSheets(silent) {
     var sh = sheets[idx];
     if (isSystemSheet(sh.getName())) continue;
 
+    ensureAssessmentTypeRow_(sh);
     var data = sh.getDataRange().getValues();
     var headerRowIdx = 1;
+    var seatCol = 0;
+    var nameCol = 1;
     for (var r = 0; r < Math.min(5, data.length); r++) {
       var rowStr = data[r].join(' ');
       if (rowStr.indexOf('座號') !== -1 || rowStr.indexOf('姓名') !== -1) {
@@ -1139,7 +1345,8 @@ function syncRosterToSubjectSheets(silent) {
       }
     }
 
-    var startRow = headerRowIdx + 2; // 1-indexed 資料起始列
+    var hasTypeRow = (headerRowIdx + 1 < data.length) && isAssessmentTypeRow_(data[headerRowIdx + 1], seatCol, nameCol);
+    var startRow = hasTypeRow ? (headerRowIdx + 3) : (headerRowIdx + 2); // 1-indexed 學生資料起始列
     sh.getRange(startRow, 1, rosterList.length, 2).setValues(rosterList).setHorizontalAlignment('center');
     updatedSheets.push(sh.getName());
   }
@@ -1194,6 +1401,7 @@ function syncStudentsFromSheet() {
     return;
   }
 
+  ensureAssessmentTypeRow_(targetSheet);
   var data = targetSheet.getDataRange().getValues();
   var headerRowIdx = -1;
   var seatCol = 0;
@@ -1213,13 +1421,17 @@ function syncStudentsFromSheet() {
   }
   if (headerRowIdx === -1) headerRowIdx = 1;
 
-  // 檢查是否為雙列標題
+  // 檢查是否包含「作業/考試」評量屬性列或雙列標題
   var dataStartRow = headerRowIdx + 1;
   if (dataStartRow < data.length) {
-    var testSeat = (data[dataStartRow][seatCol] || '').toString().trim();
-    var testName = (data[dataStartRow][nameCol] || '').toString().trim();
-    if ((!testSeat || isNaN(parseInt(testSeat, 10))) && !testName) {
+    if (isAssessmentTypeRow_(data[dataStartRow], seatCol, nameCol)) {
       dataStartRow++;
+    } else {
+      var testSeat = (data[dataStartRow][seatCol] || '').toString().trim();
+      var testName = (data[dataStartRow][nameCol] || '').toString().trim();
+      if ((!testSeat || isNaN(parseInt(testSeat, 10))) && !testName) {
+        dataStartRow++;
+      }
     }
   }
 
@@ -1248,6 +1460,7 @@ function syncStudentsFromSheet() {
   var newRoster = [];
 
   for (var rowIdx = dataStartRow; rowIdx < data.length; rowIdx++) {
+    if (isAssessmentTypeRow_(data[rowIdx], seatCol, nameCol)) continue;
     var seatVal = data[rowIdx][seatCol] !== undefined ? data[rowIdx][seatCol].toString().trim() : '';
     var nameVal = data[rowIdx][nameCol] !== undefined ? data[rowIdx][nameCol].toString().trim() : '';
     if (!seatVal && !nameVal) continue;
@@ -1438,6 +1651,7 @@ function autoFormatAndResizeAllSheets() {
       safeFreezeSheet_(sh, 1, 0);
       count++;
     } else {
+      ensureAssessmentTypeRow_(sh);
       var maxCol = Math.max(2, sh.getLastColumn());
       var maxRow = Math.max(2, sh.getLastRow());
       sh.setColumnWidth(1, 70);
@@ -1446,7 +1660,7 @@ function autoFormatAndResizeAllSheets() {
         sh.setColumnWidth(c, 82);
       }
       sh.getRange(1, 1, maxRow, maxCol).setVerticalAlignment('middle').setHorizontalAlignment('center');
-      safeFreezeSheet_(sh, 2, 2);
+      safeFreezeSheet_(sh, 3, 2);
       count++;
     }
   }

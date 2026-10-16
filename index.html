@@ -323,7 +323,7 @@
                             </label>
                             <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
                                 <input type="checkbox" id="webOptPillars" checked onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
-                                <span>四大分項平時平均</span>
+                                <span>分項平時平均</span>
                             </label>
                             <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
                                 <input type="checkbox" id="webOptClassNorm" checked onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
@@ -331,14 +331,14 @@
                             </label>
                             <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
                                 <input type="checkbox" id="webOptTimeline" checked onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
-                                <span>L1~L6 單元走勢圖</span>
+                                <span>平時成績走勢圖</span>
                             </label>
                             <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
                                 <input type="checkbox" id="webOptMatrix" checked onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
-                                <span>單元橫向成績總表</span>
+                                <span>各次評量得分明細</span>
                             </label>
                             <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
-                                <input type="checkbox" id="webOptAdvice" checked onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
+                                <input type="checkbox" id="webOptAdvice" onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
                                 <span>平時成績診斷建議</span>
                             </label>
                         </div>
@@ -359,7 +359,7 @@
                             </label>
                             <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
                                 <input type="checkbox" id="printOptPillars" checked onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
-                                <span>四大分項平時平均</span>
+                                <span>分項平時平均</span>
                             </label>
                             <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
                                 <input type="checkbox" id="printOptClassAvg" checked onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
@@ -771,11 +771,29 @@ function testGitHubConnection() {
             document.getElementById('selectedCountBadge').textContent = `已選取 ${count} 位列印`;
         }
 
+        function buildExistingPillarSummaryText(pillarsObj, sep = ' ‧ ') {
+            if (!pillarsObj) return '';
+            const parts = [];
+            if (pillarsObj.workbook !== null && pillarsObj.workbook !== undefined && !isNaN(pillarsObj.workbook)) {
+                parts.push(`習${Math.round(pillarsObj.workbook)}`);
+            }
+            if (pillarsObj.homework !== null && pillarsObj.homework !== undefined && !isNaN(pillarsObj.homework)) {
+                parts.push(`作${Math.round(pillarsObj.homework)}`);
+            }
+            if (pillarsObj.foundation !== null && pillarsObj.foundation !== undefined && !isNaN(pillarsObj.foundation)) {
+                parts.push(`語${Math.round(pillarsObj.foundation)}`);
+            }
+            if (pillarsObj.quiz !== null && pillarsObj.quiz !== undefined && !isNaN(pillarsObj.quiz)) {
+                parts.push(`測${Math.round(pillarsObj.quiz)}`);
+            }
+            return parts.join(sep);
+        }
+
         function formatSubjectTableCell(subjObj) {
             if (!subjObj || subjObj.overallAverage === null || subjObj.overallAverage === undefined) {
                 return `<span class="text-stone-300 font-mono">--</span>`;
             }
-            const p = subjObj.pillars || {};
+            const pText = buildExistingPillarSummaryText(subjObj.pillars, ' ‧ ');
             const diff = subjObj.diffFromClassAvg;
             const diffBadge = (diff !== null && diff !== undefined)
                 ? `<span class="text-[10px] font-mono px-1 py-0.5 rounded ${diff >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}">${diff >= 0 ? '+' + diff.toFixed(1) : diff.toFixed(1)}</span>`
@@ -786,9 +804,7 @@ function testGitHubConnection() {
                     <span class="font-mono font-black text-sm text-stone-800 tabular-nums">${subjObj.overallAverage.toFixed(1)}</span>
                     ${diffBadge}
                 </div>
-                <div class="text-[10px] font-mono text-stone-400 mt-0.5">
-                    習${p.workbook ? Math.round(p.workbook) : '-'} ‧ 作${p.homework ? Math.round(p.homework) : '-'} ‧ 語${p.foundation ? Math.round(p.foundation) : '-'} ‧ 測${p.quiz ? Math.round(p.quiz) : '-'}
-                </div>
+                ${pText ? `<div class="text-[10px] font-mono text-stone-400 mt-0.5">${pText}</div>` : ''}
             `;
         }
 
@@ -945,9 +961,9 @@ function testGitHubConnection() {
                                 const diffStr = (optClassAvg && s.diffFromClassAvg !== null && s.diffFromClassAvg !== undefined)
                                     ? `(${s.diffFromClassAvg >= 0 ? '+' : ''}${s.diffFromClassAvg.toFixed(1)})`
                                     : '';
-                                const p = s.pillars || {};
-                                const pillarLine = optPillars
-                                    ? `<div class="text-[8px] text-stone-500 font-mono leading-tight truncate">習${p.workbook ? Math.round(p.workbook) : '-'} 作${p.homework ? Math.round(p.homework) : '-'} 語${p.foundation ? Math.round(p.foundation) : '-'} 測${p.quiz ? Math.round(p.quiz) : '-'}</div>`
+                                const pText = buildExistingPillarSummaryText(s.pillars, ' ');
+                                const pillarLine = (optPillars && pText)
+                                    ? `<div class="text-[8px] text-stone-500 font-mono leading-tight truncate">${pText}</div>`
                                     : '';
                                 return `
                                     <div class="bg-amber-50/70 border border-amber-200/80 rounded px-1.5 py-1 text-center">
@@ -980,7 +996,7 @@ function testGitHubConnection() {
                                 <div class="flex-1 min-w-0">
                                     ${subjGridHtml}
                                     <div class="text-[8.5px] text-stone-500 leading-snug mt-0.5">
-                                        📱 手機掃描右側 QR Code 查看<strong>各單元 (L1~L6) 平時成績走勢圖、習作/作業卷/測驗卷平均與班均對比</strong>。
+                                        📱 手機掃描右側 QR Code 查看<strong>各科平時成績統計、分項平時均標與各項評量表現趨勢</strong>。
                                     </div>
                                 </div>
                                 <div class="shrink-0 flex flex-col items-center justify-center p-1 border border-stone-200 rounded-lg bg-white">
@@ -991,7 +1007,7 @@ function testGitHubConnection() {
 
                             <!-- 底部家長簽章與導師叮嚀 -->
                             <div class="flex items-center justify-between border-t border-stone-200 pt-1 text-[8.5px] text-stone-500">
-                                <span>📊 定期檢視平時成績，考前複習更精準</span>
+                                <span>📊 定期檢視平時成績，掌握孩子學習趨勢</span>
                                 ${optSignBox ? `<span class="font-bold text-stone-700">家長簽章：_______________</span>` : `<span>MPScore-Daily</span>`}
                             </div>
                         </div>
@@ -1034,8 +1050,8 @@ function testGitHubConnection() {
             const subjectNames = getActiveSubjectNames(students);
             const fmtSubj = s => {
                 if (!s || s.overallAverage === null || s.overallAverage === undefined) return '--';
-                const p = s.pillars || {};
-                return `<span class="font-bold text-stone-900">${s.overallAverage.toFixed(1)}</span> <span class="text-[9px] text-stone-500">(習${p.workbook ? Math.round(p.workbook) : '-'} 作${p.homework ? Math.round(p.homework) : '-'} 測${p.quiz ? Math.round(p.quiz) : '-'})</span>`;
+                const pText = buildExistingPillarSummaryText(s.pillars, ' ');
+                return `<span class="font-bold text-stone-900">${s.overallAverage.toFixed(1)}</span>${pText ? ` <span class="text-[9px] text-stone-500">(${pText})</span>` : ''}`;
             };
 
             const rowsHtml = students.map(st => {
@@ -1081,7 +1097,7 @@ function testGitHubConnection() {
                                     <th class="py-2 px-2">座號</th>
                                     <th class="py-2 px-2">姓名</th>
                                     <th class="py-2 px-2">專屬代碼</th>
-                                    ${subjectNames.map(sName => `<th class="py-2 px-2 text-center">${sName} (習/作/測)</th>`).join('')}
+                                    ${subjectNames.map(sName => `<th class="py-2 px-2 text-center">${sName}</th>`).join('')}
                                     <th class="py-2 px-2 text-right">各科總均</th>
                                 </tr>
                             </thead>
