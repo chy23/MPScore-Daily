@@ -25,6 +25,8 @@
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700;800&family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <!-- jsQR (QR Code Scanner for Camera & Image) -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <!-- System Config -->
     <script src="config.js"></script>
 
@@ -129,9 +131,9 @@
                     </select>
                 </div>
 
-                <button id="btnResetToken" onclick="showSearchModal()" class="text-xs font-bold text-stone-600 hover:text-amber-700 bg-white hover:bg-amber-50/80 border border-stone-200/90 rounded-xl px-3 py-1.5 transition flex items-center gap-1 shadow-sm">
-                    <span>🔍</span>
-                    <span>輸入代碼</span>
+                <button id="btnResetToken" onclick="toggleQrScannerBanner()" class="text-xs font-bold text-amber-800 hover:text-amber-900 bg-amber-50 hover:bg-amber-100/90 border border-amber-300/90 rounded-xl px-3 py-1.5 transition flex items-center gap-1.5 shadow-sm">
+                    <span>📷</span>
+                    <span>掃描 QR Code</span>
                 </button>
             </div>
         </div>
@@ -140,25 +142,54 @@
     <!-- 主內容區 -->
     <main class="flex-1 max-w-4xl w-full mx-auto px-4 pt-5 pb-16 space-y-6">
 
-        <!-- 搜尋代碼橫幅 (當未帶入 token 或點擊切換時可展開) -->
-        <section id="searchBanner" class="hidden warm-card rounded-3xl p-5 sm:p-6 border-2 border-amber-300/80 animate-fade-up">
+        <!-- 專屬 QR Code 掃描驗證面板（不提供手動輸入姓名與代碼，僅限掃描或上傳 QR Code） -->
+        <section id="qrScannerBanner" class="hidden warm-card rounded-3xl p-5 sm:p-6 border-2 border-amber-300/80 animate-fade-up space-y-4">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <div class="inline-flex items-center gap-1.5 text-xs font-extrabold text-amber-700 bg-amber-100/90 px-2.5 py-1 rounded-full mb-2">
-                        <span>🔐</span> 專屬平時成績代碼查詢
+                <div class="space-y-1">
+                    <div class="inline-flex items-center gap-1.5 text-xs font-extrabold text-amber-800 bg-amber-100/90 px-2.5 py-1 rounded-full">
+                        <span>🛡️</span> 隱私安全保護 ‧ 僅限專屬 QR Code 查閱
                     </div>
-                    <h2 class="text-lg font-black text-stone-800">請輸入通知小卡上的 8 碼平時成績代碼</h2>
-                    <p class="text-xs text-stone-500 mt-0.5">亦可直接掃描老師發放之「平時成績通知小卡」上的專屬 QR Code 直接開啟。</p>
+                    <h2 class="text-lg font-black text-stone-800">請掃描「平時成績通知小卡」上的專屬 QR Code</h2>
+                    <p class="text-xs text-stone-500">為保護學生個人成績隱私，本系統不開放手動輸入姓名或代碼。請直接開啟相機對準通知單上的 QR Code，或從手機相簿選取小卡照片/截圖。</p>
                 </div>
-                <form onsubmit="handleManualSearch(event)" class="flex items-center gap-2 w-full sm:w-auto">
-                    <input id="tokenInput" type="text" maxlength="12" placeholder="例如：DEMO01"
-                        class="w-full sm:w-44 px-3.5 py-2.5 rounded-xl border border-stone-300 font-mono font-bold text-sm uppercase tracking-wider text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-stone-50/70">
-                    <button type="submit"
-                        class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-sm shadow-md shadow-amber-500/20 whitespace-nowrap transition">
-                        查看成績
+
+                <div class="flex flex-wrap items-center gap-2 shrink-0">
+                    <button type="button" onclick="startCameraQrScan()"
+                        class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs sm:text-sm shadow-md shadow-amber-500/20 flex items-center gap-1.5 transition">
+                        <span>📷</span>
+                        <span>開啟相機掃描</span>
                     </button>
-                </form>
+                    <button type="button" onclick="triggerQrImageUpload()"
+                        class="px-4 py-2.5 rounded-xl bg-white hover:bg-amber-50 text-stone-700 border border-stone-300 font-bold text-xs sm:text-sm shadow-sm flex items-center gap-1.5 transition">
+                        <span>🖼️</span>
+                        <span>從相簿選取 QR 照片</span>
+                    </button>
+                    <input id="qrImageFileInput" type="file" accept="image/*" class="hidden" onchange="handleQrImageFileSelect(event)">
+                </div>
             </div>
+
+            <!-- 相機即時掃描畫面區 -->
+            <div id="qrCameraWrap" class="hidden rounded-2xl overflow-hidden bg-stone-900 border border-stone-700 relative max-w-md mx-auto">
+                <video id="qrVideo" class="w-full h-64 sm:h-72 object-cover" playsinline muted></video>
+                <canvas id="qrCanvas" class="hidden"></canvas>
+                <!-- 掃描準星框 -->
+                <div class="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-6">
+                    <div class="w-44 h-44 border-2 border-amber-400/90 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.45)] relative">
+                        <div class="absolute -top-0.5 -left-0.5 w-5 h-5 border-t-4 border-l-4 border-amber-400 rounded-tl-lg"></div>
+                        <div class="absolute -top-0.5 -right-0.5 w-5 h-5 border-t-4 border-r-4 border-amber-400 rounded-tr-lg"></div>
+                        <div class="absolute -bottom-0.5 -left-0.5 w-5 h-5 border-b-4 border-l-4 border-amber-400 rounded-bl-lg"></div>
+                        <div class="absolute -bottom-0.5 -right-0.5 w-5 h-5 border-b-4 border-r-4 border-amber-400 rounded-br-lg"></div>
+                    </div>
+                    <span class="mt-3 px-3 py-1 rounded-full bg-black/65 text-amber-200 text-[11px] font-bold">請將小卡上的 QR Code 對準框內</span>
+                </div>
+                <button type="button" onclick="stopCameraQrScan()"
+                    class="absolute top-3 right-3 px-3 py-1.5 rounded-xl bg-black/70 hover:bg-black text-white text-xs font-bold transition">
+                    ✕ 關閉鏡頭
+                </button>
+            </div>
+
+            <!-- 掃描狀態提示訊息 -->
+            <div id="qrScanStatusMsg" class="hidden text-xs font-bold text-center py-2 px-3 rounded-xl bg-amber-50 text-amber-800 border border-amber-200"></div>
         </section>
 
         <!-- 載入中狀態 -->
@@ -175,11 +206,15 @@
             <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto text-2xl">
                 ⚠️
             </div>
-            <h3 id="errorTitle" class="font-black text-stone-800 text-lg">查無此查詢代碼</h3>
-            <p id="errorDesc" class="text-xs text-stone-500 max-w-md mx-auto leading-relaxed">請確認您輸入的 8 碼平時成績查詢代碼是否正確，或直接點擊右上角「範例學生」體驗完整平時成績分析功能。</p>
-            <div class="pt-2 flex justify-center gap-2">
-                <button onclick="switchDemoStudent('DEMO01')" class="px-4 py-2 rounded-xl bg-amber-500 text-white text-xs font-bold shadow-sm hover:bg-amber-600 transition">
-                    載入範例平時成績 (DEMO01)
+            <h3 id="errorTitle" class="font-black text-stone-800 text-lg">無法讀取此 QR Code 的平時成績</h3>
+            <p id="errorDesc" class="text-xs text-stone-500 max-w-md mx-auto leading-relaxed">請重新掃描老師發放之「平時成績通知小卡」上的專屬 QR Code，或確認小卡是否為最新發放版本。</p>
+            <div class="pt-2 flex flex-wrap justify-center gap-2">
+                <button onclick="openQrScannerAndStartCamera()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold shadow-sm hover:from-amber-600 hover:to-orange-600 transition flex items-center gap-1.5">
+                    <span>📷</span>
+                    <span>重新掃描 QR Code</span>
+                </button>
+                <button onclick="switchDemoStudent('DEMO01')" class="px-4 py-2 rounded-xl bg-white border border-stone-300 text-stone-600 text-xs font-bold shadow-sm hover:bg-stone-50 transition">
+                    預覽系統範例畫面
                 </button>
             </div>
         </section>
@@ -1471,21 +1506,217 @@
         }
 
         // =========================================================================
-        // 4. 查詢代碼與 API 連線流程
+        // 4. 專屬 QR Code 掃描（相機即時掃描 & 相簿圖片辨識）與 API 連線流程
         // =========================================================================
-        function showSearchModal() {
-            const banner = document.getElementById('searchBanner');
-            banner.classList.toggle('hidden');
-            if (!banner.classList.contains('hidden')) {
-                document.getElementById('tokenInput').focus();
+        let qrVideoStream = null;
+        let qrScanRafId = null;
+
+        function setQrScanStatus(msg, isError = false) {
+            const el = document.getElementById('qrScanStatusMsg');
+            if (!el) return;
+            if (!msg) {
+                el.classList.add('hidden');
+                el.textContent = '';
+                return;
+            }
+            el.classList.remove('hidden');
+            el.textContent = msg;
+            el.className = isError
+                ? 'text-xs font-bold text-center py-2 px-3 rounded-xl bg-rose-50 text-rose-700 border border-rose-200'
+                : 'text-xs font-bold text-center py-2 px-3 rounded-xl bg-amber-50 text-amber-800 border border-amber-200';
+        }
+
+        function toggleQrScannerBanner() {
+            const banner = document.getElementById('qrScannerBanner');
+            if (!banner) return;
+            const willHide = !banner.classList.contains('hidden');
+            if (willHide) {
+                stopCameraQrScan();
+                banner.classList.add('hidden');
+            } else {
+                banner.classList.remove('hidden');
+                banner.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         }
 
-        function handleManualSearch(e) {
-            e.preventDefault();
-            const val = document.getElementById('tokenInput').value.trim().toUpperCase();
-            if (!val) return;
-            loadStudentPortfolioByToken(val);
+        function openQrScannerAndStartCamera() {
+            const banner = document.getElementById('qrScannerBanner');
+            if (banner) {
+                banner.classList.remove('hidden');
+                banner.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            startCameraQrScan();
+        }
+
+        async function startCameraQrScan() {
+            stopCameraQrScan();
+            setQrScanStatus('正在啟動相機鏡頭，請允許瀏覽器使用相機權限...');
+
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                setQrScanStatus('⚠️ 您的瀏覽器不支援直接開啟相機，請點選「🖼️ 從相簿選取 QR 照片」上傳小卡照片或截圖。', true);
+                return;
+            }
+
+            try {
+                qrVideoStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+                    audio: false
+                });
+                const video = document.getElementById('qrVideo');
+                const wrap = document.getElementById('qrCameraWrap');
+                video.srcObject = qrVideoStream;
+                await video.play();
+                wrap.classList.remove('hidden');
+                setQrScanStatus('📷 相機已開啟，請將「平時成績通知小卡」上的 QR Code 對準畫面中央方框');
+                qrScanRafId = requestAnimationFrame(scanCameraFrame);
+            } catch (err) {
+                setQrScanStatus('⚠️ 無法開啟相機（可能未授權相機權限），請改點選「🖼️ 從相簿選取 QR 照片」進行辨識。', true);
+            }
+        }
+
+        function stopCameraQrScan() {
+            if (qrScanRafId) {
+                cancelAnimationFrame(qrScanRafId);
+                qrScanRafId = null;
+            }
+            if (qrVideoStream) {
+                qrVideoStream.getTracks().forEach(track => track.stop());
+                qrVideoStream = null;
+            }
+            const video = document.getElementById('qrVideo');
+            if (video) video.srcObject = null;
+            const wrap = document.getElementById('qrCameraWrap');
+            if (wrap) wrap.classList.add('hidden');
+        }
+
+        function scanCameraFrame() {
+            const video = document.getElementById('qrVideo');
+            const canvas = document.getElementById('qrCanvas');
+            if (!video || !canvas || !qrVideoStream) return;
+
+            if (video.readyState === video.HAVE_ENOUGH_DATA && video.videoWidth > 0) {
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+                if (typeof jsQR === 'function') {
+                    const qrResult = jsQR(imgData.data, imgData.width, imgData.height, {
+                        inversionAttempts: 'dontInvert'
+                    });
+                    if (qrResult && qrResult.data && qrResult.data.trim()) {
+                        const rawData = qrResult.data.trim();
+                        stopCameraQrScan();
+                        setQrScanStatus('✅ 掃描成功！正在讀取學生的平時成績歷程...');
+                        handleDecodedQrPayload(rawData);
+                        return;
+                    }
+                }
+            }
+            qrScanRafId = requestAnimationFrame(scanCameraFrame);
+        }
+
+        function triggerQrImageUpload() {
+            stopCameraQrScan();
+            const fileInput = document.getElementById('qrImageFileInput');
+            if (fileInput) {
+                fileInput.value = '';
+                fileInput.click();
+            }
+        }
+
+        function handleQrImageFileSelect(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            setQrScanStatus('⏳ 正在從照片辨識 QR Code...');
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const img = new Image();
+                img.onload = function () {
+                    const canvas = document.getElementById('qrCanvas');
+                    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+                    // 嘗試多種縮放尺寸以提高相簿截圖或大圖照片的辨識成功率
+                    const targetSizes = [1200, 800, 1600, img.width];
+                    let decodedText = null;
+
+                    for (let i = 0; i < targetSizes.length; i++) {
+                        const maxDim = targetSizes[i];
+                        const scale = Math.min(1, maxDim / Math.max(img.width, img.height, 1));
+                        canvas.width = Math.max(1, Math.round(img.width * scale));
+                        canvas.height = Math.max(1, Math.round(img.height * scale));
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        if (typeof jsQR === 'function') {
+                            const code = jsQR(imgData.data, imgData.width, imgData.height, {
+                                inversionAttempts: 'attemptBoth'
+                            });
+                            if (code && code.data && code.data.trim()) {
+                                decodedText = code.data.trim();
+                                break;
+                            }
+                        }
+                    }
+
+                    if (decodedText) {
+                        setQrScanStatus('✅ 照片 QR Code 辨識成功！正在載入平時成績...');
+                        handleDecodedQrPayload(decodedText);
+                    } else {
+                        setQrScanStatus('⚠️ 無法從這張照片辨識出 QR Code，請拍攝更清晰的小卡局部 QR Code 或改用相機直接掃描。', true);
+                    }
+                };
+                img.onerror = function () {
+                    setQrScanStatus('⚠️ 無法讀取此圖片檔案，請重新選擇照片。', true);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function handleDecodedQrPayload(rawText) {
+            const text = String(rawText || '').trim();
+            if (!text) return;
+
+            let extractedToken = '';
+            let extractedApi = '';
+            let extractedCfg = '';
+
+            if (text.startsWith('http://') || text.startsWith('https://') || text.includes('token=') || text.includes('code=')) {
+                try {
+                    const urlObj = new URL(text, window.location.origin);
+                    extractedToken = (urlObj.searchParams.get('token') || urlObj.searchParams.get('code') || '').trim();
+                    extractedApi = (urlObj.searchParams.get('api') || '').trim();
+                    extractedCfg = (urlObj.searchParams.get('cfg') || '').trim();
+                } catch (err) {
+                    const mToken = text.match(/[?&](?:token|code)=([^&#]+)/i);
+                    const mApi = text.match(/[?&]api=([^&#]+)/i);
+                    const mCfg = text.match(/[?&]cfg=([^&#]+)/i);
+                    if (mToken) extractedToken = decodeURIComponent(mToken[1]);
+                    if (mApi) extractedApi = decodeURIComponent(mApi[1]);
+                    if (mCfg) extractedCfg = decodeURIComponent(mCfg[1]);
+                }
+            } else {
+                extractedToken = text;
+            }
+
+            if (extractedApi) {
+                localStorage.setItem('mpdaily_api_url', extractedApi);
+            }
+
+            if (extractedToken) {
+                const newParams = new URLSearchParams(window.location.search);
+                newParams.set('token', extractedToken.toUpperCase());
+                if (extractedCfg) newParams.set('cfg', extractedCfg);
+                if (extractedApi) newParams.set('api', extractedApi);
+                const newUrl = `${window.location.pathname}?${newParams.toString()}`;
+                window.history.replaceState({}, '', newUrl);
+                parseUrlDisplayConfig();
+                loadStudentPortfolioByToken(extractedToken, false, extractedApi);
+            } else {
+                setQrScanStatus('⚠️ 此 QR Code 不包含有效的學生平時成績連結，請確認掃描的是老師發放的通知小卡。', true);
+            }
         }
 
         function switchDemoStudent(demoToken) {
@@ -1560,12 +1791,14 @@
             };
         }
 
-        async function loadStudentPortfolioByToken(token, forceDemo = false) {
+        async function loadStudentPortfolioByToken(token, forceDemo = false, overrideApiUrl = '') {
             const cleanToken = String(token || '').trim().toUpperCase();
-            document.getElementById('searchBanner').classList.add('hidden');
+            stopCameraQrScan();
+            setQrScanStatus('');
+            document.getElementById('qrScannerBanner').classList.add('hidden');
 
             const params = new URLSearchParams(window.location.search);
-            const urlApi = params.get('api');
+            const urlApi = overrideApiUrl || params.get('api');
             if (urlApi) {
                 localStorage.setItem('mpdaily_api_url', urlApi);
             }
@@ -1582,8 +1815,12 @@
                 return;
             }
 
+            // 正式學生查詢時隱藏範例切換器，確保介面單純
+            document.getElementById('demoSwitcherWrap').classList.add('hidden');
+            document.getElementById('demoSwitcherWrap').classList.remove('flex');
+
             if (!apiUrl) {
-                showErrorState('尚未設定雲端試算表連線或代碼無效', `找不到代碼「${cleanToken}」的資料。若要測試展示模式，請輸入 DEMO01 ~ DEMO05。`);
+                showErrorState('尚未包含雲端試算表連線資訊', '請重新掃描老師發放之「平時成績通知小卡」上的完整 QR Code。');
                 return;
             }
 
@@ -1601,7 +1838,7 @@
                 } else if (DEMO_STUDENTS_DB[cleanToken]) {
                     renderPortfolio(buildDemoPortfolio(DEMO_STUDENTS_DB[cleanToken]));
                 } else {
-                    showErrorState('查無此平時成績代碼', data.message || `找不到查詢代碼「${cleanToken}」對應的平時成績紀錄，請確認代碼是否輸入正確。`);
+                    showErrorState('無法識別此 QR Code', data.message || '找不到此 QR Code 對應的學生平時成績紀錄，請向老師確認是否已重新發放最新通知小卡。');
                 }
             } catch (err) {
                 if (DEMO_STUDENTS_DB[cleanToken]) {
@@ -1624,14 +1861,15 @@
         window.addEventListener('DOMContentLoaded', () => {
             parseUrlDisplayConfig();
             const params = new URLSearchParams(window.location.search);
-            const urlToken = params.get('token');
+            const urlToken = params.get('token') || params.get('code');
             if (urlToken) {
                 loadStudentPortfolioByToken(urlToken, false);
             } else {
-                // 預設啟動 DEMO01 讓使用者打開就能看到完整平時成績分析
+                // 未帶 QR Code 參數進入時，預設展開 QR Code 掃描面板，下方提供範例預覽
                 document.getElementById('demoSwitcherWrap').classList.remove('hidden');
                 document.getElementById('demoSwitcherWrap').classList.add('flex');
                 switchDemoStudent('DEMO01');
+                document.getElementById('qrScannerBanner').classList.remove('hidden');
             }
         });
     </script>
