@@ -263,7 +263,7 @@
                             <label class="block text-xs font-extrabold text-stone-700">🔗 試算表 Web App API 網址：</label>
                             <input id="apiUrlInput" type="url" placeholder="https://script.google.com/macros/s/.../exec"
                                 class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-xs font-mono text-stone-800 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500">
-                            <p id="apiStatusMsg" class="text-[11px] text-stone-500">若尚未部署試算表，可直接點下方「載入內建 501 班範例平時成績」體驗完整功能。</p>
+                            <p id="apiStatusMsg" class="text-[11px] text-stone-500">貼上網址後點擊下方按鈕，系統將自動記住網址並同步試算表內的真實學生與科目成績。</p>
                         </div>
                     </div>
 
@@ -271,10 +271,6 @@
                         <button onclick="connectCloudGradebook()" class="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-sm">
                             <span>☁️</span>
                             <span>連線試算表並載入全班平時成績</span>
-                        </button>
-                        <button onclick="loadDemoToPrintCenter()" class="w-full py-2 px-4 rounded-xl bg-amber-100/80 hover:bg-amber-200/70 text-amber-900 font-bold text-xs transition flex items-center justify-center gap-1.5">
-                            <span>✨</span>
-                            <span>載入內建 501 班範例平時成績（10人）</span>
                         </button>
                     </div>
                 </div>
@@ -292,13 +288,17 @@
                 <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-stone-200/80 pb-4">
                     <div>
                         <div class="flex items-center gap-2">
-                            <span id="rosterBadgeSource" class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">✨ 範例班級：501班（10位學生）</span>
-                            <span class="text-xs text-stone-400 font-mono" id="rosterUpdatedTime">更新時間：2026-10-16</span>
+                            <span id="rosterBadgeSource" class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">☁️ 準備連線試算表</span>
+                            <span class="text-xs text-stone-400 font-mono" id="rosterUpdatedTime">尚未同步</span>
                         </div>
                         <h2 class="text-lg sm:text-xl font-black text-stone-800 mt-1">全班各科平時成績總均與四大分項均標一覽</h2>
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2.5">
+                        <button onclick="connectCloudGradebook()" class="px-3.5 py-2.5 rounded-2xl bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-300 font-extrabold text-xs sm:text-sm shadow-sm transition flex items-center gap-1.5">
+                            <span>🔄</span>
+                            <span>重新同步試算表最新成績</span>
+                        </button>
                         <button onclick="openPrintPreviewModal()" class="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black text-xs sm:text-sm shadow-lg shadow-amber-500/20 transition flex items-center gap-2">
                             <span>🖨️</span>
                             <span>預覽與下載 A4 平時成績通知小卡 PDF</span>
@@ -553,92 +553,10 @@ function testGitHubConnection() {
 }`;
 
         // =========================================================================
-        // 2. 內建 10 位範例學生平時成績資料（涵蓋國語、數學、社會三大科與四大分項平均）
+        // 2. 雲端試算表學生平時成績狀態（不載入任何假示範名單，100% 同步教師試算表）
         // =========================================================================
-        const DEMO_CLASS_STUDENTS = [
-            {
-                seatNo: "01", name: "王小華", className: "501班", token: "DEMO01", selected: true,
-                subjects: [
-                    { subject: "國語", overallAverage: 95.3, classOverallAverage: 89.2, diffFromClassAvg: 6.1, pillars: { workbook: 96.0, homework: 94.5, foundation: 98.0, quiz: 92.7 } },
-                    { subject: "數學", overallAverage: 92.8, classOverallAverage: 86.4, diffFromClassAvg: 6.4, pillars: { workbook: 93.2, homework: 91.0, foundation: 95.2, quiz: 89.5 } },
-                    { subject: "社會", overallAverage: 92.5, classOverallAverage: 87.9, diffFromClassAvg: 4.6, pillars: { workbook: 93.3, homework: 91.2, foundation: 94.5, quiz: 90.2 } }
-                ]
-            },
-            {
-                seatNo: "02", name: "陳品妍", className: "501班", token: "DEMO02", selected: true,
-                subjects: [
-                    { subject: "國語", overallAverage: 90.8, classOverallAverage: 89.2, diffFromClassAvg: 1.6, pillars: { workbook: 95.2, homework: 92.5, foundation: 94.5, quiz: 81.7 } },
-                    { subject: "數學", overallAverage: 88.2, classOverallAverage: 86.4, diffFromClassAvg: 1.8, pillars: { workbook: 93.8, homework: 90.5, foundation: 91.7, quiz: 77.7 } },
-                    { subject: "社會", overallAverage: 90.7, classOverallAverage: 87.9, diffFromClassAvg: 2.8, pillars: { workbook: 94.5, homework: 91.8, foundation: 93.3, quiz: 83.7 } }
-                ]
-            },
-            {
-                seatNo: "03", name: "林宥廷", className: "501班", token: "DEMO03", selected: true,
-                subjects: [
-                    { subject: "國語", overallAverage: 87.8, classOverallAverage: 89.2, diffFromClassAvg: -1.4, pillars: { workbook: 89.7, homework: 87.3, foundation: 89.7, quiz: 85.5 } },
-                    { subject: "數學", overallAverage: 88.3, classOverallAverage: 86.4, diffFromClassAvg: 1.9, pillars: { workbook: 89.3, homework: 87.2, foundation: 91.0, quiz: 86.0 } },
-                    { subject: "社會", overallAverage: 88.8, classOverallAverage: 87.9, diffFromClassAvg: 0.9, pillars: { workbook: 90.2, homework: 88.0, foundation: 90.3, quiz: 86.7 } }
-                ]
-            },
-            {
-                seatNo: "04", name: "張語恩", className: "501班", token: "DEMO04", selected: true,
-                subjects: [
-                    { subject: "國語", overallAverage: 97.7, classOverallAverage: 89.2, diffFromClassAvg: 8.5, pillars: { workbook: 98.7, homework: 96.7, foundation: 99.3, quiz: 95.8 } },
-                    { subject: "數學", overallAverage: 86.1, classOverallAverage: 86.4, diffFromClassAvg: -0.3, pillars: { workbook: 87.0, homework: 84.5, foundation: 89.0, quiz: 83.2 } },
-                    { subject: "社會", overallAverage: 94.6, classOverallAverage: 87.9, diffFromClassAvg: 6.7, pillars: { workbook: 95.7, homework: 93.5, foundation: 96.2, quiz: 92.0 } }
-                ]
-            },
-            {
-                seatNo: "05", name: "李冠宇", className: "501班", token: "DEMO05", selected: true,
-                subjects: [
-                    { subject: "國語", overallAverage: 83.0, classOverallAverage: 89.2, diffFromClassAvg: -6.2, pillars: { workbook: 85.3, homework: 82.3, foundation: 84.3, quiz: 79.5 } },
-                    { subject: "數學", overallAverage: 85.8, classOverallAverage: 86.4, diffFromClassAvg: -0.6, pillars: { workbook: 87.0, homework: 84.0, foundation: 89.0, quiz: 82.7 } },
-                    { subject: "社會", overallAverage: 86.8, classOverallAverage: 87.9, diffFromClassAvg: -1.1, pillars: { workbook: 88.3, homework: 85.5, foundation: 88.0, quiz: 83.8 } }
-                ]
-            },
-            {
-                seatNo: "06", name: "黃子軒", className: "501班", token: "DEMO01", selected: true,
-                subjects: [
-                    { subject: "國語", overallAverage: 91.4, classOverallAverage: 89.2, diffFromClassAvg: 2.2, pillars: { workbook: 93.0, homework: 91.2, foundation: 92.5, quiz: 89.0 } },
-                    { subject: "數學", overallAverage: 94.2, classOverallAverage: 86.4, diffFromClassAvg: 7.8, pillars: { workbook: 95.0, homework: 93.5, foundation: 96.0, quiz: 92.2 } },
-                    { subject: "社會", overallAverage: 89.5, classOverallAverage: 87.9, diffFromClassAvg: 1.6, pillars: { workbook: 91.0, homework: 88.8, foundation: 90.5, quiz: 87.7 } }
-                ]
-            },
-            {
-                seatNo: "07", name: "吳采潔", className: "501班", token: "DEMO02", selected: true,
-                subjects: [
-                    { subject: "國語", overallAverage: 93.6, classOverallAverage: 89.2, diffFromClassAvg: 4.4, pillars: { workbook: 95.0, homework: 93.2, foundation: 95.5, quiz: 90.8 } },
-                    { subject: "數學", overallAverage: 89.5, classOverallAverage: 86.4, diffFromClassAvg: 3.1, pillars: { workbook: 91.2, homework: 88.5, foundation: 91.0, quiz: 87.2 } },
-                    { subject: "社會", overallAverage: 91.8, classOverallAverage: 87.9, diffFromClassAvg: 3.9, pillars: { workbook: 93.0, homework: 91.2, foundation: 92.8, quiz: 90.2 } }
-                ]
-            },
-            {
-                seatNo: "08", name: "蔡承翰", className: "501班", token: "DEMO03", selected: true,
-                subjects: [
-                    { subject: "國語", overallAverage: 86.5, classOverallAverage: 89.2, diffFromClassAvg: -2.7, pillars: { workbook: 88.5, homework: 86.0, foundation: 87.5, quiz: 84.0 } },
-                    { subject: "數學", overallAverage: 90.4, classOverallAverage: 86.4, diffFromClassAvg: 4.0, pillars: { workbook: 92.0, homework: 89.5, foundation: 92.2, quiz: 88.0 } },
-                    { subject: "社會", overallAverage: 87.2, classOverallAverage: 87.9, diffFromClassAvg: -0.7, pillars: { workbook: 89.0, homework: 86.5, foundation: 88.2, quiz: 85.0 } }
-                ]
-            },
-            {
-                seatNo: "09", name: "許芷晴", className: "501班", token: "DEMO04", selected: true,
-                subjects: [
-                    { subject: "國語", overallAverage: 94.8, classOverallAverage: 89.2, diffFromClassAvg: 5.6, pillars: { workbook: 96.2, homework: 94.0, foundation: 96.5, quiz: 92.5 } },
-                    { subject: "數學", overallAverage: 91.0, classOverallAverage: 86.4, diffFromClassAvg: 4.6, pillars: { workbook: 92.5, homework: 90.2, foundation: 92.8, quiz: 88.5 } },
-                    { subject: "社會", overallAverage: 93.2, classOverallAverage: 87.9, diffFromClassAvg: 5.3, pillars: { workbook: 94.5, homework: 92.5, foundation: 94.8, quiz: 91.0 } }
-                ]
-            },
-            {
-                seatNo: "10", name: "鄭宇翔", className: "501班", token: "DEMO05", selected: true,
-                subjects: [
-                    { subject: "國語", overallAverage: 88.4, classOverallAverage: 89.2, diffFromClassAvg: -0.8, pillars: { workbook: 90.5, homework: 88.0, foundation: 89.5, quiz: 85.5 } },
-                    { subject: "數學", overallAverage: 87.6, classOverallAverage: 86.4, diffFromClassAvg: 1.2, pillars: { workbook: 89.5, homework: 87.0, foundation: 89.0, quiz: 85.0 } },
-                    { subject: "社會", overallAverage: 88.1, classOverallAverage: 87.9, diffFromClassAvg: 0.2, pillars: { workbook: 90.0, homework: 87.5, foundation: 89.0, quiz: 86.0 } }
-                ]
-            }
-        ];
-
-        let currentRoster = JSON.parse(JSON.stringify(DEMO_CLASS_STUDENTS));
+        let currentRoster = [];
+        let currentSubjectList = [];
         let currentPrintEdition = 'parent'; // 'parent' | 'teacher'
 
         // =========================================================================
@@ -673,9 +591,11 @@ function testGitHubConnection() {
 
         function copyFormattedRosterTSV() {
             const raw = document.getElementById('quickRosterInput').value.trim();
-            const lines = raw ? raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean) : [
-                "王小華", "陳品妍", "林宥廷", "張語恩", "李冠宇"
-            ];
+            if (!raw) {
+                alert('請先在輸入框貼上學生名單（一行一位學生）！');
+                return;
+            }
+            const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
             const tsvRows = [
                 ["座號", "姓名", "國習L1", "國習L2", "作業卷L1", "作業卷L2", "語詞L1", "語詞L2", "測驗卷L1", "測驗卷L2"].join("\t")
             ];
@@ -694,17 +614,12 @@ function testGitHubConnection() {
             });
         }
 
-        function loadDemoToPrintCenter() {
-            currentRoster = JSON.parse(JSON.stringify(DEMO_CLASS_STUDENTS));
-            document.getElementById('rosterBadgeSource').textContent = '✨ 範例班級：501班（10位學生平時成績）';
-            switchMainTab('print');
-        }
-
         async function connectCloudGradebook() {
-            const inputUrl = document.getElementById('apiUrlInput').value.trim();
+            const inputUrl = (document.getElementById('apiUrlInput').value.trim() || localStorage.getItem('mpdaily_api_url') || '').trim();
             const statusMsg = document.getElementById('apiStatusMsg');
+            const badgeSource = document.getElementById('rosterBadgeSource');
             if (!inputUrl) {
-                statusMsg.textContent = '⚠️ 請先貼上 Google Apps Script 部署網址，或點擊下方按鈕載入內建範例班級。';
+                statusMsg.textContent = '⚠️ 請先貼上 Google Apps Script 部署網址（https://script.google.com/macros/s/.../exec）。';
                 statusMsg.className = 'text-[11px] text-rose-600 font-bold';
                 return;
             }
@@ -715,12 +630,14 @@ function testGitHubConnection() {
                 return;
             }
 
+            document.getElementById('apiUrlInput').value = inputUrl;
             statusMsg.textContent = '⏳ 正在從 Google 試算表同步全班各科平時成績與分項平均...';
             statusMsg.className = 'text-[11px] text-amber-700 font-bold';
+            if (badgeSource) badgeSource.textContent = '⏳ 正在同步雲端試算表...';
 
             try {
                 const sep = inputUrl.includes('?') ? '&' : '?';
-                const res = await fetch(`${inputUrl}${sep}action=getStudentsForPrint`, { redirect: 'follow' });
+                const res = await fetch(`${inputUrl}${sep}action=getStudentsForPrint&t=${Date.now()}`, { redirect: 'follow' });
                 const text = await res.text();
                 let data = null;
                 try {
@@ -728,11 +645,13 @@ function testGitHubConnection() {
                 } catch (parseErr) {
                     statusMsg.textContent = '⚠️ Apps Script 回傳非 JSON 頁面。請確認：(1) 已在 Apps Script 點選「執行 ➔ setup」完成授權；(2) 部署權限為「所有人 (Anyone)」。';
                     statusMsg.className = 'text-[11px] text-rose-600 font-bold';
+                    if (badgeSource) badgeSource.textContent = '⚠️ 試算表授權未完成';
                     return;
                 }
 
                 if (data && (data.status === 'success' || data.success === true) && Array.isArray(data.students)) {
                     localStorage.setItem('mpdaily_api_url', inputUrl);
+                    currentSubjectList = Array.isArray(data.subjectList) ? data.subjectList : [];
                     currentRoster = data.students.map(st => {
                         const rawSubjs = (Array.isArray(st.subjects) && st.subjects.length > 0)
                             ? st.subjects
@@ -767,16 +686,18 @@ function testGitHubConnection() {
                     });
                     statusMsg.textContent = `✅ 連線成功！已載入全班 ${currentRoster.length} 位學生平時成績。`;
                     statusMsg.className = 'text-[11px] text-emerald-700 font-bold';
-                    document.getElementById('rosterBadgeSource').textContent = `☁️ 已連線雲端試算表（共 ${currentRoster.length} 位學生）`;
+                    if (badgeSource) badgeSource.textContent = `☁️ 已連線雲端試算表（共 ${currentRoster.length} 位學生）`;
                     document.getElementById('rosterUpdatedTime').textContent = `更新時間：${data.updatedAt || '剛剛'}`;
                     switchMainTab('print');
                 } else {
-                    statusMsg.textContent = `⚠️ ${data && data.message ? data.message : '無法解析試算表資料，請確認已執行選單「🛠️ 建立初始表格」。'}`;
+                    statusMsg.textContent = `⚠️ ${data && data.message ? data.message : '無法解析試算表資料，請確認試算表內已有【學生名冊】與平時成績分頁。'}`;
                     statusMsg.className = 'text-[11px] text-rose-600 font-bold';
+                    if (badgeSource) badgeSource.textContent = '⚠️ 讀取失敗';
                 }
             } catch (e) {
                 statusMsg.textContent = '⚠️ 網路連線失敗，請確認：(1) 網址結尾為 /exec；(2) 部署權限已設為「所有人 (Anyone)」。';
                 statusMsg.className = 'text-[11px] text-rose-600 font-bold';
+                if (badgeSource) badgeSource.textContent = '⚠️ 連線失敗';
             }
         }
 
@@ -795,7 +716,7 @@ function testGitHubConnection() {
 
         function getActiveSubjectNames(rosterList) {
             const list = rosterList || currentRoster || [];
-            const seen = [];
+            const seen = [...currentSubjectList];
             list.forEach(st => {
                 (st.subjects || []).forEach(s => {
                     if (s.subject && !seen.includes(s.subject)) {
@@ -803,7 +724,7 @@ function testGitHubConnection() {
                     }
                 });
             });
-            return seen.length > 0 ? seen : ['國語', '數學', '社會'];
+            return seen;
         }
 
         function computeWebConfigBitmask() {
@@ -891,6 +812,23 @@ function testGitHubConnection() {
                 `;
             }
 
+            if (currentRoster.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="${5 + subjectNames.length}" class="py-12 px-4 text-center space-y-3">
+                            <div class="text-sm font-black text-stone-700">尚未載入雲端試算表資料</div>
+                            <div class="text-xs text-stone-500">請於「🛠️ 1. 試算表部署與連線設定」貼上您的 Apps Script 部署網址，或點擊上方「🔄 重新同步試算表最新成績」</div>
+                            <div class="pt-1">
+                                <button onclick="switchMainTab('wizard')" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition shadow-sm">
+                                    前往貼上試算表部署網址
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
             tbody.innerHTML = currentRoster.map((st, idx) => {
                 const subjs = st.subjects || [];
                 const validSubjs = subjs.filter(s => s.overallAverage !== null && !isNaN(s.overallAverage));
@@ -915,7 +853,7 @@ function testGitHubConnection() {
                                 <span class="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 font-mono font-black text-xs flex items-center justify-center">${st.seatNo}</span>
                                 <div>
                                     <div class="font-black text-stone-800 text-sm">${st.name}</div>
-                                    <div class="text-[10px] text-stone-400 font-bold">${st.className || '501班'}</div>
+                                    <div class="text-[10px] text-stone-400 font-bold">${st.className || '本班'}</div>
                                 </div>
                             </div>
                         </td>
@@ -1181,14 +1119,16 @@ function testGitHubConnection() {
             }, 250);
         }
 
-        // 初始化
+        // 初始化：若瀏覽器已儲存試算表 API 網址，自動立即連線載入真實班級資料
         window.addEventListener('DOMContentLoaded', () => {
             document.getElementById('loaderCodePreview').textContent = LOADER_GS_SOURCE;
-            const savedUrl = localStorage.getItem('mpdaily_api_url') || ((typeof CONFIG !== 'undefined' && CONFIG.API_URL) ? CONFIG.API_URL : '');
+            const savedUrl = (localStorage.getItem('mpdaily_api_url') || ((typeof CONFIG !== 'undefined' && CONFIG.API_URL) ? CONFIG.API_URL : '')).trim();
             if (savedUrl) {
                 document.getElementById('apiUrlInput').value = savedUrl;
+                connectCloudGradebook();
+            } else {
+                renderTeacherRosterTable();
             }
-            renderTeacherRosterTable();
         });
     </script>
 </body>

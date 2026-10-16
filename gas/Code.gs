@@ -452,12 +452,12 @@ function classifyScoreCategory(itemName) {
  */
 function extractUnitCode(itemName) {
   var h = (itemName || '').toString().trim();
-  var mRange = h.match(/[LUlu](\d{1,2}\s*[-~～]\s*\d{1,2})/);
+  var mRange = h.match(/[LUlu]\s*(\d{1,2}\s*[-~～]\s*\d{1,2})/);
   if (mRange) {
     return 'L' + mRange[1].replace(/\s+/g, '').replace(/[~～]/g, '-');
   }
 
-  var m1 = h.match(/[LUlu](\d{1,2})/);
+  var m1 = h.match(/[LUlu]\s*(\d{1,2})/);
   if (m1) return 'L' + parseInt(m1[1], 10);
 
   var m2 = h.match(/第([一二三四五六七八九十\d]+)[課單元回]/);
@@ -806,7 +806,7 @@ function parseDailySubjectSheet(sheet) {
     });
 
     var shortSubj = inferSubjectShortName(sheetName, sheetTitle);
-    studentMap[st.seat] = {
+    var stDataObj = {
       subject: shortSubj,
       sheetName: sheetName,
       subjectTitle: sheetTitle,
@@ -819,6 +819,10 @@ function parseDailySubjectSheet(sheet) {
       unitTimeline: unitTimeline,
       items: items
     };
+    studentMap[st.seat] = stDataObj;
+    if (st.name) {
+      studentMap['NAME_' + st.name] = stDataObj;
+    }
   }
 
   var subjectClassAvg = classOverallCount > 0 ? Number((classOverallSum / classOverallCount).toFixed(1)) : 85.0;
@@ -828,6 +832,7 @@ function parseDailySubjectSheet(sheet) {
   });
 
   Object.keys(studentMap).forEach(function(seatKey) {
+    if (seatKey.indexOf('NAME_') === 0) return;
     var stRecord = studentMap[seatKey];
     stRecord.classOverallAverage = subjectClassAvg;
     stRecord.diffFromClassAvg = stRecord.overallAverage !== null ? Number((stRecord.overallAverage - subjectClassAvg).toFixed(1)) : null;
@@ -954,11 +959,11 @@ function checkSystemStatus() {
 function getStudentDailyPortfolioByToken(token) {
   var cleanToken = (token || '').toString().trim().toUpperCase();
   if (!cleanToken) {
-    return { status: 'error', success: false, message: '請輸入或掃描有效的專屬查詢代碼！' };
+    return { status: 'error', success: false, message: '請掃描有效的專屬 QR Code！' };
   }
 
   var cache = CacheService.getScriptCache();
-  var cacheKey = 'mpdaily_score_v3_' + cleanToken;
+  var cacheKey = 'mpdaily_score_v4_' + cleanToken;
   var cachedJson = cache.get(cacheKey);
   if (cachedJson) {
     try {
@@ -979,7 +984,7 @@ function getStudentDailyPortfolioByToken(token) {
     var rowTok = (sData[r][3] || '').toString().trim().toUpperCase();
     var enabled = sData[r][4] !== false && sData[r][4].toString().toUpperCase() !== 'FALSE';
     if (rowTok === cleanToken && enabled) {
-      var cls = (sData[r][0] || '501班').toString().trim();
+      var cls = (sData[r][0] || '本班').toString().trim();
       var seat = normalizeSeatNumber(sData[r][1]);
       matchedStudent = {
         className: cls,
@@ -994,7 +999,7 @@ function getStudentDailyPortfolioByToken(token) {
   }
 
   if (!matchedStudent) {
-    return { status: 'error', success: false, message: '查無此專屬代碼或尚未啟用，請確認通知單上的代碼是否正確。' };
+    return { status: 'error', success: false, message: '查無此專屬代碼或尚未啟用，請確認通知單上的 QR Code 是否正確。' };
   }
 
   var sheets = ss.getSheets();
@@ -1005,10 +1010,12 @@ function getStudentDailyPortfolioByToken(token) {
     var sh = sheets[i];
     if (isSystemSheet(sh.getName())) continue;
     var parsed = parseDailySubjectSheet(sh);
-    if (parsed && parsed.studentMap[matchedStudent.seatNumber]) {
-      var stSubj = parsed.studentMap[matchedStudent.seatNumber];
-      subjectsData.push(stSubj);
-      if (stSubj.teacherAdvice) combinedAdvice.push(stSubj.teacherAdvice);
+    if (parsed) {
+      var stSubj = parsed.studentMap[matchedStudent.seatNumber] || parsed.studentMap['NAME_' + matchedStudent.name];
+      if (stSubj) {
+        subjectsData.push(stSubj);
+        if (stSubj.teacherAdvice) combinedAdvice.push(stSubj.teacherAdvice);
+      }
     }
   }
 
@@ -1025,7 +1032,7 @@ function getStudentDailyPortfolioByToken(token) {
   };
 
   try {
-    cache.put(cacheKey, JSON.stringify(responseObj), 600);
+    cache.put(cacheKey, JSON.stringify(responseObj), 60);
   } catch (ignore) {}
 
   return responseObj;
@@ -1044,7 +1051,7 @@ function getStudentListForTeacher() {
   var sData = sSheet.getDataRange().getValues();
   var students = [];
   for (var r = 1; r < sData.length; r++) {
-    var cls = (sData[r][0] || '501班').toString().trim();
+    var cls = (sData[r][0] || '本班').toString().trim();
     var seat = normalizeSeatNumber(sData[r][1]);
     var name = (sData[r][2] || '').toString().trim();
     var token = (sData[r][3] || '').toString().trim();
@@ -1073,7 +1080,7 @@ function getStudentListForTeacher() {
 
     for (var s = 0; s < students.length; s++) {
       var st = students[s];
-      var stSub = parsed.studentMap[st.seatNumber];
+      var stSub = parsed.studentMap[st.seatNumber] || parsed.studentMap['NAME_' + st.name];
       if (stSub) {
         st.subjects.push(stSub);
         st.subjectStats[parsed.sheetName] = stSub;

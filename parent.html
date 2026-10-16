@@ -119,18 +119,6 @@
             </div>
 
             <div class="flex items-center gap-2">
-                <!-- Demo 學生快速切換器（方便展示不同學生的平時成績樣態） -->
-                <div id="demoSwitcherWrap" class="hidden items-center gap-1.5 bg-white border border-stone-200/90 rounded-xl px-2.5 py-1.5 shadow-sm">
-                    <span class="text-[11px] font-bold text-amber-700 whitespace-nowrap">✨ 範例學生：</span>
-                    <select id="demoStudentSelect" onchange="switchDemoStudent(this.value)" class="text-xs font-bold text-stone-700 bg-transparent focus:outline-none cursor-pointer pr-1">
-                        <option value="DEMO01">01號 王小華（各科均衡優異）</option>
-                        <option value="DEMO02">02號 陳品妍（習作極高・測驗波動）</option>
-                        <option value="DEMO03">03號 林宥廷（後段單元大幅進步）</option>
-                        <option value="DEMO04">04號 張語恩（語文頂尖・數理穩健）</option>
-                        <option value="DEMO05">05號 李冠宇（特定單元需加強複習）</option>
-                    </select>
-                </div>
-
                 <button id="btnResetToken" onclick="toggleQrScannerBanner()" class="text-xs font-bold text-amber-800 hover:text-amber-900 bg-amber-50 hover:bg-amber-100/90 border border-amber-300/90 rounded-xl px-3 py-1.5 transition flex items-center gap-1.5 shadow-sm">
                     <span>📷</span>
                     <span>掃描 QR Code</span>
@@ -213,14 +201,11 @@
                     <span>📷</span>
                     <span>重新掃描 QR Code</span>
                 </button>
-                <button onclick="switchDemoStudent('DEMO01')" class="px-4 py-2 rounded-xl bg-white border border-stone-300 text-stone-600 text-xs font-bold shadow-sm hover:bg-stone-50 transition">
-                    預覽系統範例畫面
-                </button>
             </div>
         </section>
 
-        <!-- 學生平時成績主內容 -->
-        <div id="portfolioContainer" class="space-y-6">
+        <!-- 學生平時成績主內容（未掃描 QR Code 前預設隱藏） -->
+        <div id="portfolioContainer" class="hidden space-y-6">
 
             <!-- 1. 頂部晨光英雄卡 (Hero Banner) -->
             <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-500 via-amber-500 to-orange-500 text-white p-6 sm:p-7 shadow-xl shadow-amber-900/10">
@@ -231,12 +216,12 @@
                 <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
                     <div class="space-y-2">
                         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm text-xs font-bold tracking-wide">
-                            <span id="heroClassSeat">501班 ‧ 01號</span>
+                            <span id="heroClassSeat">--</span>
                             <span class="opacity-60">|</span>
                             <span id="heroUpdatedAt">平時成績統計報表</span>
                         </div>
                         <div class="flex items-baseline gap-3 flex-wrap">
-                            <h1 id="heroStudentName" class="text-2xl sm:text-3xl font-black tracking-tight">王小華</h1>
+                            <h1 id="heroStudentName" class="text-2xl sm:text-3xl font-black tracking-tight">--</h1>
                             <span class="text-sm font-bold text-amber-100">平時評量歷程與各科均標分析</span>
                         </div>
                         <p id="heroSubtext" class="text-xs sm:text-sm text-amber-50/95 leading-relaxed max-w-xl">
@@ -248,18 +233,18 @@
                     <div id="heroStatsBox" class="grid grid-cols-3 gap-2.5 sm:gap-3 bg-white/15 backdrop-blur-md p-3.5 rounded-2xl border border-white/25 shrink-0">
                         <div class="text-center px-2">
                             <div class="text-[11px] font-bold text-amber-100">各科平時總均</div>
-                            <div id="heroOverallAvg" class="text-xl sm:text-2xl font-black font-mono tabular-nums mt-0.5">91.2</div>
-                            <div id="heroOverallBadge" class="text-[10px] font-bold text-amber-100/90 mt-0.5">🌟 精熟優異</div>
+                            <div id="heroOverallAvg" class="text-xl sm:text-2xl font-black font-mono tabular-nums mt-0.5">--</div>
+                            <div id="heroOverallBadge" class="text-[10px] font-bold text-amber-100/90 mt-0.5">--</div>
                         </div>
                         <div class="text-center px-2 border-x border-white/20">
                             <div class="text-[11px] font-bold text-amber-100">與班均對比</div>
-                            <div id="heroDiffClass" class="text-xl sm:text-2xl font-black font-mono tabular-nums mt-0.5">+3.4</div>
-                            <div id="heroClassAvgLabel" class="text-[10px] font-bold text-amber-100/90 mt-0.5">班均 87.8 分</div>
+                            <div id="heroDiffClass" class="text-xl sm:text-2xl font-black font-mono tabular-nums mt-0.5">--</div>
+                            <div id="heroClassAvgLabel" class="text-[10px] font-bold text-amber-100/90 mt-0.5">--</div>
                         </div>
                         <div class="text-center px-2">
                             <div class="text-[11px] font-bold text-amber-100">優勢平時科目</div>
-                            <div id="heroBestSubject" class="text-sm sm:text-base font-black mt-1.5 truncate">📘 國語</div>
-                            <div id="heroBestSubjectScore" class="text-[10px] font-bold font-mono text-amber-100/90 mt-0.5">平時均 92.8 分</div>
+                            <div id="heroBestSubject" class="text-sm sm:text-base font-black mt-1.5 truncate">--</div>
+                            <div id="heroBestSubjectScore" class="text-[10px] font-bold font-mono text-amber-100/90 mt-0.5">--</div>
                         </div>
                     </div>
                 </div>
@@ -1719,12 +1704,6 @@
             }
         }
 
-        function switchDemoStudent(demoToken) {
-            const selectEl = document.getElementById('demoStudentSelect');
-            if (selectEl) selectEl.value = demoToken;
-            loadStudentPortfolioByToken(demoToken, true);
-        }
-
         function normalizeCloudPayload(data) {
             const st = data.student || {};
             const rawSubjects = Array.isArray(st.subjects) ? st.subjects : (Array.isArray(data.subjects) ? data.subjects : []);
@@ -1804,48 +1783,27 @@
             }
             const apiUrl = (urlApi || localStorage.getItem('mpdaily_api_url') || ((typeof CONFIG !== 'undefined' && CONFIG.API_URL) ? CONFIG.API_URL : '')).trim();
 
-            // 1. 若強制預覽範例或尚未綁定雲端試算表，且代碼屬於 DEMO01~DEMO05，載入內建範例
-            if ((forceDemo || !apiUrl) && DEMO_STUDENTS_DB[cleanToken]) {
-                document.getElementById('demoSwitcherWrap').classList.remove('hidden');
-                document.getElementById('demoSwitcherWrap').classList.add('flex');
-                const selectEl = document.getElementById('demoStudentSelect');
-                if (selectEl) selectEl.value = cleanToken;
-                const demoPayload = buildDemoPortfolio(DEMO_STUDENTS_DB[cleanToken]);
-                renderPortfolio(demoPayload);
-                return;
-            }
-
-            // 正式學生查詢時隱藏範例切換器，確保介面單純
-            document.getElementById('demoSwitcherWrap').classList.add('hidden');
-            document.getElementById('demoSwitcherWrap').classList.remove('flex');
-
             if (!apiUrl) {
                 showErrorState('尚未包含雲端試算表連線資訊', '請重新掃描老師發放之「平時成績通知小卡」上的完整 QR Code。');
                 return;
             }
 
-            // 2. 向雲端 Google Apps Script 試算表拉取該學生的平時成績
+            // 向雲端 Google Apps Script 試算表拉取該學生的真實平時成績
             document.getElementById('portfolioContainer').classList.add('hidden');
             document.getElementById('errorSection').classList.add('hidden');
             document.getElementById('loadingSection').classList.remove('hidden');
 
             try {
                 const sep = apiUrl.includes('?') ? '&' : '?';
-                const res = await fetch(`${apiUrl}${sep}token=${encodeURIComponent(cleanToken)}`, { redirect: 'follow' });
+                const res = await fetch(`${apiUrl}${sep}token=${encodeURIComponent(cleanToken)}&t=${Date.now()}`, { redirect: 'follow' });
                 const data = await res.json();
                 if (data && (data.status === 'success' || data.success === true) && data.student) {
                     renderPortfolio(normalizeCloudPayload(data));
-                } else if (DEMO_STUDENTS_DB[cleanToken]) {
-                    renderPortfolio(buildDemoPortfolio(DEMO_STUDENTS_DB[cleanToken]));
                 } else {
                     showErrorState('無法識別此 QR Code', data.message || '找不到此 QR Code 對應的學生平時成績紀錄，請向老師確認是否已重新發放最新通知小卡。');
                 }
             } catch (err) {
-                if (DEMO_STUDENTS_DB[cleanToken]) {
-                    renderPortfolio(buildDemoPortfolio(DEMO_STUDENTS_DB[cleanToken]));
-                } else {
-                    showErrorState('雲端連線失敗', '無法連線至 Google 試算表平時成績資料庫，請稍後再試或檢查網路連線。');
-                }
+                showErrorState('雲端連線失敗', '無法連線至 Google 試算表平時成績資料庫，請稍後再試或檢查網路連線。');
             }
         }
 
@@ -1857,7 +1815,7 @@
             document.getElementById('errorDesc').textContent = desc;
         }
 
-        // 初始化啟動
+        // 初始化啟動：有 QR Code 參數則直接讀取試算表；無參數則只顯示 QR Code 掃描面板（絕不顯示假示範學生）
         window.addEventListener('DOMContentLoaded', () => {
             parseUrlDisplayConfig();
             const params = new URLSearchParams(window.location.search);
@@ -1865,10 +1823,7 @@
             if (urlToken) {
                 loadStudentPortfolioByToken(urlToken, false);
             } else {
-                // 未帶 QR Code 參數進入時，預設展開 QR Code 掃描面板，下方提供範例預覽
-                document.getElementById('demoSwitcherWrap').classList.remove('hidden');
-                document.getElementById('demoSwitcherWrap').classList.add('flex');
-                switchDemoStudent('DEMO01');
+                document.getElementById('portfolioContainer').classList.add('hidden');
                 document.getElementById('qrScannerBanner').classList.remove('hidden');
             }
         });
