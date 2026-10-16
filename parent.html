@@ -991,6 +991,14 @@
 
                 document.getElementById('heroBestSubject').textContent = `${getSubjectIcon(bestSubj.subject)} ${bestSubj.subject}`;
                 document.getElementById('heroBestSubjectScore').textContent = `平時均 ${bestSubj.overallAverage.toFixed(1)} 分`;
+            } else {
+                document.getElementById('heroOverallAvg').textContent = '--';
+                document.getElementById('heroOverallBadge').textContent = '尚無成績';
+                document.getElementById('heroDiffClass').textContent = '--';
+                document.getElementById('heroClassAvgLabel').textContent = '尚無班均';
+                const firstSubjName = subjects[0] ? subjects[0].subject : '平時科目';
+                document.getElementById('heroBestSubject').textContent = `${getSubjectIcon(firstSubjName)} ${firstSubjName}`;
+                document.getElementById('heroBestSubjectScore').textContent = '尚無平時成績';
             }
 
             document.getElementById('heroStatsBox').classList.toggle('hidden', !displayFlags.showOverallHero);
@@ -1032,7 +1040,7 @@
                         <div class="space-y-1 min-w-0">
                             <div class="flex items-center gap-2">
                                 <span class="text-xl">${icon}</span>
-                                <span class="font-black text-stone-800 text-base truncate">${subj.subject}平時</span>
+                                <span class="font-black text-stone-800 text-base truncate">${subj.subject}</span>
                                 <span class="text-[11px] font-bold px-2 py-0.5 rounded-full border ${badgeInfo.badgeClass}">${badgeInfo.label}</span>
                             </div>
                             <div class="flex items-center gap-2 text-xs text-stone-500 font-mono">
@@ -1147,8 +1155,6 @@
 
         function renderUnitTrendChart(subj) {
             const timeline = subj.unitTimeline || [];
-            const labels = timeline.map(u => u.unit);
-
             const metricMap = {
                 overallScore: { studentKey: 'overallScore', classKey: 'classOverallAvg', label: '個人單元總平均', classLabel: '班級單元總平均' },
                 quiz: { studentKey: 'quiz', classKey: 'classQuiz', label: '個人測驗卷成績', classLabel: '班級測驗卷平均' },
@@ -1158,8 +1164,25 @@
             };
 
             const cfg = metricMap[currentChartMetric] || metricMap.overallScore;
-            const studentData = timeline.map(u => u[cfg.studentKey]);
-            const classData = timeline.map(u => u[cfg.classKey]);
+            let labels = [];
+            let studentData = [];
+            let classData = [];
+
+            // 若選擇特定評量分項（習作、作業卷、語詞、測驗卷），直接繪製該分項實際各次評量項目（完整支援 L1-2、L1-3、L4-5、L1-6 等範圍考卷！）
+            if (currentChartMetric !== 'overallScore' && Array.isArray(subj.items)) {
+                const catItems = subj.items.filter(it => it.category === currentChartMetric);
+                if (catItems.length > 0) {
+                    labels = catItems.map(it => it.name);
+                    studentData = catItems.map(it => it.score);
+                    classData = catItems.map(it => it.classAvg);
+                }
+            }
+
+            if (labels.length === 0) {
+                labels = timeline.map(u => u.unit);
+                studentData = timeline.map(u => u[cfg.studentKey]);
+                classData = timeline.map(u => u[cfg.classKey]);
+            }
 
             // 自動計算合適的 Y 軸範圍
             const allNums = [...studentData, ...(displayFlags.showClassNorm ? classData : [])].filter(v => v !== null && !isNaN(v));
@@ -1511,7 +1534,7 @@
                 if (s.teacherAdvice) adviceList.push(s.teacherAdvice);
 
                 return {
-                    subject: s.subject || s.subjectShortName || s.sheetName || '平時',
+                    subject: s.sheetName || s.subject || s.subjectShortName || '平時',
                     overallAverage: s.overallAverage,
                     classOverallAverage: s.classOverallAverage,
                     diffFromClassAvg: s.diffFromClassAvg,

@@ -400,14 +400,14 @@
 
                 <div class="overflow-x-auto rounded-2xl border border-stone-200/90">
                     <table class="w-full text-left border-collapse">
-                        <thead>
+                        <thead id="teacherRosterTableHead">
                             <tr class="bg-stone-100/90 text-stone-600 text-xs font-extrabold border-b border-stone-200/90">
                                 <th class="py-3 px-3 text-center w-10">列印</th>
                                 <th class="py-3 px-3 whitespace-nowrap">座號 ‧ 姓名</th>
                                 <th class="py-3 px-3 whitespace-nowrap">查詢代碼</th>
-                                <th class="py-3 px-3 text-center whitespace-nowrap">📘 國語平時總均 (四分項均)</th>
-                                <th class="py-3 px-3 text-center whitespace-nowrap">📐 數學平時總均 (四分項均)</th>
-                                <th class="py-3 px-3 text-center whitespace-nowrap">🌍 社會平時總均 (四分項均)</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">📘 國語</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">📐 數學</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">🌍 社會</th>
                                 <th class="py-3 px-3 text-center whitespace-nowrap">🌟 跨科平時總均</th>
                                 <th class="py-3 px-3 text-right whitespace-nowrap">家長端預覽</th>
                             </tr>
@@ -749,7 +749,7 @@ function testGitHubConnection() {
                                 });
                             }
                             return {
-                                subject: s.subject || s.subjectShortName || s.sheetName || '平時',
+                                subject: s.sheetName || s.subject || s.subjectShortName || '平時',
                                 overallAverage: s.overallAverage,
                                 classOverallAverage: s.classOverallAverage,
                                 diffFromClassAvg: s.diffFromClassAvg,
@@ -783,6 +783,29 @@ function testGitHubConnection() {
         // =========================================================================
         // 4. 全班平時成績總表與顯示選項編碼
         // =========================================================================
+        function getSubjectIcon(subjName) {
+            const s = String(subjName || '');
+            if (s.includes('國')) return '📘';
+            if (s.includes('數')) return '📐';
+            if (s.includes('社')) return '🌍';
+            if (s.includes('自')) return '🔬';
+            if (s.includes('英') || s.includes('美')) return '🔤';
+            return '📊';
+        }
+
+        function getActiveSubjectNames(rosterList) {
+            const list = rosterList || currentRoster || [];
+            const seen = [];
+            list.forEach(st => {
+                (st.subjects || []).forEach(s => {
+                    if (s.subject && !seen.includes(s.subject)) {
+                        seen.push(s.subject);
+                    }
+                });
+            });
+            return seen.length > 0 ? seen : ['國語', '數學', '社會'];
+        }
+
         function computeWebConfigBitmask() {
             let mask = 0;
             if (document.getElementById('webOptOverallHero').checked) mask |= 1;
@@ -843,27 +866,43 @@ function testGitHubConnection() {
                     ${diffBadge}
                 </div>
                 <div class="text-[10px] font-mono text-stone-400 mt-0.5">
-                    習${p.workbook ? Math.round(p.workbook) : '-'} ‧ 作${p.homework ? Math.round(p.homework) : '-'} ‧ 測${p.quiz ? Math.round(p.quiz) : '-'}
+                    習${p.workbook ? Math.round(p.workbook) : '-'} ‧ 作${p.homework ? Math.round(p.homework) : '-'} ‧ 語${p.foundation ? Math.round(p.foundation) : '-'} ‧ 測${p.quiz ? Math.round(p.quiz) : '-'}
                 </div>
             `;
         }
 
         function renderTeacherRosterTable() {
+            const thead = document.getElementById('teacherRosterTableHead');
             const tbody = document.getElementById('teacherRosterTableBody');
             updateSelectedBadge();
 
+            const subjectNames = getActiveSubjectNames(currentRoster);
+
+            if (thead) {
+                thead.innerHTML = `
+                    <tr class="bg-stone-100/90 text-stone-600 text-xs font-extrabold border-b border-stone-200/90">
+                        <th class="py-3 px-3 text-center w-10">列印</th>
+                        <th class="py-3 px-3 whitespace-nowrap">座號 ‧ 姓名</th>
+                        <th class="py-3 px-3 whitespace-nowrap">查詢代碼</th>
+                        ${subjectNames.map(sName => `<th class="py-3 px-3 text-center whitespace-nowrap">${getSubjectIcon(sName)} ${sName} (分項均)</th>`).join('')}
+                        <th class="py-3 px-3 text-center whitespace-nowrap">🌟 各科平時總均</th>
+                        <th class="py-3 px-3 text-right whitespace-nowrap">家長端預覽</th>
+                    </tr>
+                `;
+            }
+
             tbody.innerHTML = currentRoster.map((st, idx) => {
                 const subjs = st.subjects || [];
-                const chn = subjs.find(s => s.subject.includes('國')) || subjs[0];
-                const math = subjs.find(s => s.subject.includes('數')) || subjs[1];
-                const soc = subjs.find(s => s.subject.includes('社')) || subjs[2];
-
                 const validSubjs = subjs.filter(s => s.overallAverage !== null && !isNaN(s.overallAverage));
                 const overallAvg = validSubjs.length
                     ? (validSubjs.reduce((a, b) => a + b.overallAverage, 0) / validSubjs.length).toFixed(1)
                     : '--';
 
                 const parentUrl = buildParentPortalUrl(st.token);
+                const subjectCellsHtml = subjectNames.map(sName => {
+                    const matched = subjs.find(s => s.subject === sName);
+                    return `<td class="py-3 px-3 text-center">${formatSubjectTableCell(matched)}</td>`;
+                }).join('');
 
                 return `
                     <tr class="hover:bg-amber-50/40 transition">
@@ -883,9 +922,7 @@ function testGitHubConnection() {
                         <td class="py-3 px-3 whitespace-nowrap">
                             <span class="px-2 py-1 rounded-lg bg-stone-100 border border-stone-200 font-mono font-bold text-xs text-stone-700">${st.token}</span>
                         </td>
-                        <td class="py-3 px-3 text-center">${formatSubjectTableCell(chn)}</td>
-                        <td class="py-3 px-3 text-center">${formatSubjectTableCell(math)}</td>
-                        <td class="py-3 px-3 text-center">${formatSubjectTableCell(soc)}</td>
+                        ${subjectCellsHtml}
                         <td class="py-3 px-3 text-center">
                             <span class="font-mono font-black text-base text-amber-700 tabular-nums">${overallAvg}</span>
                         </td>
@@ -963,19 +1000,20 @@ function testGitHubConnection() {
                         ? (validSubjs.reduce((a, b) => a + b.overallAverage, 0) / validSubjs.length).toFixed(1)
                         : '--';
 
+                    const gridColClass = subjs.length === 1 ? 'grid-cols-1' : (subjs.length === 2 ? 'grid-cols-2' : 'grid-cols-3');
                     const subjGridHtml = optSubjAvg ? `
-                        <div class="grid grid-cols-3 gap-1 my-1">
-                            ${subjs.slice(0, 3).map(s => {
+                        <div class="grid ${gridColClass} gap-1 my-1">
+                            ${subjs.slice(0, 6).map(s => {
                                 const diffStr = (optClassAvg && s.diffFromClassAvg !== null && s.diffFromClassAvg !== undefined)
                                     ? `(${s.diffFromClassAvg >= 0 ? '+' : ''}${s.diffFromClassAvg.toFixed(1)})`
                                     : '';
                                 const p = s.pillars || {};
                                 const pillarLine = optPillars
-                                    ? `<div class="text-[8px] text-stone-500 font-mono leading-tight truncate">習${p.workbook ? Math.round(p.workbook) : '-'} 作${p.homework ? Math.round(p.homework) : '-'} 測${p.quiz ? Math.round(p.quiz) : '-'}</div>`
+                                    ? `<div class="text-[8px] text-stone-500 font-mono leading-tight truncate">習${p.workbook ? Math.round(p.workbook) : '-'} 作${p.homework ? Math.round(p.homework) : '-'} 語${p.foundation ? Math.round(p.foundation) : '-'} 測${p.quiz ? Math.round(p.quiz) : '-'}</div>`
                                     : '';
                                 return `
                                     <div class="bg-amber-50/70 border border-amber-200/80 rounded px-1.5 py-1 text-center">
-                                        <div class="text-[9px] font-extrabold text-stone-700">${s.subject}平時</div>
+                                        <div class="text-[9px] font-extrabold text-stone-700 truncate">${s.subject}</div>
                                         <div class="text-xs font-black font-mono text-amber-800 leading-tight">${s.overallAverage !== null ? s.overallAverage.toFixed(1) : '--'} <span class="text-[8px] font-normal text-emerald-700">${diffStr}</span></div>
                                         ${pillarLine}
                                     </div>
@@ -1055,30 +1093,31 @@ function testGitHubConnection() {
 
         // 渲染「教師留存備查版」A4 全班平時成績與代碼總表
         function renderTeacherArchiveA4(container, students) {
+            const subjectNames = getActiveSubjectNames(students);
+            const fmtSubj = s => {
+                if (!s || s.overallAverage === null || s.overallAverage === undefined) return '--';
+                const p = s.pillars || {};
+                return `<span class="font-bold text-stone-900">${s.overallAverage.toFixed(1)}</span> <span class="text-[9px] text-stone-500">(習${p.workbook ? Math.round(p.workbook) : '-'} 作${p.homework ? Math.round(p.homework) : '-'} 測${p.quiz ? Math.round(p.quiz) : '-'})</span>`;
+            };
+
             const rowsHtml = students.map(st => {
                 const subjs = st.subjects || [];
-                const chn = subjs.find(s => s.subject.includes('國')) || subjs[0];
-                const math = subjs.find(s => s.subject.includes('數')) || subjs[1];
-                const soc = subjs.find(s => s.subject.includes('社')) || subjs[2];
                 const validSubjs = subjs.filter(s => s.overallAverage !== null && !isNaN(s.overallAverage));
                 const overallAvg = validSubjs.length
                     ? (validSubjs.reduce((a, b) => a + b.overallAverage, 0) / validSubjs.length).toFixed(1)
                     : '--';
 
-                const fmtSubj = s => {
-                    if (!s || s.overallAverage === null) return '--';
-                    const p = s.pillars || {};
-                    return `<span class="font-bold text-stone-900">${s.overallAverage.toFixed(1)}</span> <span class="text-[9px] text-stone-500">(習${p.workbook ? Math.round(p.workbook) : '-'} 作${p.homework ? Math.round(p.homework) : '-'} 測${p.quiz ? Math.round(p.quiz) : '-'})</span>`;
-                };
+                const subjCells = subjectNames.map(sName => {
+                    const matched = subjs.find(s => s.subject === sName);
+                    return `<td class="py-2 px-2 text-center">${fmtSubj(matched)}</td>`;
+                }).join('');
 
                 return `
                     <tr class="border-b border-stone-200 text-[11px] font-mono">
                         <td class="py-2 px-2 font-bold text-stone-800">${st.seatNo}</td>
                         <td class="py-2 px-2 font-sans font-bold text-stone-900">${st.name}</td>
                         <td class="py-2 px-2 font-bold text-amber-800">${st.token}</td>
-                        <td class="py-2 px-2 text-center">${fmtSubj(chn)}</td>
-                        <td class="py-2 px-2 text-center">${fmtSubj(math)}</td>
-                        <td class="py-2 px-2 text-center">${fmtSubj(soc)}</td>
+                        ${subjCells}
                         <td class="py-2 px-2 text-right font-black text-amber-700">${overallAvg}</td>
                     </tr>
                 `;
@@ -1104,10 +1143,8 @@ function testGitHubConnection() {
                                     <th class="py-2 px-2">座號</th>
                                     <th class="py-2 px-2">姓名</th>
                                     <th class="py-2 px-2">專屬代碼</th>
-                                    <th class="py-2 px-2 text-center">國語平時均 (習/作/測)</th>
-                                    <th class="py-2 px-2 text-center">數學平時均 (習/作/測)</th>
-                                    <th class="py-2 px-2 text-center">社會平時均 (習/作/測)</th>
-                                    <th class="py-2 px-2 text-right">跨科總均</th>
+                                    ${subjectNames.map(sName => `<th class="py-2 px-2 text-center">${sName} (習/作/測)</th>`).join('')}
+                                    <th class="py-2 px-2 text-right">各科總均</th>
                                 </tr>
                             </thead>
                             <tbody>

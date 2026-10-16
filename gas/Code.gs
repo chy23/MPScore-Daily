@@ -99,11 +99,13 @@ function clearSystemCache() {
   var ui = SpreadsheetApp.getUi();
   try {
     var cache = CacheService.getScriptCache();
-    var keys = ['mpdaily_print_summary_v2'];
+    var keys = ['mpdaily_print_summary_v2', 'mpdaily_print_summary_v3'];
     for (var i = 1; i <= 60; i++) {
       var s = i < 10 ? '0' + i : '' + i;
       keys.push('mpdaily_score_v2_DEMO' + s);
       keys.push('mpdaily_score_v2_' + s);
+      keys.push('mpdaily_score_v3_DEMO' + s);
+      keys.push('mpdaily_score_v3_' + s);
     }
     try {
       var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -112,7 +114,10 @@ function clearSystemCache() {
         var sData = sSheet.getDataRange().getValues();
         for (var r = 1; r < sData.length; r++) {
           var tok = (sData[r][3] || '').toString().trim().toUpperCase();
-          if (tok) keys.push('mpdaily_score_v2_' + tok);
+          if (tok) {
+            keys.push('mpdaily_score_v2_' + tok);
+            keys.push('mpdaily_score_v3_' + tok);
+          }
         }
       }
     } catch (ignore) {}
@@ -407,14 +412,14 @@ function isSystemSheet(sheetName) {
 }
 
 /**
- * 判斷欄位標題是否為試算表內既有的「統計結果欄」（例如：平均、總均、平時成績、名次、資源班），而非單次平時評量分數
+ * 判斷欄位標題是否為試算表內既有的「統計結果欄或加分欄」（例如：平均、總均、平時成績、名次、資源班、加分），而非單次平時評量 0~100 分數
  */
 function isSummaryColumnHeader(headerText) {
-  if (!headerText) return true;
+  if (!headerText) return false;
   var h = headerText.toString().trim();
-  if (!h) return true;
+  if (!h) return false;
   if (h === '座號' || h === '姓名' || h === '班級' || h === '學號' || h === '備註') return true;
-  var summaryKeywords = ['平均', '總均', '總分', '平時成績', '平時總成績', '學期成績', '期中平時', '期末平時', '排名', '名次', '資源班', '加權', '百分比', '占比'];
+  var summaryKeywords = ['平均', '總均', '總分', '平時成績', '平時總成績', '學期成績', '期中平時', '期末平時', '排名', '名次', '資源班', '加權', '百分比', '占比', '加分', '扣分'];
   for (var i = 0; i < summaryKeywords.length; i++) {
     if (h.indexOf(summaryKeywords[i]) !== -1) return true;
   }
@@ -443,10 +448,15 @@ function classifyScoreCategory(itemName) {
 }
 
 /**
- * 從項目名稱中提取「單元標籤」(如 L1, L2, 第3課 -> L3, U1 -> L1)
+ * 從項目名稱中提取「單元標籤」(支援範圍單元如 L1-2, L1-3, L4-5, L1-6，以及單一單元 L1, L2, 第3課 -> L3)
  */
 function extractUnitCode(itemName) {
   var h = (itemName || '').toString().trim();
+  var mRange = h.match(/[LUlu](\d{1,2}\s*[-~～]\s*\d{1,2})/);
+  if (mRange) {
+    return 'L' + mRange[1].replace(/\s+/g, '').replace(/[~～]/g, '-');
+  }
+
   var m1 = h.match(/[LUlu](\d{1,2})/);
   if (m1) return 'L' + parseInt(m1[1], 10);
 
@@ -457,8 +467,11 @@ function extractUnitCode(itemName) {
     if (!isNaN(v)) return 'L' + v;
   }
 
-  var m3 = h.match(/(\d{1,2})$/);
-  if (m3) return 'L' + parseInt(m3[1], 10);
+  var m3 = h.match(/(\d{1,2}\s*[-~～]\s*\d{1,2})/);
+  if (m3) return 'L' + m3[1].replace(/\s+/g, '').replace(/[~～]/g, '-');
+
+  var m4 = h.match(/(\d{1,2})$/);
+  if (m4) return 'L' + parseInt(m4[1], 10);
 
   return '平時';
 }
@@ -546,10 +559,11 @@ function parseDailySubjectSheet(sheet) {
 
     var rawItemTitle = (itemHeaderRow[col] || '').toString().trim();
     if (!rawItemTitle && !activeGroupLabel) continue;
-    if (isSummaryColumnHeader(rawItemTitle) || isSummaryColumnHeader(activeGroupLabel)) continue;
+    if (rawItemTitle && isSummaryColumnHeader(rawItemTitle)) continue;
+    if (activeGroupLabel && isSummaryColumnHeader(activeGroupLabel)) continue;
 
     var fullItemTitle = rawItemTitle;
-    if (activeGroupLabel && (/^[LUlu]?\d{1,2}$/.test(rawItemTitle) || rawItemTitle.length <= 3) && rawItemTitle.indexOf(activeGroupLabel) === -1) {
+    if (activeGroupLabel && (/^[LUlu]?\d{1,2}/.test(rawItemTitle) || rawItemTitle.length <= 3) && rawItemTitle.indexOf(activeGroupLabel) === -1) {
       fullItemTitle = activeGroupLabel + rawItemTitle;
     } else if (!rawItemTitle && activeGroupLabel) {
       fullItemTitle = activeGroupLabel;
@@ -584,7 +598,8 @@ function parseDailySubjectSheet(sheet) {
     var seatVal = row[seatCol] !== undefined ? row[seatCol].toString().trim() : '';
     var nameVal = row[nameCol] !== undefined ? row[nameCol].toString().trim() : '';
 
-    if (!seatVal && !nameVal) continue;
+    // 必須同時具備座號與姓名才視為有效學生列（自動略過表尾無姓名的班均或統計列）
+    if (!seatVal || !nameVal) continue;
     if (seatVal.indexOf('平均') !== -1 || seatVal.indexOf('標準差') !== -1 || nameVal.indexOf('平均') !== -1) break;
 
     var normSeat = normalizeSeatNumber(seatVal);
@@ -845,16 +860,12 @@ function parseDailySubjectSheet(sheet) {
 }
 
 /**
- * 推斷簡短科目名稱
+ * 保留教師輸入之工作表分頁名稱作為科目顯示名稱（教師輸入什麼科目名稱，網站就顯示什麼科目名稱！）
  */
 function inferSubjectShortName(sheetName, sheetTitle) {
-  var combined = (sheetName || '') + ' ' + (sheetTitle || '');
-  if (combined.indexOf('國語') !== -1 || combined.indexOf('國文') !== -1) return '國語';
-  if (combined.indexOf('數學') !== -1) return '數學';
-  if (combined.indexOf('社會') !== -1) return '社會';
-  if (combined.indexOf('自然') !== -1) return '自然';
-  if (combined.indexOf('英文') !== -1 || combined.indexOf('英語') !== -1) return '英文';
-  return (sheetName || '平時').replace(/平時成績|平時/g, '').trim() || sheetName;
+  var exactName = (sheetName || '').toString().trim();
+  if (exactName) return exactName;
+  return (sheetTitle || '平時成績').toString().trim();
 }
 
 /**
@@ -947,7 +958,7 @@ function getStudentDailyPortfolioByToken(token) {
   }
 
   var cache = CacheService.getScriptCache();
-  var cacheKey = 'mpdaily_score_v2_' + cleanToken;
+  var cacheKey = 'mpdaily_score_v3_' + cleanToken;
   var cachedJson = cache.get(cacheKey);
   if (cachedJson) {
     try {
@@ -1321,7 +1332,7 @@ function generateTokensForStudents() {
 }
 
 /**
- * ➕ 新增平時成績科目分頁（自動帶入學生名單與預設欄位）
+ * ➕ 新增平時成績科目分頁（自動帶入學生名單與預設欄位；教師輸入什麼科目名稱，網站就顯示什麼科目名稱！）
  */
 function createNewSubjectSheetFromRoster() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1333,8 +1344,8 @@ function createNewSubjectSheetFromRoster() {
   }
 
   var promptResult = ui.prompt(
-    '➕ 新增平時成績科目分頁',
-    '請輸入科目分頁名稱（例如：自然平時、英文平時、國語期末平時）：',
+    '➕ 新增平時成績科目分頁（指定科目名稱）',
+    '請輸入科目名稱（例如：國語期中平時、國語期末平時、數學期中平時、自然平時、英文平時）：\n\n💡 您在此輸入什麼科目名稱，家長端網頁與平時成績通知單就會直接顯示該科目名稱！',
     ui.ButtonSet.OK_CANCEL
   );
   if (promptResult.getSelectedButton() !== ui.Button.OK) return;
@@ -1346,11 +1357,13 @@ function createNewSubjectSheetFromRoster() {
     return;
   }
 
-  var subShort = inferSubjectShortName(sheetTitle, sheetTitle).charAt(0);
+  var subPrefix = sheetTitle.charAt(0);
+  var foundationPrefix = (sheetTitle.indexOf('數') !== -1) ? '計算' : ((sheetTitle.indexOf('社') !== -1 || sheetTitle.indexOf('自') !== -1) ? '重點' : '語詞');
   var headers = [
     '座號', '姓名',
-    subShort + '習L1', subShort + '習L2', subShort + '習L3', subShort + '習L4', subShort + '習L5', subShort + '習L6',
+    subPrefix + '習L1', subPrefix + '習L2', subPrefix + '習L3', subPrefix + '習L4', subPrefix + '習L5', subPrefix + '習L6',
     '作業卷L1', '作業卷L2', '作業卷L3', '作業卷L4', '作業卷L5', '作業卷L6',
+    foundationPrefix + 'L1', foundationPrefix + 'L2', foundationPrefix + 'L3', foundationPrefix + 'L4', foundationPrefix + 'L5', foundationPrefix + 'L6',
     '測驗卷L1', '測驗卷L2', '測驗卷L3', '測驗卷L4', '測驗卷L5', '測驗卷L6'
   ];
 
@@ -1366,7 +1379,7 @@ function createNewSubjectSheetFromRoster() {
 
   var newSheet = ss.insertSheet(sheetTitle);
   formatDailySubjectSheet(newSheet, sheetTitle + ' 平時成績紀錄', headers, rows);
-  ui.alert('🎉 已成功建立【' + sheetTitle + '】並自動帶入【學生名冊】全班 ' + rows.length + ' 位學生名單！');
+  ui.alert('🎉 已成功建立科目【' + sheetTitle + '】並自動帶入【學生名冊】全班 ' + rows.length + ' 位學生名單！\n網站與通知小卡將會直接顯示科目名稱：【' + sheetTitle + '】。');
 }
 
 /**
