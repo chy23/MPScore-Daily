@@ -1,1338 +1,1538 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MPScore-Daily - 學生平時學習歷程手札</title>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- 全域設定檔 -->
-  <script src="config.js"></script>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
-    body {
-      font-family: 'Plus Jakarta Sans', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
-      -webkit-font-smoothing: antialiased;
-      background-color: #FAF8F5;
-      color: #1E293B;
-    }
-    .font-num {
-      font-variant-numeric: tabular-nums;
-    }
-    .tactile-btn {
-      transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 140ms ease, background-color 140ms ease;
-    }
-    .tactile-btn:active {
-      transform: scale(0.97);
-    }
-    @keyframes shimmer {
-      0% { background-position: -200% 0; }
-      100% { background-position: 200% 0; }
-    }
-    .skeleton-shimmer {
-      background: linear-gradient(90deg, #f1f5f9 25%, #fef3c7 50%, #f1f5f9 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.5s infinite;
-    }
-  </style>
-</head>
-<body class="min-h-screen flex flex-col justify-between selection:bg-amber-200 selection:text-amber-950">
-
-  <!-- ==================== 頂部品牌導覽列 ==================== -->
-  <header class="bg-white/85 backdrop-blur-md border-b border-amber-200/70 sticky top-0 z-40">
-    <div class="max-w-6xl mx-auto px-4 h-15 py-3 flex items-center justify-between">
-      <div class="flex items-center gap-2.5">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-emerald-600 text-white flex items-center justify-center font-black text-base shadow-sm">
-          🌱
-        </div>
-        <div>
-          <span class="font-black text-sm md:text-base tracking-tight text-slate-800">學生平時學習歷程手札</span>
-          <span class="hidden sm:inline-block text-[11px] bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full font-bold ml-1.5">MPScore-Daily 親師共學</span>
-        </div>
-      </div>
-      <div class="flex items-center gap-2">
-        <button onclick="openFeatureGuideModal()" class="tactile-btn text-xs text-amber-900 hover:text-amber-950 font-bold flex items-center gap-1 bg-amber-50 hover:bg-amber-100/80 px-3 py-1.5 rounded-xl border border-amber-200/80 cursor-pointer shadow-2xs">
-          <span>✨</span>
-          <span>歷程手札導讀</span>
-        </button>
-        <button id="switchCodeBtn" onclick="resetToTokenInput()" class="hidden tactile-btn text-xs text-slate-600 hover:text-amber-700 font-bold flex items-center gap-1 bg-slate-100 hover:bg-amber-50 px-3 py-1.5 rounded-xl transition cursor-pointer">
-          <span>🔄 切換代碼</span>
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <!-- ==================== 主內容容器 ==================== -->
-  <main class="flex-1 w-full max-w-6xl mx-auto px-4 py-6">
-
-    <!-- 1. 輸入專屬代碼畫面 (未帶入 ?t= 時顯示) -->
-    <div id="loginBox" class="max-w-md mx-auto bg-white rounded-3xl p-6 md:p-8 shadow-xl shadow-amber-950/5 border border-amber-200/80 text-center space-y-5 my-6">
-      <div class="w-16 h-16 bg-gradient-to-br from-amber-100 to-emerald-100 text-amber-700 rounded-2xl flex items-center justify-center text-3xl mx-auto shadow-inner border border-amber-200/60">
-        🌱
-      </div>
-      <div class="space-y-1.5">
-        <h1 class="text-xl font-black text-slate-800">查看孩子平時學習歷程</h1>
-        <p class="text-xs text-slate-500 leading-relaxed">
-          請輸入紙本通知小卡上的 <b>6 碼專屬代碼</b>（與段考系統代碼通用），<br>即可檢視習作、作業卷、語詞與單元測驗的完整成長脈絡。
-        </p>
-      </div>
-
-      <div class="space-y-3 pt-1">
-        <input type="text" id="tokenInput" placeholder="例如：DEMO02" maxlength="12"
-          onkeydown="if(event.key==='Enter') submitTokenQuery()"
-          class="w-full text-center text-xl font-mono font-black tracking-widest uppercase px-4 py-3.5 rounded-2xl border-2 border-slate-200 focus:border-amber-500 focus:outline-none bg-slate-50 text-slate-800 transition">
-
-        <button onclick="submitTokenQuery()" id="querySubmitBtn"
-          class="tactile-btn w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black py-3.5 rounded-2xl shadow-md shadow-amber-500/20 transition text-sm cursor-pointer">
-          🔓 解鎖查看平時學習手札
-        </button>
-      </div>
-
-      <!-- 示範快速體驗區 -->
-      <div class="pt-3 border-t border-slate-100 text-left space-y-2">
-        <div class="text-[11px] font-bold text-slate-400 flex items-center justify-between">
-          <span>🧪 範例學生快速體驗：</span>
-          <span class="text-emerald-700">點擊即刻預覽</span>
-        </div>
-        <div class="flex flex-wrap gap-1.5">
-          <button onclick="quickTryToken('DEMO02')" class="tactile-btn text-xs bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold px-2.5 py-1.5 rounded-xl border border-amber-200/80 cursor-pointer">
-            02號 陳小華 (含待補交/L3弱點示範)
-          </button>
-          <button onclick="quickTryToken('DEMO01')" class="tactile-btn text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-bold px-2.5 py-1.5 rounded-xl border border-emerald-200/80 cursor-pointer">
-            01號 陳小明 (全勤穩健示範)
-          </button>
-          <button onclick="quickTryToken('DEMO08')" class="tactile-btn text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-2.5 py-1.5 rounded-xl cursor-pointer">
-            08號 林子涵 (表現卓越示範)
-          </button>
-        </div>
-      </div>
-
-      <div id="errorAlert" class="hidden bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold p-3.5 rounded-2xl"></div>
-    </div>
-
-    <!-- 2. 載入中骨架屏 (Shimmer Skeleton) -->
-    <div id="loadingSkeleton" class="hidden space-y-5 max-w-4xl mx-auto my-4">
-      <div class="h-36 rounded-3xl skeleton-shimmer border border-amber-200/40"></div>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div class="h-24 rounded-2xl skeleton-shimmer"></div>
-        <div class="h-24 rounded-2xl skeleton-shimmer"></div>
-        <div class="h-24 rounded-2xl skeleton-shimmer"></div>
-        <div class="h-24 rounded-2xl skeleton-shimmer"></div>
-      </div>
-      <div class="h-64 rounded-3xl skeleton-shimmer"></div>
-    </div>
-
-    <!-- 3. 學生成長手札主結果區 -->
-    <div id="resultSection" class="hidden space-y-6">
-
-      <!-- 頂部：學生身分與三大主科平時狀態摘要卡 (毛玻璃浮島) -->
-      <div class="bg-gradient-to-br from-amber-500 via-amber-600 to-emerald-700 rounded-3xl p-5 md:p-7 text-white shadow-xl relative overflow-hidden">
-        <div class="absolute -right-10 -top-10 w-44 h-44 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
-        <div class="absolute -left-10 -bottom-10 w-40 h-40 bg-emerald-300/15 rounded-full blur-2xl pointer-events-none"></div>
-
-        <div class="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
-          <!-- 左側：學生基本資訊 -->
-          <div class="space-y-2">
-            <div class="flex flex-wrap items-center gap-2">
-              <span id="stClassSeatBadge" class="text-xs font-black bg-white/25 backdrop-blur-md px-3 py-1 rounded-full border border-white/30">
-                605-02
-              </span>
-              <span id="cloudSyncBadge" class="text-[11px] font-bold bg-emerald-950/35 text-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300/30">
-                🌱 平時學習歷程手札
-              </span>
-            </div>
-            <div class="flex items-baseline gap-3">
-              <h2 id="stNameTitle" class="text-2xl md:text-3xl font-black tracking-tight">陳小華</h2>
-              <span id="stSeatSub" class="text-xs md:text-sm text-amber-100 font-bold">座號 02 號</span>
-            </div>
-            <p class="text-xs text-amber-50/90 max-w-xl leading-relaxed">
-              記錄每週習作、課後作業卷、語詞聽寫與單元測驗的點滴累積，陪伴孩子養成穩健扎實的學習習慣。
-            </p>
-          </div>
-
-          <!-- 右側：全學期平時總覽浮島數據 -->
-          <div class="grid grid-cols-3 gap-2.5 sm:gap-3 bg-white/15 backdrop-blur-md p-3.5 rounded-2xl border border-white/25 shrink-0">
-            <div id="heroOverallAvgBox" class="text-center px-2">
-              <div class="text-[11px] text-amber-100 font-bold">各科平時總均</div>
-              <div id="heroOverallAvgVal" class="text-xl md:text-2xl font-black font-num mt-0.5">90.2</div>
-              <div class="text-[10px] text-amber-100/80">滿分 100</div>
-            </div>
-            <div class="text-center px-2 border-x border-white/20">
-              <div class="text-[11px] text-amber-100 font-bold">已完成項目</div>
-              <div id="heroCompletedCountVal" class="text-xl md:text-2xl font-black font-num text-emerald-200 mt-0.5">48</div>
-              <div class="text-[10px] text-amber-100/80">持續累積中</div>
-            </div>
-            <div class="text-center px-2">
-              <div class="text-[11px] text-amber-100 font-bold">待補交 / 複習</div>
-              <div id="heroActionCountVal" class="text-xl md:text-2xl font-black font-num text-amber-200 mt-0.5">2</div>
-              <div id="heroActionSubLabel" class="text-[10px] text-amber-100/90">溫馨追蹤</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 主科平時狀態摘要切換卡 (毛玻璃浮島列) -->
-        <div class="relative z-10 mt-5 pt-4 border-t border-white/20">
-          <div class="text-xs font-bold text-amber-100 mb-2.5 flex items-center justify-between">
-            <span>📚 點選科目切換查看詳細平時歷程：</span>
-            <span class="text-[11px] text-white/80">顯示各科目前累積平時平均</span>
-          </div>
-          <div id="subjectSummaryIslands" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
-            <!-- JS 動態插入各科摘要浮島卡 -->
-          </div>
-        </div>
-      </div>
-
-      <!-- ⏳ 待補交 / 待補測 & 🌱 需重點複習 溫馨提醒箱 -->
-      <div id="reminderBannerBox" class="hidden">
-        <!-- JS 動態渲染黃色待補交與粉紅待複習溫馨提醒 -->
-      </div>
-
-      <!-- 雙欄響應式主儀表板 (大螢幕左 7 欄：四大支柱 + 單元脈絡折線圖；右 5 欄：各次作業明細 + 親師叮嚀) -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-
-        <!-- 左側主視覺欄 (7 欄) -->
-        <div class="lg:col-span-7 space-y-6">
-
-          <!-- 模組 A：學習指標四大支柱 (四向分群評量卡) -->
-          <section id="pillarsSection" class="bg-white rounded-3xl p-5 md:p-6 shadow-sm border border-amber-200/70 space-y-4">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <h3 class="text-base md:text-lg font-black text-slate-800 flex items-center gap-2">
-                  <span>📊</span>
-                  <span id="pillarsSectionTitle">國語科・學習指標四大支柱</span>
-                </h3>
-                <p class="text-xs text-slate-500 mt-0.5">
-                  將日常多項紀錄自動歸納為四大面向，掌握孩子的作業態度與應試穩定度
-                </p>
-              </div>
-              <span id="subjectOverallPill" class="text-xs font-black bg-amber-100 text-amber-900 px-3 py-1 rounded-full border border-amber-300/70 font-num">
-                本科平時總均：91.5 分
-              </span>
-            </div>
-
-            <div id="pillarsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              <!-- JS 動態渲染四大支柱卡片 -->
-            </div>
-          </section>
-
-          <!-- 模組 B：單元學習歷程脈絡折線圖 (Sparkline Timeline) -->
-          <section id="timelineSection" class="bg-white rounded-3xl p-5 md:p-6 shadow-sm border border-amber-200/70 space-y-4">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div>
-                <h3 class="text-base md:text-lg font-black text-slate-800 flex items-center gap-2">
-                  <span>📈</span>
-                  <span id="timelineSectionTitle">單元學習歷程脈絡折線圖 (L1 ➔ L6)</span>
-                </h3>
-                <p class="text-xs text-slate-500 mt-0.5">
-                  追蹤各單元吸收情形，及早發現觀念斷層並進行補強
-                </p>
-              </div>
-
-              <!-- 折線圖維度切換鈕 -->
-              <div id="timelineMetricTabs" class="flex flex-wrap items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/80 text-xs">
-                <button onclick="switchTimelineMetric('quiz')" data-metric="quiz" class="timeline-metric-btn tactile-btn px-2.5 py-1 rounded-lg font-black bg-amber-500 text-slate-950 shadow-2xs cursor-pointer">
-                  🎯 測驗卷
-                </button>
-                <button onclick="switchTimelineMetric('workbook')" data-metric="workbook" class="timeline-metric-btn tactile-btn px-2.5 py-1 rounded-lg font-bold text-slate-600 hover:text-amber-800 cursor-pointer">
-                  📘 習作
-                </button>
-                <button onclick="switchTimelineMetric('homework')" data-metric="homework" class="timeline-metric-btn tactile-btn px-2.5 py-1 rounded-lg font-bold text-slate-600 hover:text-amber-800 cursor-pointer">
-                  📝 作業卷
-                </button>
-                <button onclick="switchTimelineMetric('overall')" data-metric="overall" class="timeline-metric-btn tactile-btn px-2.5 py-1 rounded-lg font-bold text-slate-600 hover:text-amber-800 cursor-pointer">
-                  🌟 單元總覽
-                </button>
-              </div>
-            </div>
-
-            <!-- 圖表畫布 -->
-            <div class="relative h-64 w-full bg-amber-50/30 rounded-2xl p-3 border border-amber-100">
-              <canvas id="unitTimelineChart"></canvas>
-            </div>
-
-            <!-- 單元吸收診斷洞察卡 -->
-            <div id="unitInsightBox" class="bg-amber-50/80 border border-amber-200/90 rounded-2xl p-3.5 text-xs text-slate-700 leading-relaxed">
-              <!-- JS 動態填入單元強弱項洞察 -->
-            </div>
-          </section>
-
-        </div>
-
-        <!-- 右側明細與叮嚀欄 (5 欄) -->
-        <div class="lg:col-span-5 space-y-6">
-
-          <!-- 模組 C：各次平時作業與測驗明細清單 -->
-          <section id="itemsDetailSection" class="bg-white rounded-3xl p-5 md:p-6 shadow-sm border border-amber-200/70 space-y-4">
-            <div class="flex items-center justify-between">
-              <div>
-                <h3 class="text-base md:text-lg font-black text-slate-800 flex items-center gap-2">
-                  <span>📋</span>
-                  <span id="itemsDetailTitle">本學期平時作業與測驗明細</span>
-                </h3>
-                <p class="text-xs text-slate-500 mt-0.5">點擊下方分類可篩選檢視單項紀錄與底色標記</p>
-              </div>
-            </div>
-
-            <!-- 明細分類篩選列 -->
-            <div id="itemFilterBar" class="flex flex-wrap gap-1.5">
-              <button onclick="filterDetailItems('all')" data-filter="all" class="item-filter-btn tactile-btn text-xs font-black px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 cursor-pointer">
-                全部項目
-              </button>
-              <button onclick="filterDetailItems('workbook')" data-filter="workbook" class="item-filter-btn tactile-btn text-xs font-bold px-2.5 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-amber-50 cursor-pointer">
-                📘 習作
-              </button>
-              <button onclick="filterDetailItems('homework')" data-filter="homework" class="item-filter-btn tactile-btn text-xs font-bold px-2.5 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-amber-50 cursor-pointer">
-                📝 作業卷
-              </button>
-              <button onclick="filterDetailItems('foundation')" data-filter="foundation" class="item-filter-btn tactile-btn text-xs font-bold px-2.5 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-amber-50 cursor-pointer">
-                🔤 語詞
-              </button>
-              <button onclick="filterDetailItems('quiz')" data-filter="quiz" class="item-filter-btn tactile-btn text-xs font-bold px-2.5 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-amber-50 cursor-pointer">
-                🎯 測驗卷
-              </button>
-              <button onclick="filterDetailItems('alert')" data-filter="alert" class="item-filter-btn tactile-btn text-xs font-bold px-2.5 py-1.5 rounded-xl bg-amber-50 text-amber-900 border border-amber-200 cursor-pointer">
-                ⏳ 待補/複習
-              </button>
-            </div>
-
-            <!-- 明細列表容器 -->
-            <div id="itemsDetailList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2.5 max-h-[440px] overflow-y-auto pr-1">
-              <!-- JS 動態插入單項成績卡片 -->
-            </div>
-          </section>
-
-          <!-- 模組 D：💡 親師同心叮嚀與學習建議 -->
-          <section id="adviceSection" class="bg-gradient-to-br from-amber-50 via-white to-emerald-50/60 rounded-3xl p-5 md:p-6 shadow-sm border border-amber-200/90 space-y-3">
-            <div class="flex items-center gap-2">
-              <span class="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-700 flex items-center justify-center text-base font-black border border-amber-300/50">
-                💡
-              </span>
-              <div>
-                <h3 class="text-sm md:text-base font-black text-slate-800">親師同心叮嚀・日常習慣養成</h3>
-                <p class="text-[11px] text-slate-500">依據孩子本學期四大支柱與單元脈絡自動生成</p>
-              </div>
-            </div>
-            <p id="teacherAdviceText" class="text-xs md:text-sm text-slate-700 leading-relaxed bg-white/90 p-4 rounded-2xl border border-amber-200/60 shadow-2xs">
-              <!-- JS 動態填入評語 -->
-            </p>
-          </section>
-
-        </div>
-
-      </div>
-
-    </div>
-
-  </main>
-
-  <!-- ==================== 頁尾資安與版權聲明 ==================== -->
-  <footer class="bg-white/80 border-t border-amber-200/60 py-5 px-4 text-center text-xs text-slate-500 mt-10">
-    <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-      <div class="flex items-center gap-1.5 font-medium text-slate-600">
-        <span>🔒</span>
-        <span>高資安個人化隔離保護：每位學生僅能透過專屬代碼查閱自身平時歷程</span>
-      </div>
-      <div class="text-slate-400">
-        網站作者 / 系統規劃：<b class="text-slate-600">楊家驊老師</b> ‧ MPScore-Daily 平時學習歷程手札
-      </div>
-    </div>
-  </footer>
-
-  <!-- ==================== ✨ 平時歷程手札導讀 Modal ==================== -->
-  <div id="featureGuideModal" onclick="if(event.target===this) closeFeatureGuideModal()" class="fixed inset-0 z-50 bg-slate-900/65 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-7 shadow-2xl border border-amber-200 space-y-4 max-h-[90vh] overflow-y-auto">
-      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-        <h3 class="text-base md:text-lg font-black text-slate-800 flex items-center gap-2">
-          <span>🌱</span>
-          <span>如何閱讀「學生平時學習歷程手札」？</span>
-        </h3>
-        <button onclick="closeFeatureGuideModal()" class="text-slate-400 hover:text-slate-600 font-bold text-sm px-2 py-1 rounded-lg">✕</button>
-      </div>
-      <div class="space-y-3.5 text-xs text-slate-600 leading-relaxed">
-        <div class="bg-amber-50/70 p-3.5 rounded-2xl border border-amber-200/70">
-          <div class="font-black text-amber-950 text-sm mb-1">1. 為什麼要看「平時學習歷程」？</div>
-          <p>段考看的是單次總結結果，而平時成績記錄了孩子每週的<b>「課堂習作、課後作業卷、語詞聽寫與單元小考」</b>。透過平時脈絡，我們能及早看見孩子的學習態度與特定單元弱點。</p>
-        </div>
-        <div class="bg-emerald-50/70 p-3.5 rounded-2xl border border-emerald-200/70">
-          <div class="font-black text-emerald-950 text-sm mb-1">2. 學習指標四大支柱</div>
-          <ul class="list-disc list-inside space-y-1">
-            <li><b>📘 課堂習作表現</b>：反映課堂專注度與基礎練習扎實度。</li>
-            <li><b>📝 課後作業卷</b>：反映回家複習習慣與按時繳交態度。</li>
-            <li><b>🔤 語詞基礎聽寫</b>：反映基本字詞與核心基礎熟練度。</li>
-            <li><b>🎯 單元測驗小考</b>：反映各課/各單元觀念是否融會貫通。</li>
-          </ul>
-        </div>
-        <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-          <div class="font-black text-slate-800 text-sm mb-1">3. 顏色標記溫馨說明</div>
-          <ul class="list-disc list-inside space-y-1">
-            <li><span class="bg-amber-100 text-amber-900 font-bold px-1.5 py-0.5 rounded">⏳ 待補交 / 待補測</span>：代表該項作業或測驗尚未完成（試算表黃色標記），請陪伴孩子完成補交。</li>
-            <li><span class="bg-rose-100 text-rose-800 font-bold px-1.5 py-0.5 rounded">🌱 需重點複習 / 待訂正</span>：代表該單元需要加強訂正（試算表粉紅色標記），弄懂錯題即可大幅進步！</li>
-          </ul>
-        </div>
-      </div>
-      <button onclick="closeFeatureGuideModal()" class="tactile-btn w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-black py-3 rounded-2xl text-xs cursor-pointer">
-        了解，開始檢視孩子歷程
-      </button>
-    </div>
-  </div>
-
-  <!-- ==================== 核心腳本邏輯 ==================== -->
-  <script>
-    // 預設 24 位示範學生名單 (605 班，與 MPScore 100% 互通)
-    const DEMO_ROSTER = [
-      { seat: '01', name: '陳小明', baseChi: 93, baseMath: 90, baseSoc: 92 },
-      { seat: '02', name: '陳小華', baseChi: 90, baseMath: 86, baseSoc: 88 },
-      { seat: '03', name: '陳大美', baseChi: 91, baseMath: 92, baseSoc: 89 },
-      { seat: '04', name: '陳志豪', baseChi: 76, baseMath: 78, baseSoc: 74 },
-      { seat: '06', name: '黃小琪', baseChi: 85, baseMath: 82, baseSoc: 84 },
-      { seat: '07', name: '李大偉', baseChi: 94, baseMath: 95, baseSoc: 94 },
-      { seat: '08', name: '林子涵', baseChi: 97, baseMath: 96, baseSoc: 96 },
-      { seat: '09', name: '凌雅婷', baseChi: 80, baseMath: 78, baseSoc: 82 },
-      { seat: '10', name: '劉建銘', baseChi: 83, baseMath: 85, baseSoc: 84 },
-      { seat: '11', name: '王冠宇', baseChi: 68, baseMath: 65, baseSoc: 70 },
-      { seat: '12', name: '吳宗憲', baseChi: 84, baseMath: 82, baseSoc: 90 },
-      { seat: '13', name: '嚴立婷', baseChi: 92, baseMath: 96, baseSoc: 93 },
-      { seat: '14', name: '余承恩', baseChi: 77, baseMath: 74, baseSoc: 75 },
-      { seat: '15', name: '嚴佳慧', baseChi: 91, baseMath: 91, baseSoc: 92 },
-      { seat: '16', name: '羅品安', baseChi: 95, baseMath: 93, baseSoc: 94 },
-      { seat: '17', name: '羅廷宇', baseChi: 70, baseMath: 68, baseSoc: 69 },
-      { seat: '18', name: '蕭雅云', baseChi: 92, baseMath: 91, baseSoc: 94 },
-      { seat: '19', name: '張凱傑', baseChi: 79, baseMath: 76, baseSoc: 78 },
-      { seat: '20', name: '茅文傑', baseChi: 90, baseMath: 88, baseSoc: 91 },
-      { seat: '21', name: '洪宇成', baseChi: 78, baseMath: 74, baseSoc: 76 },
-      { seat: '22', name: '林郁潔', baseChi: 89, baseMath: 90, baseSoc: 91 },
-      { seat: '23', name: '周奕翔', baseChi: 96, baseMath: 88, baseSoc: 93 },
-      { seat: '24', name: '吳秉翰', baseChi: 82, baseMath: 78, baseSoc: 81 },
-      { seat: '25', name: '李勝吉', baseChi: 69, baseMath: 64, baseSoc: 68 }
-    ];
-
-    // 動態建構示範學生的完整平時歷程資料
-    function buildDemoPortfolioByToken(tokenStr) {
-      const clean = (tokenStr || '').trim().toUpperCase();
-      let stInfo = DEMO_ROSTER.find(r => ('DEMO' + r.seat) === clean || r.seat === clean);
-      if (!stInfo && clean.startsWith('DEMO')) {
-        stInfo = DEMO_ROSTER[1]; // 預設陳小華
-      }
-      if (!stInfo) return null;
-
-      const isXiaoHua = stInfo.seat === '02';
-      const isZhiHao = stInfo.seat === '04';
-
-      // 1. 國語平時 (L1~L6)
-      const chiUnits = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6'];
-      const chiItems = [];
-      const bChi = stInfo.baseChi;
-
-      chiUnits.forEach((u, idx) => {
-        const wbScore = Math.min(100, bChi + (idx % 2 === 0 ? 6 : 5));
-        chiItems.push({
-          title: '國習' + u, shortTitle: u, pillarKey: 'workbook', pillarLabel: '課堂習作表現', pillarShort: '習作表現',
-          unitCode: u, score: wbScore, classAvg: 91.5, status: 'done', statusLabel: '✅ 已完成', colorTag: 'normal'
-        });
-
-        // 作業卷：陳小華在 L3 示範「黃色待補交」
-        const isMissingHw = (isXiaoHua && u === 'L3');
-        const hwScore = isMissingHw ? null : Math.min(100, bChi + (idx % 3 === 0 ? 7 : 4));
-        chiItems.push({
-          title: '作業卷' + u, shortTitle: u, pillarKey: 'homework', pillarLabel: '課後作業卷', pillarShort: '作業卷',
-          unitCode: u, score: hwScore, classAvg: 90.2,
-          status: isMissingHw ? 'missing' : 'done',
-          statusLabel: isMissingHw ? '⏳ 待補交 / 待補測' : '✅ 已完成',
-          colorTag: isMissingHw ? 'yellow' : 'normal'
-        });
-
-        // 語詞聽寫：陳志豪在 L3 示範「待補測」
-        const isMissingVocab = (isZhiHao && u === 'L3');
-        const vcScore = isMissingVocab ? null : Math.min(100, Math.max(58, bChi + (idx === 2 ? -6 : 2)));
-        chiItems.push({
-          title: '語詞' + u, shortTitle: u, pillarKey: 'foundation', pillarLabel: '語詞基礎聽寫', pillarShort: '語詞聽寫',
-          unitCode: u, score: vcScore, classAvg: 87.8,
-          status: isMissingVocab ? 'missing' : 'done',
-          statusLabel: isMissingVocab ? '⏳ 待補交 / 待補測' : '✅ 已完成',
-          colorTag: isMissingVocab ? 'yellow' : 'normal'
-        });
-
-        // 單元測驗卷：在 L3 示範觀念斷層 (粉紅標記需重點複習)，L4~L6 逐步回升
-        const isReviewQuiz = (isXiaoHua && u === 'L3');
-        const qzScore = idx === 2 ? Math.max(56, bChi - 16) : (idx === 3 ? Math.max(64, bChi - 6) : Math.min(100, bChi + (idx % 2 === 0 ? 4 : 6)));
-        chiItems.push({
-          title: '測驗卷' + u, shortTitle: u, pillarKey: 'quiz', pillarLabel: '單元測驗小考', pillarShort: '單元測驗',
-          unitCode: u, score: qzScore, classAvg: 85.4,
-          status: (isReviewQuiz || qzScore < 60) ? 'review' : 'done',
-          statusLabel: (isReviewQuiz || qzScore < 60) ? '🌱 需重點複習 / 待訂正' : '✅ 已完成',
-          colorTag: (isReviewQuiz || qzScore < 60) ? 'pink' : 'normal'
-        });
-      });
-
-      // 2. 數學平時 (L1~L5)
-      const mathUnits = ['L1', 'L2', 'L3', 'L4', 'L5'];
-      const mathItems = [];
-      const bMath = stInfo.baseMath;
-
-      mathUnits.forEach((u, idx) => {
-        const wbScore = Math.min(100, bMath + (idx % 2 === 0 ? 6 : 4));
-        mathItems.push({
-          title: '數習' + u, shortTitle: u, pillarKey: 'workbook', pillarLabel: '課堂習作表現', pillarShort: '習作表現',
-          unitCode: u, score: wbScore, classAvg: 89.2, status: 'done', statusLabel: '✅ 已完成', colorTag: 'normal'
-        });
-
-        const hwScore = Math.min(100, bMath + (idx === 1 ? -4 : 3));
-        mathItems.push({
-          title: '作業卷' + u, shortTitle: u, pillarKey: 'homework', pillarLabel: '課後作業卷', pillarShort: '作業卷',
-          unitCode: u, score: hwScore, classAvg: 87.5, status: 'done', statusLabel: '✅ 已完成', colorTag: 'normal'
-        });
-
-        const isMathReview = (isXiaoHua && u === 'L2');
-        const qzScore = idx === 1 ? Math.max(58, bMath - 14) : Math.min(100, bMath + (idx % 2 === 0 ? 4 : 2));
-        mathItems.push({
-          title: '測驗卷' + u, shortTitle: u, pillarKey: 'quiz', pillarLabel: '單元測驗小考', pillarShort: '單元測驗',
-          unitCode: u, score: qzScore, classAvg: 83.6,
-          status: (isMathReview || qzScore < 60) ? 'review' : 'done',
-          statusLabel: (isMathReview || qzScore < 60) ? '🌱 需重點複習 / 待訂正' : '✅ 已完成',
-          colorTag: (isMathReview || qzScore < 60) ? 'pink' : 'normal'
-        });
-      });
-
-      // 3. 社會平時 (L1~L4)
-      const socUnits = ['L1', 'L2', 'L3', 'L4'];
-      const socItems = [];
-      const bSoc = stInfo.baseSoc;
-
-      socUnits.forEach((u, idx) => {
-        const wbScore = Math.min(100, bSoc + 5);
-        socItems.push({
-          title: '社習' + u, shortTitle: u, pillarKey: 'workbook', pillarLabel: '課堂習作表現', pillarShort: '習作表現',
-          unitCode: u, score: wbScore, classAvg: 90.0, status: 'done', statusLabel: '✅ 已完成', colorTag: 'normal'
-        });
-        const hwScore = Math.min(100, bSoc + 3);
-        socItems.push({
-          title: '作業卷' + u, shortTitle: u, pillarKey: 'homework', pillarLabel: '課後作業卷', pillarShort: '作業卷',
-          unitCode: u, score: hwScore, classAvg: 88.4, status: 'done', statusLabel: '✅ 已完成', colorTag: 'normal'
-        });
-        const qzScore = idx === 2 ? Math.max(65, bSoc - 8) : Math.min(100, bSoc + 2);
-        socItems.push({
-          title: '測驗卷' + u, shortTitle: u, pillarKey: 'quiz', pillarLabel: '單元測驗小考', pillarShort: '單元測驗',
-          unitCode: u, score: qzScore, classAvg: 85.2, status: 'done', statusLabel: '✅ 已完成', colorTag: 'normal'
-        });
-      });
-
-      return {
-        success: true,
-        isDemo: true,
-        student: {
-          className: '605',
-          seatNumber: stInfo.seat,
-          name: stInfo.name,
-          token: 'DEMO' + stInfo.seat,
-          studentId: '605-' + stInfo.seat
-        },
-        subjects: [
-           summarizeSubjectFromItems('國語平時', '115學年度第一學期 國語科平時學習歷程', '國語', chiItems, 88.7),
-           summarizeSubjectFromItems('數學平時', '115學年度第一學期 數學科平時學習歷程', '數學', mathItems, 86.8),
-           summarizeSubjectFromItems('社會平時', '115學年度第一學期 社會科平時學習歷程', '社會', socItems, 87.9)
-        ]
-      };
-    }
-
-    function summarizeSubjectFromItems(sheetName, subjectTitle, shortName, items, classOverallAvg) {
-      const pillarMeta = {
-        workbook: { label: '課堂習作表現', shortLabel: '習作表現', icon: '📘', classAvg: 90.8 },
-        homework: { label: '課後作業卷', shortLabel: '作業卷', icon: '📝', classAvg: 89.2 },
-        foundation: { label: '語詞基礎聽寫', shortLabel: '語詞聽寫', icon: '🔤', classAvg: 87.5 },
-        quiz: { label: '單元測驗小考', shortLabel: '單元測驗', icon: '🎯', classAvg: 84.8 }
-      };
-
-      const buckets = {
-        workbook: { scores: [], total: 0, completed: 0, missing: 0, review: 0 },
-        homework: { scores: [], total: 0, completed: 0, missing: 0, review: 0 },
-        foundation: { scores: [], total: 0, completed: 0, missing: 0, review: 0 },
-        quiz: { scores: [], total: 0, completed: 0, missing: 0, review: 0 }
-      };
-
-      const allScores = [];
-      const missingItems = [];
-      const reviewItems = [];
-      const unitMap = {};
-      const unitOrder = [];
-
-      items.forEach(it => {
-        const b = buckets[it.pillarKey] || buckets.quiz;
-        b.total += 1;
-        if (it.score !== null && it.score !== undefined) {
-          b.scores.push(it.score);
-          b.completed += 1;
-          allScores.push(it.score);
-        }
-        if (it.status === 'missing') {
-          b.missing += 1;
-          missingItems.push({ title: it.title, pillarLabel: it.pillarShort, statusLabel: it.statusLabel, score: it.score });
-        } else if (it.status === 'review') {
-          b.review += 1;
-          reviewItems.push({ title: it.title, pillarLabel: it.pillarShort, statusLabel: it.statusLabel, score: it.score });
-        }
-
-        const u = it.unitCode;
-        if (u) {
-          if (!unitMap[u]) {
-            unitMap[u] = { unit: u, scores: [], classAvgs: [], byPillar: {} };
-            unitOrder.push(u);
-          }
-          if (it.score !== null) {
-            unitMap[u].scores.push(it.score);
-            unitMap[u].byPillar[it.pillarKey] = it.score;
-          }
-          if (it.classAvg !== null) {
-            unitMap[u].classAvgs.push(it.classAvg);
-            unitMap[u].byPillar[it.pillarKey + '_classAvg'] = it.classAvg;
-          }
-        }
-      });
-
-      const pillars = {};
-      ['workbook', 'homework', 'foundation', 'quiz'].forEach(pk => {
-        const b = buckets[pk];
-        const avg = b.scores.length > 0 ? Number((b.scores.reduce((a, c) => a + c, 0) / b.scores.length).toFixed(1)) : null;
-        let badge = '🌱 持續累積中';
-        if (b.missing > 0) badge = '⏳ 待補齊進度';
-        else if (avg !== null) {
-          if (avg >= 95) badge = '表現卓越 🌟';
-          else if (avg >= 90) badge = '認真扎實 ⭐';
-          else if (avg >= 85) badge = '穩步精進 🌿';
-          else if (avg >= 75) badge = '觀念良好 💪';
-          else badge = '潛力開發 🌱';
-        }
-        pillars[pk] = {
-          key: pk,
-          label: pillarMeta[pk].label,
-          shortLabel: pillarMeta[pk].shortLabel,
-          icon: pillarMeta[pk].icon,
-          average: avg,
-          classAverage: pillarMeta[pk].classAvg,
-          totalItems: b.total,
-          completedItems: b.completed,
-          missingCount: b.missing,
-          reviewCount: b.review,
-          badge: badge
-        };
-      });
-
-      const overallAverage = allScores.length > 0
-        ? Number((allScores.reduce((a, c) => a + c, 0) / allScores.length).toFixed(1))
-        : null;
-
-      const unitTimeline = unitOrder.map(u => {
-        const uo = unitMap[u];
-        const uAvg = uo.scores.length > 0 ? Number((uo.scores.reduce((a, c) => a + c, 0) / uo.scores.length).toFixed(1)) : null;
-        const cAvg = uo.classAvgs.length > 0 ? Number((uo.classAvgs.reduce((a, c) => a + c, 0) / uo.classAvgs.length).toFixed(1)) : classOverallAvg;
-        return {
-          unit: u,
-          overallScore: uAvg,
-          classAvg: cAvg,
-          workbook: uo.byPillar.workbook !== undefined ? uo.byPillar.workbook : null,
-          homework: uo.byPillar.homework !== undefined ? uo.byPillar.homework : null,
-          foundation: uo.byPillar.foundation !== undefined ? uo.byPillar.foundation : null,
-          quiz: uo.byPillar.quiz !== undefined ? uo.byPillar.quiz : null,
-          quizClassAvg: uo.byPillar.quiz_classAvg || cAvg
-        };
-      });
-
-      // 組裝溫馨叮嚀
-      const adviceParts = [];
-      if ((pillars.workbook.average && pillars.workbook.average >= 90) || (pillars.homework.average && pillars.homework.average >= 90)) {
-        adviceParts.push(`孩子在${shortName}科的日常習作與課後作業態度非常認真扎實，展現了良好的課堂專注度！`);
-      } else {
-        adviceParts.push(`孩子持續累積${shortName}科的日常作業經驗，建議每天完成作業後花 5 分鐘自主檢查訂正，能讓基礎更穩固。`);
-      }
-
-      let lowU = null, highU = null;
-      unitTimeline.forEach(ut => {
-        const v = ut.quiz !== null ? ut.quiz : ut.overallScore;
-        if (v !== null) {
-          if (!lowU || v < lowU.v) lowU = { unit: ut.unit, v };
-          if (!highU || v > highU.v) highU = { unit: ut.unit, v };
-        }
-      });
-      if (highU && lowU && highU.unit !== lowU.unit && (highU.v - lowU.v >= 10)) {
-        adviceParts.push(`從單元脈絡觀察，【${highU.unit}】（${highU.v}分）吸收得非常棒；而【${lowU.unit}】（${lowU.v}分）相對遇到些許瓶頸，建議可針對該單元的錯題重點回顧，及早補強觀念斷層。`);
-      }
-      if (missingItems.length > 0) {
-        adviceParts.push(`溫馨提醒：目前尚有 ${missingItems.length} 項平時紀錄（${missingItems.map(m => m.title).join('、')}）待補交或補測，請家長陪伴孩子於近期完成並交回給老師喔！`);
-      } else if (reviewItems.length > 0) {
-        adviceParts.push(`溫馨提醒：【${reviewItems.map(r => r.title).join('、')}】老師已標記為重點複習/待訂正項目，弄懂錯題就是進步最快的捷徑！`);
-      }
-
-      return {
-        sheetName,
-        subjectTitle,
-        subjectShortName: shortName,
-        overallAverage,
-        classOverallAverage: classOverallAvg,
-        totalItemsCount: items.length,
-        completedItemsCount: allScores.length,
-        missingCount: missingItems.length,
-        reviewCount: reviewItems.length,
-        missingItems,
-        reviewItems,
-        pillars,
-        unitTimeline,
-        items,
-        teacherAdvice: adviceParts.join(' ')
-      };
-    }
-
-    // 狀態管理
-    let currentPortfolioData = null;
-    let currentSubjectIndex = 0;
-    let currentTimelineMetric = 'quiz';
-    let currentItemFilter = 'all';
-    let timelineChartInstance = null;
-
-    // 取得可視化控制參數 (?v=111111)
-    function getVisibilitySettings() {
-      const params = new URLSearchParams(window.location.search);
-      const v = params.get('v') || '';
-      if (v.length >= 5) {
-        return {
-          showOverallAvg: v[0] !== '0',
-          showPillars: v[1] !== '0',
-          showClassAvg: v[2] !== '0',
-          showTimeline: v[3] !== '0',
-          showReminders: v[4] !== '0',
-          showAdvice: v.length >= 6 ? v[5] !== '0' : true
-        };
-      }
-      return {
-        showOverallAvg: true,
-        showPillars: true,
-        showClassAvg: true,
-        showTimeline: true,
-        showReminders: true,
-        showAdvice: true
-      };
-    }
-
-    // 解析 API Endpoint
-    function resolveApiUrl() {
-      const params = new URLSearchParams(window.location.search);
-      const apiParam = params.get('api');
-      if (apiParam) return apiParam;
-      const aId = params.get('a');
-      if (aId) return `https://script.google.com/macros/s/${aId}/exec`;
-      if (window.MPSCORE_DAILY_CONFIG && window.MPSCORE_DAILY_CONFIG.apiUrl) {
-        return window.MPSCORE_DAILY_CONFIG.apiUrl;
-      }
-      return localStorage.getItem('mpscore_daily_api_url') || '';
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      const params = new URLSearchParams(window.location.search);
-      const token = params.get('t') || params.get('token');
-      if (token) {
-        document.getElementById('tokenInput').value = token;
-        loadStudentPortfolio(token);
-      }
-    });
-
-    function quickTryToken(tok) {
-      document.getElementById('tokenInput').value = tok;
-      submitTokenQuery();
-    }
-
-    function submitTokenQuery() {
-      const input = document.getElementById('tokenInput');
-      const token = (input.value || '').trim().toUpperCase();
-      if (!token) {
-        showError('請輸入 6 碼專屬查詢代碼！');
-        return;
-      }
-      loadStudentPortfolio(token);
-    }
-
-    function resetToTokenInput() {
-      document.getElementById('resultSection').classList.add('hidden');
-      document.getElementById('switchCodeBtn').classList.add('hidden');
-      document.getElementById('loginBox').classList.remove('hidden');
-      document.getElementById('errorAlert').classList.add('hidden');
-    }
-
-    function showError(msg) {
-      const errEl = document.getElementById('errorAlert');
-      errEl.innerText = msg;
-      errEl.classList.remove('hidden');
-    }
-
-    async function loadStudentPortfolio(token) {
-      const cleanToken = token.trim().toUpperCase();
-      const apiUrl = resolveApiUrl();
-      const cacheKey = 'mpdaily_local_cache_' + cleanToken;
-
-      document.getElementById('errorAlert').classList.add('hidden');
-
-      // 若無雲端 API 且為 DEMO 代碼，直接載入示範資料
-      if (!apiUrl && cleanToken.startsWith('DEMO')) {
-        const demoData = buildDemoPortfolioByToken(cleanToken);
-        if (demoData) {
-          renderPortfolio(demoData);
-          return;
-        }
-      }
-
-      // 檢查本機快取 (Stale-While-Revalidate 極速秒開)
-      const cachedStr = localStorage.getItem(cacheKey);
-      let hasRenderedCache = false;
-      if (cachedStr) {
-        try {
-          const cachedData = JSON.parse(cachedStr);
-          if (cachedData && cachedData.success) {
-            renderPortfolio(cachedData);
-            hasRenderedCache = true;
-          }
-        } catch (ignore) {}
-      }
-
-      if (!hasRenderedCache) {
-        document.getElementById('loginBox').classList.add('hidden');
-        document.getElementById('loadingSkeleton').classList.remove('hidden');
-      }
-
-      if (!apiUrl) {
-        document.getElementById('loadingSkeleton').classList.add('hidden');
-        const fallbackDemo = buildDemoPortfolioByToken(cleanToken);
-        if (fallbackDemo) {
-          renderPortfolio(fallbackDemo);
-        } else {
-          document.getElementById('loginBox').classList.remove('hidden');
-          showError('尚未設定雲端試算表連線網址，請先使用 DEMO01 ~ DEMO25 預覽，或由教師端掃描帶參數之 QR Code。');
-        }
-        return;
-      }
-
-      try {
-        const res = await fetch(`${apiUrl}?action=query&token=${encodeURIComponent(cleanToken)}`);
-        const data = await res.json();
-        document.getElementById('loadingSkeleton').classList.add('hidden');
-
-        if (data && data.success) {
-          localStorage.setItem(cacheKey, JSON.stringify(data));
-          renderPortfolio(data);
-        } else if (cleanToken.startsWith('DEMO')) {
-          const demoData = buildDemoPortfolioByToken(cleanToken);
-          renderPortfolio(demoData);
-        } else {
-          if (!hasRenderedCache) {
-            document.getElementById('loginBox').classList.remove('hidden');
-            showError(data.message || '查無此代碼，請確認後再試。');
-          }
-        }
-      } catch (err) {
-        document.getElementById('loadingSkeleton').classList.add('hidden');
-        if (cleanToken.startsWith('DEMO')) {
-          renderPortfolio(buildDemoPortfolioByToken(cleanToken));
-        } else if (!hasRenderedCache) {
-          document.getElementById('loginBox').classList.remove('hidden');
-          showError('網路連線異常，請確認網路狀態或稍後再試。');
-        }
-      }
-    }
-
-    function renderPortfolio(data) {
-      currentPortfolioData = data;
-      document.getElementById('loginBox').classList.add('hidden');
-      document.getElementById('loadingSkeleton').classList.add('hidden');
-      document.getElementById('resultSection').classList.remove('hidden');
-      document.getElementById('switchCodeBtn').classList.remove('hidden');
-
-      const st = data.student || {};
-      const subjects = data.subjects || [];
-      const vis = getVisibilitySettings();
-
-      document.getElementById('stClassSeatBadge').innerText = st.studentId || `${st.className || '605'}-${st.seatNumber || '01'}`;
-      document.getElementById('stNameTitle').innerText = st.name || '學生';
-      document.getElementById('stSeatSub').innerText = `${st.className || '605'} 班 ‧ 座號 ${st.seatNumber || ''} 號`;
-      document.getElementById('cloudSyncBadge').innerText = data.isDemo ? '🧪 示範歷程模式' : '☁️ 雲端即時同步';
-
-      // 計算全科總覽數據
-      let totalAvgSum = 0, totalAvgCnt = 0, totalCompleted = 0, totalMissing = 0, totalReview = 0;
-      subjects.forEach(sub => {
-        if (sub.overallAverage !== null && sub.overallAverage !== undefined) {
-          totalAvgSum += Number(sub.overallAverage);
-          totalAvgCnt += 1;
-        }
-        totalCompleted += (sub.completedItemsCount || 0);
-        totalMissing += (sub.missingCount || 0);
-        totalReview += (sub.reviewCount || 0);
-      });
-
-      const overallAllSubAvg = totalAvgCnt > 0 ? (totalAvgSum / totalAvgCnt).toFixed(1) : '--';
-      document.getElementById('heroOverallAvgVal').innerText = overallAllSubAvg;
-      document.getElementById('heroOverallAvgBox').style.display = vis.showOverallAvg ? '' : 'none';
-      document.getElementById('heroCompletedCountVal').innerText = totalCompleted;
-      document.getElementById('heroActionCountVal').innerText = totalMissing + totalReview;
-      document.getElementById('heroActionSubLabel').innerText =
-        (totalMissing + totalReview) === 0 ? '🎉 全數完成' : `${totalMissing}待補 ‧ ${totalReview}複習`;
-
-      // 根據 URL ?s= 參數決定初始選取科目
-      const params = new URLSearchParams(window.location.search);
-      const preferSub = params.get('s');
-      currentSubjectIndex = 0;
-      if (preferSub && subjects.length > 0) {
-        const foundIdx = subjects.findIndex(s => s.sheetName === preferSub || s.subjectShortName === preferSub);
-        if (foundIdx !== -1) currentSubjectIndex = foundIdx;
-      }
-
-      renderSubjectIslands();
-      renderActiveSubjectContent();
-    }
-
-    function selectSubjectTab(idx) {
-      currentSubjectIndex = idx;
-      currentItemFilter = 'all';
-      renderSubjectIslands();
-      renderActiveSubjectContent();
-    }
-
-    function renderSubjectIslands() {
-      const container = document.getElementById('subjectSummaryIslands');
-      const subjects = (currentPortfolioData && currentPortfolioData.subjects) || [];
-      const vis = getVisibilitySettings();
-      container.innerHTML = '';
-
-      const subjectIcons = { '國語': '📘', '數學': '📐', '社會': '🌍', '自然': '🔬', '英文': '🔤' };
-
-      subjects.forEach((sub, idx) => {
-        const isActive = idx === currentSubjectIndex;
-        const icon = subjectIcons[sub.subjectShortName] || '📗';
-        const alertCnt = (sub.missingCount || 0) + (sub.reviewCount || 0);
-
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.onclick = () => selectSubjectTab(idx);
-        btn.className = isActive
-          ? 'tactile-btn text-left p-3.5 rounded-2xl bg-white text-slate-900 shadow-lg border-2 border-amber-300 transition cursor-pointer flex flex-col justify-between'
-          : 'tactile-btn text-left p-3.5 rounded-2xl bg-white/15 hover:bg-white/25 text-white border border-white/25 transition cursor-pointer flex flex-col justify-between';
-
-        let statusPillHtml = '';
-        if (sub.missingCount > 0) {
-          statusPillHtml = `<span class="text-[10px] font-black px-2 py-0.5 rounded-full ${isActive ? 'bg-amber-100 text-amber-900' : 'bg-amber-300/30 text-amber-100'}">⏳ ${sub.missingCount}待補</span>`;
-        } else if (sub.reviewCount > 0) {
-          statusPillHtml = `<span class="text-[10px] font-black px-2 py-0.5 rounded-full ${isActive ? 'bg-rose-100 text-rose-800' : 'bg-rose-400/30 text-rose-100'}">🌱 ${sub.reviewCount}複習</span>`;
-        } else {
-          statusPillHtml = `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-emerald-400/30 text-emerald-100'}">✅ 全數完成</span>`;
-        }
-
-        btn.innerHTML = `
-          <div class="flex items-center justify-between gap-1 w-full">
-            <span class="text-xs font-black flex items-center gap-1">
-              <span>${icon}</span>
-              <span>${sub.subjectShortName || sub.sheetName}</span>
-            </span>
-            ${statusPillHtml}
-          </div>
-          <div class="mt-2 flex items-baseline justify-between">
-            ${vis.showOverallAvg ? `
-              <div>
-                <span class="text-xl font-black font-num ${isActive ? 'text-amber-700' : 'text-white'}">${sub.overallAverage !== null ? sub.overallAverage : '--'}</span>
-                <span class="text-[10px] ${isActive ? 'text-slate-500' : 'text-amber-100'}">分</span>
-              </div>
-            ` : `<div class="text-xs font-bold ${isActive ? 'text-amber-800' : 'text-amber-100'}">點擊檢視明細</div>`}
-            ${vis.showClassAvg && sub.classOverallAverage ? `
-              <span class="text-[10px] font-medium ${isActive ? 'text-slate-400' : 'text-amber-100/80'}">班均 ${sub.classOverallAverage}</span>
-            ` : ''}
-          </div>
-        `;
-        container.appendChild(btn);
-      });
-    }
-
-    function renderActiveSubjectContent() {
-      const subjects = (currentPortfolioData && currentPortfolioData.subjects) || [];
-      const sub = subjects[currentSubjectIndex];
-      if (!sub) return;
-
-      const vis = getVisibilitySettings();
-
-      // 1. 渲染待補交 / 待訂正溫馨提醒箱
-      const reminderBox = document.getElementById('reminderBannerBox');
-      if (!vis.showReminders) {
-        reminderBox.classList.add('hidden');
-      } else {
-        reminderBox.classList.remove('hidden');
-        const missingList = sub.missingItems || [];
-        const reviewList = sub.reviewItems || [];
-
-        if (missingList.length === 0 && reviewList.length === 0) {
-          reminderBox.innerHTML = `
-            <div class="bg-emerald-50/90 border border-emerald-200 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 text-xs text-emerald-900 shadow-2xs">
-              <div class="flex items-center gap-2 font-bold">
-                <span class="text-base">🎉</span>
-                <span>太棒了！<b>${sub.subjectShortName}科</b>目前所有已派發的平時習作、作業卷與測驗皆已如期完成，沒有缺交或待訂正項目！</span>
-              </div>
-              <span class="shrink-0 bg-emerald-600 text-white font-black px-2.5 py-1 rounded-full text-[11px]">習慣滿分 🌟</span>
-            </div>
-          `;
-        } else {
-          const pillsHtml = [
-            ...missingList.map(m => `
-              <span class="inline-flex items-center gap-1.5 bg-amber-100/90 text-amber-950 border border-amber-300 font-black px-3 py-1.5 rounded-xl text-xs shadow-2xs">
-                <span>⏳ ${m.title}</span>
-                <span class="text-[10px] bg-white/80 text-amber-800 px-1.5 py-0.5 rounded-md font-bold">待補交/補測</span>
-              </span>
-            `),
-            ...reviewList.map(r => `
-              <span class="inline-flex items-center gap-1.5 bg-rose-100/80 text-rose-900 border border-rose-300 font-black px-3 py-1.5 rounded-xl text-xs shadow-2xs">
-                <span>🌱 ${r.title}${r.score !== null ? ` (${r.score}分)` : ''}</span>
-                <span class="text-[10px] bg-white/80 text-rose-700 px-1.5 py-0.5 rounded-md font-bold">需重點複習/訂正</span>
-              </span>
-            `)
-          ].join('');
-
-          reminderBox.innerHTML = `
-            <div class="bg-amber-50/95 border-2 border-amber-300/90 rounded-3xl p-4 md:p-5 space-y-2.5 shadow-sm">
-              <div class="flex flex-wrap items-center justify-between gap-2">
-                <div class="font-black text-amber-950 text-xs md:text-sm flex items-center gap-1.5">
-                  <span>🔔</span>
-                  <span>${sub.subjectShortName}科・待補交 / 重點複習溫馨提醒箱</span>
-                </div>
-                <span class="text-[11px] text-amber-800 font-bold">老師於試算表標記之進度追蹤，完成後即自動轉為已完成</span>
-              </div>
-              <div class="flex flex-wrap gap-2 pt-0.5">
-                ${pillsHtml}
-              </div>
-            </div>
-          `;
-        }
-      }
-
-      // 2. 渲染學習指標四大支柱
-      const pillarsSec = document.getElementById('pillarsSection');
-      if (!vis.showPillars) {
-        pillarsSec.classList.add('hidden');
-      } else {
-        pillarsSec.classList.remove('hidden');
-        document.getElementById('pillarsSectionTitle').innerText = `${sub.subjectShortName}科・學習指標四大支柱`;
-        const pillEl = document.getElementById('subjectOverallPill');
-        if (vis.showOverallAvg && sub.overallAverage !== null) {
-          pillEl.classList.remove('hidden');
-          pillEl.innerText = `本科平時總均：${sub.overallAverage} 分`;
-        } else {
-          pillEl.classList.add('hidden');
-        }
-
-        const pGrid = document.getElementById('pillarsGrid');
-        pGrid.innerHTML = '';
-
-        const pillarOrder = ['workbook', 'homework', 'foundation', 'quiz'];
-        pillarOrder.forEach(pk => {
-          const p = sub.pillars && sub.pillars[pk];
-          if (!p || p.totalItems === 0) return;
-
-          const avgVal = p.average !== null ? p.average : 0;
-          const barWidth = Math.max(10, Math.min(100, avgVal));
-          const isAlert = p.missingCount > 0;
-
-          const card = document.createElement('div');
-          card.className = `p-4 rounded-2xl border ${isAlert ? 'bg-amber-50/60 border-amber-300' : 'bg-slate-50/70 border-slate-200/80'} space-y-2.5 flex flex-col justify-between`;
-          card.innerHTML = `
-            <div class="flex items-start justify-between gap-2">
-              <div>
-                <div class="text-xs font-black text-slate-800 flex items-center gap-1.5">
-                  <span>${p.icon}</span>
-                  <span>${p.label}</span>
-                </div>
-                <div class="text-[11px] text-slate-500 mt-0.5">
-                  已完成 ${p.completedItems} / ${p.totalItems} 次${p.missingCount > 0 ? ` <b class="text-amber-700">(⏳${p.missingCount}待補)</b>` : ''}
-                </div>
-              </div>
-              <span class="text-[11px] font-black px-2 py-0.5 rounded-full ${isAlert ? 'bg-amber-200/80 text-amber-950' : 'bg-emerald-100 text-emerald-800'}">
-                ${p.badge}
-              </span>
-            </div>
-
-            <div>
-              <div class="flex items-baseline justify-between mb-1">
-                <div>
-                  <span class="text-2xl font-black font-num text-amber-800">${p.average !== null ? p.average : '--'}</span>
-                  <span class="text-xs text-slate-500 font-bold">分</span>
-                </div>
-                ${vis.showClassAvg && p.classAverage ? `<span class="text-[11px] text-slate-500 font-medium">班級平均 ${p.classAverage} 分</span>` : ''}
-              </div>
-              <div class="w-full h-2 bg-slate-200/80 rounded-full overflow-hidden">
-                <div class="h-full rounded-full ${avgVal >= 90 ? 'bg-gradient-to-r from-amber-500 to-emerald-500' : 'bg-amber-500'}" style="width: ${barWidth}%"></div>
-              </div>
-            </div>
-          `;
-          pGrid.appendChild(card);
-        });
-      }
-
-      // 3. 渲染單元時序折線圖
-      const timelineSec = document.getElementById('timelineSection');
-      if (!vis.showTimeline) {
-        timelineSec.classList.add('hidden');
-      } else {
-        timelineSec.classList.remove('hidden');
-        renderUnitTimelineChart(sub);
-      }
-
-      // 4. 渲染平時作業與測驗明細清單
-      document.getElementById('itemsDetailTitle').innerText = `${sub.subjectShortName}科・各次平時作業與測驗明細`;
-      renderDetailItemsList(sub);
-
-      // 5. 渲染親師同心叮嚀
-      const adviceSec = document.getElementById('adviceSection');
-      if (!vis.showAdvice) {
-        adviceSec.classList.add('hidden');
-      } else {
-        adviceSec.classList.remove('hidden');
-        document.getElementById('teacherAdviceText').innerText = sub.teacherAdvice || '孩子在本學期的平時學習表現穩定，請持續保持良好的課前預習與課後複習習慣！';
-      }
-    }
-
-    function switchTimelineMetric(metric) {
-      currentTimelineMetric = metric;
-      document.querySelectorAll('.timeline-metric-btn').forEach(btn => {
-        if (btn.getAttribute('data-metric') === metric) {
-          btn.className = 'timeline-metric-btn tactile-btn px-2.5 py-1 rounded-lg font-black bg-amber-500 text-slate-950 shadow-2xs cursor-pointer';
-        } else {
-          btn.className = 'timeline-metric-btn tactile-btn px-2.5 py-1 rounded-lg font-bold text-slate-600 hover:text-amber-800 cursor-pointer';
-        }
-      });
-      const subjects = (currentPortfolioData && currentPortfolioData.subjects) || [];
-      const sub = subjects[currentSubjectIndex];
-      if (sub) renderUnitTimelineChart(sub);
-    }
-
-    function renderUnitTimelineChart(sub) {
-      const timeline = sub.unitTimeline || [];
-      const vis = getVisibilitySettings();
-      const labels = timeline.map(u => u.unit);
-
-      const metricLabels = {
-        quiz: '單元測驗小考',
-        workbook: '課堂習作表現',
-        homework: '課後作業卷',
-        overall: '各單元綜合平均'
-      };
-
-      const studentSeries = timeline.map(u => {
-        if (currentTimelineMetric === 'quiz') return u.quiz !== null ? u.quiz : u.overallScore;
-        if (currentTimelineMetric === 'workbook') return u.workbook !== null ? u.workbook : u.overallScore;
-        if (currentTimelineMetric === 'homework') return u.homework !== null ? u.homework : u.overallScore;
-        return u.overallScore;
-      });
-
-      const classSeries = timeline.map(u => {
-        if (currentTimelineMetric === 'quiz' && u.quizClassAvg) return u.quizClassAvg;
-        return u.classAvg;
-      });
-
-      if (labels.length > 0) {
-        document.getElementById('timelineSectionTitle').innerText =
-          `${sub.subjectShortName}科・單元學習歷程脈絡 (${labels[0]} ➔ ${labels[labels.length - 1]})`;
-      }
-
-      // 找出最高與最低單元，產生診斷洞察文字
-      let minUnit = null, maxUnit = null;
-      studentSeries.forEach((val, idx) => {
-        if (val !== null && val !== undefined) {
-          if (!minUnit || val < minUnit.val) minUnit = { unit: labels[idx], val };
-          if (!maxUnit || val > maxUnit.val) maxUnit = { unit: labels[idx], val };
-        }
-      });
-
-      const insightEl = document.getElementById('unitInsightBox');
-      if (minUnit && maxUnit && minUnit.unit !== maxUnit.unit) {
-        const diff = (maxUnit.val - minUnit.val).toFixed(0);
-        if (diff >= 10 || minUnit.val < 75) {
-          insightEl.innerHTML = `
-            <div class="flex flex-wrap items-center gap-2">
-              <span class="bg-emerald-100 text-emerald-900 font-black px-2 py-0.5 rounded-lg">⭐ 吸收最佳：${maxUnit.unit} (${maxUnit.val}分)</span>
-              <span class="bg-rose-100 text-rose-800 font-black px-2 py-0.5 rounded-lg">▲ 發現弱點單元：${minUnit.unit} (${minUnit.val}分)</span>
-            </div>
-            <p class="mt-1.5 text-slate-600">
-              <b>脈絡解讀：</b>孩子在【${maxUnit.unit}】掌握度極佳，但在【${minUnit.unit}】的分數出現明顯回落（差距 ${diff} 分）。建議段考前優先翻閱【${minUnit.unit}】的習作與測驗卷錯題，及早把觀念斷層補起來！
-            </p>
-          `;
-        } else {
-          insightEl.innerHTML = `
-            <div class="flex items-center gap-2">
-              <span class="bg-emerald-100 text-emerald-900 font-black px-2.5 py-0.5 rounded-lg">🌟 各單元穩定發揮</span>
-              <span class="text-slate-600">各單元成績維持在 <b>${minUnit.val} ~ ${maxUnit.val} 分</b> 之間，學習節奏非常穩定扎實！</span>
-            </div>
-          `;
-        }
-      } else {
-        insightEl.innerHTML = `<span class="text-slate-500">持續累積各單元平時成績紀錄中。</span>`;
-      }
-
-      const ctx = document.getElementById('unitTimelineChart').getContext('2d');
-      if (timelineChartInstance) {
-        timelineChartInstance.destroy();
-      }
-
-      const pointBgColors = studentSeries.map(v => (v !== null && v < 75) ? '#e11d48' : '#d97706');
-      const pointRadii = studentSeries.map(v => (v !== null && v < 75) ? 7 : 5);
-
-      const datasets = [
-        {
-          label: `個人${metricLabels[currentTimelineMetric] || '表現'}`,
-          data: studentSeries,
-          borderColor: '#d97706',
-          backgroundColor: 'rgba(217, 119, 6, 0.14)',
-          borderWidth: 3,
-          pointBackgroundColor: pointBgColors,
-          pointBorderColor: '#ffffff',
-          pointBorderWidth: 2,
-          pointRadius: pointRadii,
-          pointHoverRadius: 8,
-          tension: 0.32,
-          fill: true
-        }
-      ];
-
-      if (vis.showClassAvg) {
-        datasets.push({
-          label: '班級單元平均',
-          data: classSeries,
-          borderColor: '#059669',
-          backgroundColor: 'transparent',
-          borderWidth: 2,
-          borderDash: [6, 5],
-          pointBackgroundColor: '#059669',
-          pointRadius: 3.5,
-          tension: 0.32,
-          fill: false
-        });
-      }
-
-      timelineChartInstance = new Chart(ctx, {
-        type: 'line',
-        data: { labels, datasets },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
-          plugins: {
-            legend: {
-              position: 'top',
-              labels: { font: { family: "'Plus Jakarta Sans', 'Noto Sans TC'", weight: 'bold', size: 11 }, usePointStyle: true }
-            },
-            tooltip: {
-              backgroundColor: 'rgba(15, 23, 42, 0.92)',
-              padding: 10,
-              cornerRadius: 12,
-              callbacks: {
-                label: function(context) {
-                  const val = context.parsed.y;
-                  return `${context.dataset.label}: ${val !== null ? val + ' 分' : '待補交'}`;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>MPScore-Daily — 學生平時成績歷程與分析手札</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans TC"', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    }
                 }
-              }
             }
-          },
-          scales: {
-            y: {
-              min: 40,
-              max: 100,
-              grid: { color: 'rgba(217, 119, 6, 0.08)' },
-              ticks: { font: { size: 11, weight: 'bold' }, color: '#64748b' }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700;800&family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <!-- System Config -->
+    <script src="config.js"></script>
+
+    <style>
+        :root {
+            --bg-cream: #FAF8F5;
+            --card-bg: #FFFFFF;
+            --border-warm: #E6E1D6;
+            --amber-primary: #D97706;
+            --emerald-primary: #059669;
+        }
+
+        body {
+            background-color: var(--bg-cream);
+            background-image:
+                radial-gradient(at 12% 8%, rgba(251, 191, 36, 0.12) 0px, transparent 48%),
+                radial-gradient(at 88% 15%, rgba(16, 185, 129, 0.08) 0px, transparent 48%),
+                radial-gradient(at 50% 92%, rgba(245, 158, 11, 0.07) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: #1c1917;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .tabular-nums {
+            font-variant-numeric: tabular-nums;
+        }
+
+        .warm-card {
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(230, 225, 214, 0.95);
+            box-shadow: 0 10px 30px -8px rgba(120, 90, 50, 0.06), 0 2px 8px -2px rgba(120, 90, 50, 0.04);
+        }
+
+        .subject-pill-active {
+            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+            border-color: #f59e0b !important;
+            box-shadow: 0 10px 24px -6px rgba(217, 119, 6, 0.22), 0 0 0 2px rgba(245, 158, 11, 0.35);
+            transform: translateY(-2px);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 6px;
+            width: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f5f2eb;
+            border-radius: 999px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #d6cfc2;
+            border-radius: 999px;
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-up {
+            animation: fadeUp 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col selection:bg-amber-200 selection:text-amber-950">
+
+    <!-- 頂部導覽列 -->
+    <header class="sticky top-0 z-30 bg-[#FAF8F5]/90 backdrop-blur-md border-b border-stone-200/80 px-4 py-3">
+        <div class="max-w-4xl mx-auto flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-sm shadow-amber-500/20 font-black text-lg">
+                    📊
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-black text-stone-800 tracking-tight text-sm sm:text-base">MPScore-Daily</span>
+                        <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200/80">平時成績歷程手札</span>
+                    </div>
+                    <p class="text-[11px] text-stone-500 hidden sm:block">各科平時成績統計 ‧ 四大分項平時均標 ‧ L1~L6 單元成績走勢</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <!-- Demo 學生快速切換器（方便展示不同學生的平時成績樣態） -->
+                <div id="demoSwitcherWrap" class="hidden items-center gap-1.5 bg-white border border-stone-200/90 rounded-xl px-2.5 py-1.5 shadow-sm">
+                    <span class="text-[11px] font-bold text-amber-700 whitespace-nowrap">✨ 範例學生：</span>
+                    <select id="demoStudentSelect" onchange="switchDemoStudent(this.value)" class="text-xs font-bold text-stone-700 bg-transparent focus:outline-none cursor-pointer pr-1">
+                        <option value="DEMO01">01號 王小華（各科均衡優異）</option>
+                        <option value="DEMO02">02號 陳品妍（習作極高・測驗波動）</option>
+                        <option value="DEMO03">03號 林宥廷（後段單元大幅進步）</option>
+                        <option value="DEMO04">04號 張語恩（語文頂尖・數理穩健）</option>
+                        <option value="DEMO05">05號 李冠宇（特定單元需加強複習）</option>
+                    </select>
+                </div>
+
+                <button id="btnResetToken" onclick="showSearchModal()" class="text-xs font-bold text-stone-600 hover:text-amber-700 bg-white hover:bg-amber-50/80 border border-stone-200/90 rounded-xl px-3 py-1.5 transition flex items-center gap-1 shadow-sm">
+                    <span>🔍</span>
+                    <span>輸入代碼</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主內容區 -->
+    <main class="flex-1 max-w-4xl w-full mx-auto px-4 pt-5 pb-16 space-y-6">
+
+        <!-- 搜尋代碼橫幅 (當未帶入 token 或點擊切換時可展開) -->
+        <section id="searchBanner" class="hidden warm-card rounded-3xl p-5 sm:p-6 border-2 border-amber-300/80 animate-fade-up">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <div class="inline-flex items-center gap-1.5 text-xs font-extrabold text-amber-700 bg-amber-100/90 px-2.5 py-1 rounded-full mb-2">
+                        <span>🔐</span> 專屬平時成績代碼查詢
+                    </div>
+                    <h2 class="text-lg font-black text-stone-800">請輸入通知小卡上的 8 碼平時成績代碼</h2>
+                    <p class="text-xs text-stone-500 mt-0.5">亦可直接掃描老師發放之「平時成績通知小卡」上的專屬 QR Code 直接開啟。</p>
+                </div>
+                <form onsubmit="handleManualSearch(event)" class="flex items-center gap-2 w-full sm:w-auto">
+                    <input id="tokenInput" type="text" maxlength="12" placeholder="例如：DEMO01"
+                        class="w-full sm:w-44 px-3.5 py-2.5 rounded-xl border border-stone-300 font-mono font-bold text-sm uppercase tracking-wider text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-stone-50/70">
+                    <button type="submit"
+                        class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-sm shadow-md shadow-amber-500/20 whitespace-nowrap transition">
+                        查看成績
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- 載入中狀態 -->
+        <section id="loadingSection" class="hidden warm-card rounded-3xl p-10 text-center space-y-3">
+            <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto animate-spin text-2xl">
+                ⏳
+            </div>
+            <p class="font-bold text-stone-700 text-base">正在彙整各科平時成績與單元常模資料...</p>
+            <p class="text-xs text-stone-400">正在同步最新習作、作業卷、語詞與單元測驗卷分數</p>
+        </section>
+
+        <!-- 錯誤提示狀態 -->
+        <section id="errorSection" class="hidden warm-card rounded-3xl p-8 text-center border-2 border-rose-200 space-y-3">
+            <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto text-2xl">
+                ⚠️
+            </div>
+            <h3 id="errorTitle" class="font-black text-stone-800 text-lg">查無此查詢代碼</h3>
+            <p id="errorDesc" class="text-xs text-stone-500 max-w-md mx-auto leading-relaxed">請確認您輸入的 8 碼平時成績查詢代碼是否正確，或直接點擊右上角「範例學生」體驗完整平時成績分析功能。</p>
+            <div class="pt-2 flex justify-center gap-2">
+                <button onclick="switchDemoStudent('DEMO01')" class="px-4 py-2 rounded-xl bg-amber-500 text-white text-xs font-bold shadow-sm hover:bg-amber-600 transition">
+                    載入範例平時成績 (DEMO01)
+                </button>
+            </div>
+        </section>
+
+        <!-- 學生平時成績主內容 -->
+        <div id="portfolioContainer" class="space-y-6">
+
+            <!-- 1. 頂部晨光英雄卡 (Hero Banner) -->
+            <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-500 via-amber-500 to-orange-500 text-white p-6 sm:p-7 shadow-xl shadow-amber-900/10">
+                <!-- 裝飾光暈 -->
+                <div class="absolute -right-12 -top-12 w-52 h-52 rounded-full bg-white/10 blur-2xl pointer-events-none"></div>
+                <div class="absolute right-16 -bottom-16 w-44 h-44 rounded-full bg-yellow-300/20 blur-xl pointer-events-none"></div>
+
+                <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+                    <div class="space-y-2">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm text-xs font-bold tracking-wide">
+                            <span id="heroClassSeat">501班 ‧ 01號</span>
+                            <span class="opacity-60">|</span>
+                            <span id="heroUpdatedAt">平時成績統計報表</span>
+                        </div>
+                        <div class="flex items-baseline gap-3 flex-wrap">
+                            <h1 id="heroStudentName" class="text-2xl sm:text-3xl font-black tracking-tight">王小華</h1>
+                            <span class="text-sm font-bold text-amber-100">平時評量歷程與各科均標分析</span>
+                        </div>
+                        <p id="heroSubtext" class="text-xs sm:text-sm text-amber-50/95 leading-relaxed max-w-xl">
+                            彙整本學期各單元「習作、作業卷、語詞聽寫、單元測驗卷」之平時得分表現，協助家長掌握平時學習穩定度與各單元強弱項。
+                        </p>
+                    </div>
+
+                    <!-- 右側總覽核心指標卡 -->
+                    <div id="heroStatsBox" class="grid grid-cols-3 gap-2.5 sm:gap-3 bg-white/15 backdrop-blur-md p-3.5 rounded-2xl border border-white/25 shrink-0">
+                        <div class="text-center px-2">
+                            <div class="text-[11px] font-bold text-amber-100">各科平時總均</div>
+                            <div id="heroOverallAvg" class="text-xl sm:text-2xl font-black font-mono tabular-nums mt-0.5">91.2</div>
+                            <div id="heroOverallBadge" class="text-[10px] font-bold text-amber-100/90 mt-0.5">🌟 精熟優異</div>
+                        </div>
+                        <div class="text-center px-2 border-x border-white/20">
+                            <div class="text-[11px] font-bold text-amber-100">與班均對比</div>
+                            <div id="heroDiffClass" class="text-xl sm:text-2xl font-black font-mono tabular-nums mt-0.5">+3.4</div>
+                            <div id="heroClassAvgLabel" class="text-[10px] font-bold text-amber-100/90 mt-0.5">班均 87.8 分</div>
+                        </div>
+                        <div class="text-center px-2">
+                            <div class="text-[11px] font-bold text-amber-100">優勢平時科目</div>
+                            <div id="heroBestSubject" class="text-sm sm:text-base font-black mt-1.5 truncate">📘 國語</div>
+                            <div id="heroBestSubjectScore" class="text-[10px] font-bold font-mono text-amber-100/90 mt-0.5">平時均 92.8 分</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. 科目切換橫向膠囊列 (Subject Switcher) -->
+            <section class="space-y-2.5">
+                <div class="flex items-center justify-between px-1">
+                    <h2 class="text-xs font-extrabold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
+                        <span>📚</span> 選擇科目查看平時成績明細（點擊切換科目）
+                    </h2>
+                    <span id="subjectCountTag" class="text-xs font-bold text-stone-500">共 3 科平時成績</span>
+                </div>
+                <div id="subjectTabsContainer" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <!-- JS 動態渲染各科平時總均卡片 -->
+                </div>
+            </section>
+
+            <!-- 3. 模組一：四大平時評量分項平均剖析 (4 Formative Score Pillars) -->
+            <section id="sectionPillars" class="warm-card rounded-3xl p-5 sm:p-6 space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-200/80 pb-3.5">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg">📊</span>
+                            <h3 class="font-black text-stone-800 text-base sm:text-lg">
+                                <span id="pillarSubjectTitle">國語</span> — 四大平時評量分項平均
+                            </h3>
+                        </div>
+                        <p class="text-xs text-stone-500 mt-0.5">依評量性質自動歸納為「習作、作業卷、語詞/基礎、單元測驗卷」，對比班級該分項平均分數</p>
+                    </div>
+                    <div id="subjectSummaryPill" class="inline-flex items-center gap-2 bg-amber-50 border border-amber-200/90 px-3 py-1.5 rounded-xl self-start sm:self-auto">
+                        <span class="text-xs font-bold text-stone-600">本科平時總平均：</span>
+                        <span id="currentSubjAvg" class="text-base font-black font-mono text-amber-700 tabular-nums">92.8</span>
+                        <span id="currentSubjClassAvg" class="text-[11px] font-bold text-stone-500 font-mono">(班均 88.5)</span>
+                    </div>
+                </div>
+
+                <!-- 四大分項卡片網格 -->
+                <div id="pillarsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                    <!-- JS 動態渲染 4 張平時分項平均卡 -->
+                </div>
+            </section>
+
+            <!-- 4. 模組二：L1 ➔ L6 各單元平時成績走勢與常模對比圖 -->
+            <section id="sectionTimeline" class="warm-card rounded-3xl p-5 sm:p-6 space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-200/80 pb-3.5">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg">📈</span>
+                            <h3 class="font-black text-stone-800 text-base sm:text-lg">
+                                各單元（L1 ➔ L6）平時成績走勢與班均對比
+                            </h3>
+                        </div>
+                        <p class="text-xs text-stone-500 mt-0.5">實線為「學生個人得分」，虛線為「全班該單元平均」，一眼掌握哪一課單元最穩健、哪一單元需考前加強</p>
+                    </div>
+
+                    <!-- 走勢圖指標切換按鈕 -->
+                    <div id="chartMetricTabs" class="flex flex-wrap items-center gap-1.5 bg-stone-100/90 p-1 rounded-xl border border-stone-200/70">
+                        <button onclick="switchChartMetric('overallScore')" data-metric="overallScore" class="chart-tab-btn px-2.5 py-1 rounded-lg text-xs font-bold transition bg-amber-500 text-white shadow-sm">
+                            🌟 單元總均
+                        </button>
+                        <button onclick="switchChartMetric('quiz')" data-metric="quiz" class="chart-tab-btn px-2.5 py-1 rounded-lg text-xs font-bold transition text-stone-600 hover:text-stone-900">
+                            🎯 測驗卷
+                        </button>
+                        <button onclick="switchChartMetric('workbook')" data-metric="workbook" class="chart-tab-btn px-2.5 py-1 rounded-lg text-xs font-bold transition text-stone-600 hover:text-stone-900">
+                            📘 習作
+                        </button>
+                        <button onclick="switchChartMetric('homework')" data-metric="homework" class="chart-tab-btn px-2.5 py-1 rounded-lg text-xs font-bold transition text-stone-600 hover:text-stone-900">
+                            📝 作業卷
+                        </button>
+                        <button onclick="switchChartMetric('foundation')" data-metric="foundation" class="chart-tab-btn px-2.5 py-1 rounded-lg text-xs font-bold transition text-stone-600 hover:text-stone-900">
+                            🔤 語詞聽寫
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Chart.js 畫布容器 -->
+                <div class="relative h-64 sm:h-72 w-full pt-2">
+                    <canvas id="unitTrendChart"></canvas>
+                </div>
+
+                <!-- 單元強弱落點快篩橫幅 -->
+                <div id="unitDiagnosticStrip" class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <!-- JS 自動計算最佳單元與待加強複習單元 -->
+                </div>
+            </section>
+
+            <!-- 5. 模組三：各單元平時成績橫向總表 & 各次評量得分明細 -->
+            <section id="sectionScoreMatrix" class="warm-card rounded-3xl p-5 sm:p-6 space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-200/80 pb-3.5">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg">📋</span>
+                            <h3 class="font-black text-stone-800 text-base sm:text-lg">
+                                各單元平時成績總表與單項得分明細
+                            </h3>
+                        </div>
+                        <p class="text-xs text-stone-500 mt-0.5">可切換「單元橫向成績對照表」或「各次評量得分卡片」，檢視每次小考與平時成績與班均差值</p>
+                    </div>
+
+                    <!-- 檢視模式切換 -->
+                    <div class="flex items-center gap-1.5 bg-stone-100 p-1 rounded-xl border border-stone-200/80 self-start sm:self-auto">
+                        <button id="btnViewMatrix" onclick="switchScoreViewMode('matrix')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white text-stone-800 shadow-sm">
+                            📊 單元橫向成績表
+                        </button>
+                        <button id="btnViewCards" onclick="switchScoreViewMode('cards')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition text-stone-600 hover:text-stone-900">
+                            🗂️ 各次評量得分明細
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 視圖 A：單元橫向成績對照表 (L1 ~ L6 x 習作/作業卷/語詞/測驗卷/單元平均) -->
+                <div id="matrixTableView" class="overflow-x-auto custom-scrollbar rounded-2xl border border-stone-200/90">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-stone-100/90 text-stone-600 text-xs font-extrabold border-b border-stone-200/90">
+                                <th class="py-3 px-3.5 whitespace-nowrap">單元進度</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">📘 習作成績</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">📝 作業卷成績</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">🔤 語詞/基礎</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">🎯 單元測驗卷</th>
+                                <th class="py-3 px-3.5 text-right whitespace-nowrap">🌟 該單元總均 (班均)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="unitMatrixTableBody" class="divide-y divide-stone-200/70 text-xs sm:text-sm bg-white">
+                            <!-- JS 動態填入 L1 ~ L6 橫向成績列 -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 視圖 B：各次評量得分明細卡片 (支援依四大分項篩選) -->
+                <div id="cardsDetailView" class="hidden space-y-3.5">
+                    <div id="itemCategoryFilterBar" class="flex flex-wrap items-center gap-1.5">
+                        <!-- JS 動態渲染分項篩選膠囊 -->
+                    </div>
+                    <div id="scoreItemsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <!-- JS 動態渲染每次平時成績得分卡 -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- 6. 模組四：平時成績綜合診斷與考前複習建議 -->
+            <section id="sectionAdvice" class="warm-card rounded-3xl p-5 sm:p-6 bg-gradient-to-br from-amber-50/90 via-white to-emerald-50/40 border border-amber-200/80">
+                <div class="flex items-start gap-3.5">
+                    <div class="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-400/30 text-amber-700 flex items-center justify-center text-xl shrink-0 mt-0.5">
+                        💡
+                    </div>
+                    <div class="space-y-1.5 flex-1">
+                        <div class="flex items-center justify-between flex-wrap gap-2">
+                            <h3 class="font-black text-stone-800 text-base">平時成績落點診斷與複習建議</h3>
+                            <span class="text-[11px] font-bold text-amber-800 bg-amber-100/80 px-2.5 py-0.5 rounded-full">系統依平時分項均標自動分析</span>
+                        </div>
+                        <p id="teacherAdviceText" class="text-xs sm:text-sm text-stone-700 leading-relaxed font-medium">
+                            <!-- JS 填入診斷建議 -->
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- 頁尾 -->
+    <footer class="border-t border-stone-200/80 bg-white/60 py-5 px-4 text-center text-xs text-stone-400">
+        <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+            <p class="font-bold text-stone-500">MPScore-Daily 學生平時成績歷程與分析系統</p>
+            <p>專注平時評量成績紀錄 ‧ 分項平均常模對比 ‧ 單元學習曲線診斷</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript 邏輯 -->
+    <script>
+        // =========================================================================
+        // 1. 內建 5 位擬真範例學生平時成績資料庫（100% 聚焦平時成績、分項平均、單元走勢）
+        // =========================================================================
+        const DEMO_STUDENTS_DB = {
+            "DEMO01": {
+                seatNo: "01",
+                name: "王小華",
+                className: "501班",
+                token: "DEMO01",
+                subjects: [
+                    {
+                        subject: "國語",
+                        icon: "📘",
+                        rawScores: {
+                            "國習L1": 96, "國習L2": 98, "國習L3": 94, "國習L4": 96, "國習L5": 95, "國習L6": 97,
+                            "作業卷L1": 94, "作業卷L2": 96, "作業卷L3": 92, "作業卷L4": 95, "作業卷L5": 94, "作業卷L6": 96,
+                            "語詞L1": 98, "語詞L2": 100, "語詞L3": 96, "語詞L4": 98, "語詞L5": 96, "語詞L6": 100,
+                            "測驗卷L1": 92, "測驗卷L2": 95, "測驗卷L3": 88, "測驗卷L4": 94, "測驗卷L5": 91, "測驗卷L6": 96
+                        },
+                        classNorms: {
+                            "國習L1": 90.5, "國習L2": 91.2, "國習L3": 89.4, "國習L4": 90.8, "國習L5": 90.1, "國習L6": 91.5,
+                            "作業卷L1": 88.2, "作業卷L2": 89.5, "作業卷L3": 86.8, "作業卷L4": 88.9, "作業卷L5": 87.6, "作業卷L6": 89.2,
+                            "語詞L1": 91.0, "語詞L2": 92.4, "語詞L3": 89.5, "語詞L4": 91.2, "語詞L5": 90.0, "語詞L6": 92.8,
+                            "測驗卷L1": 85.4, "測驗卷L2": 86.8, "測驗卷L3": 82.5, "測驗卷L4": 86.0, "測驗卷L5": 84.7, "測驗卷L6": 87.2
+                        },
+                        prValue: 92
+                    },
+                    {
+                        subject: "數學",
+                        icon: "📐",
+                        rawScores: {
+                            "數習L1": 94, "數習L2": 92, "數習L3": 88, "數習L4": 95, "數習L5": 96, "數習L6": 94,
+                            "作業卷L1": 92, "作業卷L2": 90, "作業卷L3": 85, "作業卷L4": 92, "作業卷L5": 94, "作業卷L6": 93,
+                            "計算L1": 96, "計算L2": 95, "計算L3": 90, "計算L4": 96, "計算L5": 98, "計算L6": 96,
+                            "測驗卷L1": 90, "測驗卷L2": 88, "測驗卷L3": 82, "測驗卷L4": 91, "測驗卷L5": 94, "測驗卷L6": 92
+                        },
+                        classNorms: {
+                            "數習L1": 88.0, "數習L2": 86.5, "數習L3": 83.2, "數習L4": 87.4, "數習L5": 88.6, "數習L6": 87.9,
+                            "作業卷L1": 85.6, "作業卷L2": 84.2, "作業卷L3": 80.5, "作業卷L4": 85.8, "作業卷L5": 86.9, "作業卷L6": 86.1,
+                            "計算L1": 89.2, "計算L2": 88.5, "計算L3": 85.0, "計算L4": 89.4, "計算L5": 90.2, "計算L6": 89.8,
+                            "測驗卷L1": 83.5, "測驗卷L2": 82.0, "測驗卷L3": 78.4, "測驗卷L4": 84.1, "測驗卷L5": 85.6, "測驗卷L6": 84.8
+                        },
+                        prValue: 88
+                    },
+                    {
+                        subject: "社會",
+                        icon: "🌍",
+                        rawScores: {
+                            "社習L1": 92, "社習L2": 94, "社習L3": 90, "社習L4": 95, "社習L5": 93, "社習L6": 96,
+                            "作業卷L1": 90, "作業卷L2": 92, "作業卷L3": 88, "作業卷L4": 92, "作業卷L5": 91, "作業卷L6": 94,
+                            "重點L1": 94, "重點L2": 96, "重點L3": 92, "重點L4": 95, "重點L5": 94, "重點L6": 96,
+                            "測驗卷L1": 88, "測驗卷L2": 91, "測驗卷L3": 86, "測驗卷L4": 92, "測驗卷L5": 90, "測驗卷L6": 94
+                        },
+                        classNorms: {
+                            "社習L1": 88.5, "社習L2": 89.2, "社習L3": 87.0, "社習L4": 89.5, "社習L5": 88.8, "社習L6": 90.1,
+                            "作業卷L1": 86.4, "作業卷L2": 87.5, "作業卷L3": 84.8, "作業卷L4": 87.2, "作業卷L5": 86.9, "作業卷L6": 88.3,
+                            "重點L1": 89.0, "重點L2": 90.4, "重點L3": 88.2, "重點L4": 90.1, "重點L5": 89.5, "重點L6": 91.0,
+                            "測驗卷L1": 84.2, "測驗卷L2": 85.6, "測驗卷L3": 82.0, "測驗卷L4": 86.4, "測驗卷L5": 85.2, "測驗卷L6": 87.5
+                        },
+                        prValue: 86
+                    }
+                ]
             },
-            x: {
-              grid: { display: false },
-              ticks: { font: { size: 12, weight: 'bold' }, color: '#334155' }
+            "DEMO02": {
+                seatNo: "02",
+                name: "陳品妍",
+                className: "501班",
+                token: "DEMO02",
+                subjects: [
+                    {
+                        subject: "國語",
+                        icon: "📘",
+                        rawScores: {
+                            "國習L1": 95, "國習L2": 96, "國習L3": 94, "國習L4": 95, "國習L5": 96, "國習L6": 95,
+                            "作業卷L1": 92, "作業卷L2": 94, "作業卷L3": 90, "作業卷L4": 93, "作業卷L5": 92, "作業卷L6": 94,
+                            "語詞L1": 94, "語詞L2": 96, "語詞L3": 92, "語詞L4": 95, "語詞L5": 94, "語詞L6": 96,
+                            "測驗卷L1": 82, "測驗卷L2": 85, "測驗卷L3": 76, "測驗卷L4": 80, "測驗卷L5": 84, "測驗卷L6": 83
+                        },
+                        classNorms: {
+                            "國習L1": 90.5, "國習L2": 91.2, "國習L3": 89.4, "國習L4": 90.8, "國習L5": 90.1, "國習L6": 91.5,
+                            "作業卷L1": 88.2, "作業卷L2": 89.5, "作業卷L3": 86.8, "作業卷L4": 88.9, "作業卷L5": 87.6, "作業卷L6": 89.2,
+                            "語詞L1": 91.0, "語詞L2": 92.4, "語詞L3": 89.5, "語詞L4": 91.2, "語詞L5": 90.0, "語詞L6": 92.8,
+                            "測驗卷L1": 85.4, "測驗卷L2": 86.8, "測驗卷L3": 82.5, "測驗卷L4": 86.0, "測驗卷L5": 84.7, "測驗卷L6": 87.2
+                        },
+                        prValue: 74
+                    },
+                    {
+                        subject: "數學",
+                        icon: "📐",
+                        rawScores: {
+                            "數習L1": 94, "數習L2": 95, "數習L3": 92, "數習L4": 94, "數習L5": 93, "數習L6": 95,
+                            "作業卷L1": 90, "作業卷L2": 92, "作業卷L3": 88, "作業卷L4": 91, "作業卷L5": 90, "作業卷L6": 92,
+                            "計算L1": 92, "計算L2": 94, "計算L3": 88, "計算L4": 90, "計算L5": 92, "計算L6": 94,
+                            "測驗卷L1": 78, "測驗卷L2": 80, "測驗卷L3": 72, "測驗卷L4": 76, "測驗卷L5": 79, "測驗卷L6": 81
+                        },
+                        classNorms: {
+                            "數習L1": 88.0, "數習L2": 86.5, "數習L3": 83.2, "數習L4": 87.4, "數習L5": 88.6, "數習L6": 87.9,
+                            "作業卷L1": 85.6, "作業卷L2": 84.2, "作業卷L3": 80.5, "作業卷L4": 85.8, "作業卷L5": 86.9, "作業卷L6": 86.1,
+                            "計算L1": 89.2, "計算L2": 88.5, "計算L3": 85.0, "計算L4": 89.4, "計算L5": 90.2, "計算L6": 89.8,
+                            "測驗卷L1": 83.5, "測驗卷L2": 82.0, "測驗卷L3": 78.4, "測驗卷L4": 84.1, "測驗卷L5": 85.6, "測驗卷L6": 84.8
+                        },
+                        prValue: 68
+                    },
+                    {
+                        subject: "社會",
+                        icon: "🌍",
+                        rawScores: {
+                            "社習L1": 94, "社習L2": 95, "社習L3": 93, "社習L4": 96, "社習L5": 94, "社習L6": 95,
+                            "作業卷L1": 91, "作業卷L2": 92, "作業卷L3": 89, "作業卷L4": 93, "作業卷L5": 92, "作業卷L6": 94,
+                            "重點L1": 93, "重點L2": 95, "重點L3": 90, "重點L4": 94, "重點L5": 93, "重點L6": 95,
+                            "測驗卷L1": 84, "測驗卷L2": 86, "測驗卷L3": 78, "測驗卷L4": 85, "測驗卷L5": 83, "測驗卷L6": 86
+                        },
+                        classNorms: {
+                            "社習L1": 88.5, "社習L2": 89.2, "社習L3": 87.0, "社習L4": 89.5, "社習L5": 88.8, "社習L6": 90.1,
+                            "作業卷L1": 86.4, "作業卷L2": 87.5, "作業卷L3": 84.8, "作業卷L4": 87.2, "作業卷L5": 86.9, "作業卷L6": 88.3,
+                            "重點L1": 89.0, "重點L2": 90.4, "重點L3": 88.2, "重點L4": 90.1, "重點L5": 89.5, "重點L6": 91.0,
+                            "測驗卷L1": 84.2, "測驗卷L2": 85.6, "測驗卷L3": 82.0, "測驗卷L4": 86.4, "測驗卷L5": 85.2, "測驗卷L6": 87.5
+                        },
+                        prValue: 75
+                    }
+                ]
+            },
+            "DEMO03": {
+                seatNo: "03",
+                name: "林宥廷",
+                className: "501班",
+                token: "DEMO03",
+                subjects: [
+                    {
+                        subject: "國語",
+                        icon: "📘",
+                        rawScores: {
+                            "國習L1": 82, "國習L2": 85, "國習L3": 88, "國習L4": 92, "國習L5": 95, "國習L6": 96,
+                            "作業卷L1": 78, "作業卷L2": 82, "作業卷L3": 86, "作業卷L4": 90, "作業卷L5": 93, "作業卷L6": 95,
+                            "語詞L1": 80, "語詞L2": 84, "語詞L3": 88, "語詞L4": 92, "語詞L5": 96, "語詞L6": 98,
+                            "測驗卷L1": 75, "測驗卷L2": 79, "測驗卷L3": 84, "測驗卷L4": 88, "測驗卷L5": 92, "測驗卷L6": 95
+                        },
+                        classNorms: {
+                            "國習L1": 90.5, "國習L2": 91.2, "國習L3": 89.4, "國習L4": 90.8, "國習L5": 90.1, "國習L6": 91.5,
+                            "作業卷L1": 88.2, "作業卷L2": 89.5, "作業卷L3": 86.8, "作業卷L4": 88.9, "作業卷L5": 87.6, "作業卷L6": 89.2,
+                            "語詞L1": 91.0, "語詞L2": 92.4, "語詞L3": 89.5, "語詞L4": 91.2, "語詞L5": 90.0, "語詞L6": 92.8,
+                            "測驗卷L1": 85.4, "測驗卷L2": 86.8, "測驗卷L3": 82.5, "測驗卷L4": 86.0, "測驗卷L5": 84.7, "測驗卷L6": 87.2
+                        },
+                        prValue: 64
+                    },
+                    {
+                        subject: "數學",
+                        icon: "📐",
+                        rawScores: {
+                            "數習L1": 80, "數習L2": 84, "數習L3": 88, "數習L4": 92, "數習L5": 95, "數習L6": 97,
+                            "作業卷L1": 76, "作業卷L2": 82, "作業卷L3": 85, "作業卷L4": 90, "作業卷L5": 94, "作業卷L6": 96,
+                            "計算L1": 82, "計算L2": 86, "計算L3": 90, "計算L4": 94, "計算L5": 96, "計算L6": 98,
+                            "測驗卷L1": 74, "測驗卷L2": 80, "測驗卷L3": 84, "測驗卷L4": 89, "測驗卷L5": 93, "測驗卷L6": 96
+                        },
+                        classNorms: {
+                            "數習L1": 88.0, "數習L2": 86.5, "數習L3": 83.2, "數習L4": 87.4, "數習L5": 88.6, "數習L6": 87.9,
+                            "作業卷L1": 85.6, "作業卷L2": 84.2, "作業卷L3": 80.5, "作業卷L4": 85.8, "作業卷L5": 86.9, "作業卷L6": 86.1,
+                            "計算L1": 89.2, "計算L2": 88.5, "計算L3": 85.0, "計算L4": 89.4, "計算L5": 90.2, "計算L6": 89.8,
+                            "測驗卷L1": 83.5, "測驗卷L2": 82.0, "測驗卷L3": 78.4, "測驗卷L4": 84.1, "測驗卷L5": 85.6, "測驗卷L6": 84.8
+                        },
+                        prValue: 72
+                    },
+                    {
+                        subject: "社會",
+                        icon: "🌍",
+                        rawScores: {
+                            "社習L1": 84, "社習L2": 86, "社習L3": 89, "社習L4": 92, "社習L5": 94, "社習L6": 96,
+                            "作業卷L1": 80, "作業卷L2": 84, "作業卷L3": 87, "作業卷L4": 90, "作業卷L5": 92, "作業卷L6": 95,
+                            "重點L1": 82, "重點L2": 86, "重點L3": 90, "重點L4": 93, "重點L5": 95, "重點L6": 96,
+                            "測驗卷L1": 78, "測驗卷L2": 82, "測驗卷L3": 85, "測驗卷L4": 89, "測驗卷L5": 92, "測驗卷L6": 94
+                        },
+                        classNorms: {
+                            "社習L1": 88.5, "社習L2": 89.2, "社習L3": 87.0, "社習L4": 89.5, "社習L5": 88.8, "社習L6": 90.1,
+                            "作業卷L1": 86.4, "作業卷L2": 87.5, "作業卷L3": 84.8, "作業卷L4": 87.2, "作業卷L5": 86.9, "作業卷L6": 88.3,
+                            "重點L1": 89.0, "重點L2": 90.4, "重點L3": 88.2, "重點L4": 90.1, "重點L5": 89.5, "重點L6": 91.0,
+                            "測驗卷L1": 84.2, "測驗卷L2": 85.6, "測驗卷L3": 82.0, "測驗卷L4": 86.4, "測驗卷L5": 85.2, "測驗卷L6": 87.5
+                        },
+                        prValue: 66
+                    }
+                ]
+            },
+            "DEMO04": {
+                seatNo: "04",
+                name: "張語恩",
+                className: "501班",
+                token: "DEMO04",
+                subjects: [
+                    {
+                        subject: "國語",
+                        icon: "📘",
+                        rawScores: {
+                            "國習L1": 98, "國習L2": 100, "國習L3": 97, "國習L4": 98, "國習L5": 99, "國習L6": 100,
+                            "作業卷L1": 96, "作業卷L2": 98, "作業卷L3": 95, "作業卷L4": 97, "作業卷L5": 96, "作業卷L6": 98,
+                            "語詞L1": 100, "語詞L2": 100, "語詞L3": 98, "語詞L4": 100, "語詞L5": 98, "語詞L6": 100,
+                            "測驗卷L1": 95, "測驗卷L2": 97, "測驗卷L3": 94, "測驗卷L4": 96, "測驗卷L5": 95, "測驗卷L6": 98
+                        },
+                        classNorms: {
+                            "國習L1": 90.5, "國習L2": 91.2, "國習L3": 89.4, "國習L4": 90.8, "國習L5": 90.1, "國習L6": 91.5,
+                            "作業卷L1": 88.2, "作業卷L2": 89.5, "作業卷L3": 86.8, "作業卷L4": 88.9, "作業卷L5": 87.6, "作業卷L6": 89.2,
+                            "語詞L1": 91.0, "語詞L2": 92.4, "語詞L3": 89.5, "語詞L4": 91.2, "語詞L5": 90.0, "語詞L6": 92.8,
+                            "測驗卷L1": 85.4, "測驗卷L2": 86.8, "測驗卷L3": 82.5, "測驗卷L4": 86.0, "測驗卷L5": 84.7, "測驗卷L6": 87.2
+                        },
+                        prValue: 98
+                    },
+                    {
+                        subject: "數學",
+                        icon: "📐",
+                        rawScores: {
+                            "數習L1": 88, "數習L2": 86, "數習L3": 84, "數習L4": 88, "數習L5": 87, "數習L6": 89,
+                            "作業卷L1": 85, "作業卷L2": 84, "作業卷L3": 80, "作業卷L4": 86, "作業卷L5": 85, "作業卷L6": 87,
+                            "計算L1": 90, "計算L2": 88, "計算L3": 86, "計算L4": 90, "計算L5": 89, "計算L6": 91,
+                            "測驗卷L1": 84, "測驗卷L2": 82, "測驗卷L3": 78, "測驗卷L4": 85, "測驗卷L5": 84, "測驗卷L6": 86
+                        },
+                        classNorms: {
+                            "數習L1": 88.0, "數習L2": 86.5, "數習L3": 83.2, "數習L4": 87.4, "數習L5": 88.6, "數習L6": 87.9,
+                            "作業卷L1": 85.6, "作業卷L2": 84.2, "作業卷L3": 80.5, "作業卷L4": 85.8, "作業卷L5": 86.9, "作業卷L6": 86.1,
+                            "計算L1": 89.2, "計算L2": 88.5, "計算L3": 85.0, "計算L4": 89.4, "計算L5": 90.2, "計算L6": 89.8,
+                            "測驗卷L1": 83.5, "測驗卷L2": 82.0, "測驗卷L3": 78.4, "測驗卷L4": 84.1, "測驗卷L5": 85.6, "測驗卷L6": 84.8
+                        },
+                        prValue: 56
+                    },
+                    {
+                        subject: "社會",
+                        icon: "🌍",
+                        rawScores: {
+                            "社習L1": 95, "社習L2": 96, "社習L3": 94, "社習L4": 96, "社習L5": 95, "社習L6": 98,
+                            "作業卷L1": 93, "作業卷L2": 94, "作業卷L3": 91, "作業卷L4": 94, "作業卷L5": 93, "作業卷L6": 96,
+                            "重點L1": 96, "重點L2": 98, "重點L3": 94, "重點L4": 96, "重點L5": 95, "重點L6": 98,
+                            "測驗卷L1": 91, "測驗卷L2": 93, "測驗卷L3": 89, "測驗卷L4": 92, "測驗卷L5": 92, "測驗卷L6": 95
+                        },
+                        classNorms: {
+                            "社習L1": 88.5, "社習L2": 89.2, "社習L3": 87.0, "社習L4": 89.5, "社習L5": 88.8, "社習L6": 90.1,
+                            "作業卷L1": 86.4, "作業卷L2": 87.5, "作業卷L3": 84.8, "作業卷L4": 87.2, "作業卷L5": 86.9, "作業卷L6": 88.3,
+                            "重點L1": 89.0, "重點L2": 90.4, "重點L3": 88.2, "重點L4": 90.1, "重點L5": 89.5, "重點L6": 91.0,
+                            "測驗卷L1": 84.2, "測驗卷L2": 85.6, "測驗卷L3": 82.0, "測驗卷L4": 86.4, "測驗卷L5": 85.2, "測驗卷L6": 87.5
+                        },
+                        prValue: 91
+                    }
+                ]
+            },
+            "DEMO05": {
+                seatNo: "05",
+                name: "李冠宇",
+                className: "501班",
+                token: "DEMO05",
+                subjects: [
+                    {
+                        subject: "國語",
+                        icon: "📘",
+                        rawScores: {
+                            "國習L1": 88, "國習L2": 86, "國習L3": 76, "國習L4": 88, "國習L5": 85, "國習L6": 89,
+                            "作業卷L1": 85, "作業卷L2": 84, "作業卷L3": 72, "作業卷L4": 85, "作業卷L5": 82, "作業卷L6": 86,
+                            "語詞L1": 86, "語詞L2": 88, "語詞L3": 74, "語詞L4": 86, "語詞L5": 84, "語詞L6": 88,
+                            "測驗卷L1": 82, "測驗卷L2": 80, "測驗卷L3": 68, "測驗卷L4": 83, "測驗卷L5": 80, "測驗卷L6": 84
+                        },
+                        classNorms: {
+                            "國習L1": 90.5, "國習L2": 91.2, "國習L3": 89.4, "國習L4": 90.8, "國習L5": 90.1, "國習L6": 91.5,
+                            "作業卷L1": 88.2, "作業卷L2": 89.5, "作業卷L3": 86.8, "作業卷L4": 88.9, "作業卷L5": 87.6, "作業卷L6": 89.2,
+                            "語詞L1": 91.0, "語詞L2": 92.4, "語詞L3": 89.5, "語詞L4": 91.2, "語詞L5": 90.0, "語詞L6": 92.8,
+                            "測驗卷L1": 85.4, "測驗卷L2": 86.8, "測驗卷L3": 82.5, "測驗卷L4": 86.0, "測驗卷L5": 84.7, "測驗卷L6": 87.2
+                        },
+                        prValue: 38
+                    },
+                    {
+                        subject: "數學",
+                        icon: "📐",
+                        rawScores: {
+                            "數習L1": 90, "數習L2": 88, "數習L3": 74, "數習L4": 89, "數習L5": 91, "數習L6": 90,
+                            "作業卷L1": 88, "作業卷L2": 85, "作業卷L3": 70, "作業卷L4": 86, "作業卷L5": 88, "作業卷L6": 87,
+                            "計算L1": 92, "計算L2": 90, "計算L3": 78, "計算L4": 90, "計算L5": 92, "計算L6": 92,
+                            "測驗卷L1": 86, "測驗卷L2": 84, "測驗卷L3": 66, "測驗卷L4": 85, "測驗卷L5": 88, "測驗卷L6": 87
+                        },
+                        classNorms: {
+                            "數習L1": 88.0, "數習L2": 86.5, "數習L3": 83.2, "數習L4": 87.4, "數習L5": 88.6, "數習L6": 87.9,
+                            "作業卷L1": 85.6, "作業卷L2": 84.2, "作業卷L3": 80.5, "作業卷L4": 85.8, "作業卷L5": 86.9, "作業卷L6": 86.1,
+                            "計算L1": 89.2, "計算L2": 88.5, "計算L3": 85.0, "計算L4": 89.4, "計算L5": 90.2, "計算L6": 89.8,
+                            "測驗卷L1": 83.5, "測驗卷L2": 82.0, "測驗卷L3": 78.4, "測驗卷L4": 84.1, "測驗卷L5": 85.6, "測驗卷L6": 84.8
+                        },
+                        prValue: 48
+                    },
+                    {
+                        subject: "社會",
+                        icon: "🌍",
+                        rawScores: {
+                            "社習L1": 88, "社習L2": 90, "社習L3": 82, "社習L4": 89, "社習L5": 90, "社習L6": 91,
+                            "作業卷L1": 85, "作業卷L2": 88, "作業卷L3": 78, "作業卷L4": 86, "作業卷L5": 87, "作業卷L6": 89,
+                            "重點L1": 88, "重點L2": 90, "重點L3": 80, "重點L4": 88, "重點L5": 90, "重點L6": 92,
+                            "測驗卷L1": 84, "測驗卷L2": 86, "測驗卷L3": 74, "測驗卷L4": 85, "測驗卷L5": 86, "測驗卷L6": 88
+                        },
+                        classNorms: {
+                            "社習L1": 88.5, "社習L2": 89.2, "社習L3": 87.0, "社習L4": 89.5, "社習L5": 88.8, "社習L6": 90.1,
+                            "作業卷L1": 86.4, "作業卷L2": 87.5, "作業卷L3": 84.8, "作業卷L4": 87.2, "作業卷L5": 86.9, "作業卷L6": 88.3,
+                            "重點L1": 89.0, "重點L2": 90.4, "重點L3": 88.2, "重點L4": 90.1, "重點L5": 89.5, "重點L6": 91.0,
+                            "測驗卷L1": 84.2, "測驗卷L2": 85.6, "測驗卷L3": 82.0, "測驗卷L4": 86.4, "測驗卷L5": 85.2, "測驗卷L6": 87.5
+                        },
+                        prValue: 45
+                    }
+                ]
             }
-          }
-        }
-      });
-    }
+        };
 
-    function filterDetailItems(filterKey) {
-      currentItemFilter = filterKey;
-      document.querySelectorAll('.item-filter-btn').forEach(btn => {
-        if (btn.getAttribute('data-filter') === filterKey) {
-          btn.className = 'item-filter-btn tactile-btn text-xs font-black px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 cursor-pointer';
-        } else {
-          btn.className = 'item-filter-btn tactile-btn text-xs font-bold px-2.5 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-amber-50 cursor-pointer';
-        }
-      });
-      const subjects = (currentPortfolioData && currentPortfolioData.subjects) || [];
-      const sub = subjects[currentSubjectIndex];
-      if (sub) renderDetailItemsList(sub);
-    }
-
-    function renderDetailItemsList(sub) {
-      const listEl = document.getElementById('itemsDetailList');
-      const vis = getVisibilitySettings();
-      listEl.innerHTML = '';
-
-      const items = (sub.items || []).filter(it => {
-        if (currentItemFilter === 'all') return true;
-        if (currentItemFilter === 'alert') return it.status === 'missing' || it.status === 'review';
-        return it.pillarKey === currentItemFilter;
-      });
-
-      if (items.length === 0) {
-        listEl.innerHTML = `
-          <div class="text-center py-8 text-xs text-slate-400 bg-slate-50 rounded-2xl border border-slate-100">
-            此分類目前沒有對應的平時紀錄項目
-          </div>
-        `;
-        return;
-      }
-
-      items.forEach(it => {
-        const isMissing = it.status === 'missing';
-        const isReview = it.status === 'review';
-
-        let cardBorder = 'bg-slate-50/70 border-slate-200/80';
-        let badgeStyle = 'bg-emerald-100 text-emerald-800';
-        if (isMissing) {
-          cardBorder = 'bg-amber-50/90 border-amber-300 shadow-2xs';
-          badgeStyle = 'bg-amber-200 text-amber-950';
-        } else if (isReview) {
-          cardBorder = 'bg-rose-50/80 border-rose-200 shadow-2xs';
-          badgeStyle = 'bg-rose-100 text-rose-800';
+        // =========================================================================
+        // 2. 與後端 gas/Code.gs 完全一致的平時成績分類與統計轉換引擎
+        // =========================================================================
+        function classifyCategory(headerName) {
+            const h = String(headerName || '');
+            if (/測驗|考卷|小考|平時考|評量|單元卷|練習卷/.test(h)) {
+                return { key: 'quiz', label: '單元測驗卷', shortLabel: '測驗卷', icon: '🎯' };
+            }
+            if (/作業卷|學習單|隨堂|A卷|B卷|甲卷|乙卷|講義/.test(h)) {
+                return { key: 'homework', label: '作業卷平時', shortLabel: '作業卷', icon: '📝' };
+            }
+            if (/語詞|聽寫|圈詞|生字|成語|甲本|乙本|字音|字形|背誦|計算|重點/.test(h)) {
+                return { key: 'foundation', label: '語詞與基礎', shortLabel: '語詞/基礎', icon: '🔤' };
+            }
+            return { key: 'workbook', label: '習作平時', shortLabel: '習作', icon: '📘' };
         }
 
-        const itemCard = document.createElement('div');
-        itemCard.className = `p-3 rounded-2xl border ${cardBorder} flex items-center justify-between gap-2`;
-        itemCard.innerHTML = `
-          <div class="min-w-0">
-            <div class="flex items-center gap-1.5">
-              <span class="text-[10px] font-bold bg-white px-2 py-0.5 rounded-md border border-slate-200 text-slate-600">${it.pillarShort}</span>
-              <span class="text-xs md:text-sm font-black text-slate-800 truncate">${it.title}</span>
-            </div>
-            <div class="flex items-center gap-2 mt-1">
-              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${badgeStyle}">${it.statusLabel}</span>
-              ${vis.showClassAvg && it.classAvg ? `<span class="text-[10px] text-slate-400">班均 ${it.classAvg}</span>` : ''}
-            </div>
-          </div>
+        function getScoreBadgeInfo(score) {
+            if (score === null || score === undefined || isNaN(score)) {
+                return { label: '尚無成績', level: 'none', badgeClass: 'bg-stone-100 text-stone-500 border-stone-200' };
+            }
+            if (score >= 90) {
+                return { label: '🌟 精熟優異', level: 'excellent', badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+            }
+            if (score >= 80) {
+                return { label: '⭐ 穩健良好', level: 'good', badgeClass: 'bg-amber-50 text-amber-700 border-amber-200' };
+            }
+            if (score >= 70) {
+                return { label: '🌿 基礎達標', level: 'basic', badgeClass: 'bg-stone-100 text-stone-700 border-stone-200' };
+            }
+            return { label: '🌱 待加強複習', level: 'needs_review', badgeClass: 'bg-rose-50 text-rose-700 border-rose-200' };
+        }
 
-          <div class="text-right shrink-0">
-            ${it.score !== null && it.score !== undefined ? `
-              <span class="text-lg md:text-xl font-black font-num ${isReview ? 'text-rose-700' : 'text-amber-800'}">${it.score}</span>
-              <span class="text-[10px] text-slate-500 font-bold">分</span>
-            ` : `
-              <span class="text-xs font-black text-amber-800 bg-amber-200/70 px-2.5 py-1 rounded-xl">待補交</span>
-            `}
-          </div>
-        `;
-        listEl.appendChild(itemCard);
-      });
-    }
+        function buildDemoPortfolio(rawDemo) {
+            const pillarDefs = [
+                { key: 'workbook', label: '習作平時成績', shortLabel: '習作平均', icon: '📘' },
+                { key: 'homework', label: '作業卷平時成績', shortLabel: '作業卷平均', icon: '📝' },
+                { key: 'foundation', label: '語詞與基礎平時', shortLabel: '語詞/基礎均', icon: '🔤' },
+                { key: 'quiz', label: '單元測驗卷成績', shortLabel: '測驗卷平均', icon: '🎯' }
+            ];
 
-    function openFeatureGuideModal() {
-      const m = document.getElementById('featureGuideModal');
-      m.classList.remove('hidden');
-      m.classList.add('flex');
-    }
+            const processedSubjects = rawDemo.subjects.map(subj => {
+                const items = [];
+                const catBucket = {
+                    workbook: { s: [], c: [] },
+                    homework: { s: [], c: [] },
+                    foundation: { s: [], c: [] },
+                    quiz: { s: [], c: [] }
+                };
+                const unitMap = {};
+                const unitOrder = [];
 
-    function closeFeatureGuideModal() {
-      const m = document.getElementById('featureGuideModal');
-      m.classList.add('hidden');
-      m.classList.remove('flex');
-    }
-  </script>
+                Object.keys(subj.rawScores).forEach(itemName => {
+                    const score = Number(subj.rawScores[itemName]);
+                    const classAvg = Number(subj.classNorms[itemName]);
+                    const diff = Math.round((score - classAvg) * 10) / 10;
+                    const cat = classifyCategory(itemName);
+                    const unitMatch = itemName.match(/(L\d+|U\d+|第[一二三四五六七八九十\d]+[課單元回])/i);
+                    const unitTag = unitMatch ? unitMatch[1].toUpperCase() : '平時';
+                    const gradeInfo = getScoreBadgeInfo(score);
+
+                    catBucket[cat.key].s.push(score);
+                    catBucket[cat.key].c.push(classAvg);
+
+                    if (!unitMap[unitTag]) {
+                        unitMap[unitTag] = {
+                            unit: unitTag,
+                            allScores: [],
+                            allClass: [],
+                            byCat: { workbook: [], homework: [], foundation: [], quiz: [] },
+                            classByCat: { workbook: [], homework: [], foundation: [], quiz: [] }
+                        };
+                        unitOrder.push(unitTag);
+                    }
+                    unitMap[unitTag].allScores.push(score);
+                    unitMap[unitTag].allClass.push(classAvg);
+                    unitMap[unitTag].byCat[cat.key].push(score);
+                    unitMap[unitTag].classByCat[cat.key].push(classAvg);
+
+                    items.push({
+                        name: itemName,
+                        unit: unitTag,
+                        category: cat.key,
+                        categoryLabel: cat.shortLabel,
+                        categoryIcon: cat.icon,
+                        score: score,
+                        classAvg: classAvg,
+                        diffFromClass: diff,
+                        gradeLabel: gradeInfo.label,
+                        gradeLevel: gradeInfo.level
+                    });
+                });
+
+                const avgArr = arr => arr.length ? Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10 : null;
+
+                const pillars = pillarDefs.map(def => {
+                    const b = catBucket[def.key];
+                    const avg = avgArr(b.s);
+                    const cAvg = avgArr(b.c);
+                    const diff = (avg !== null && cAvg !== null) ? Math.round((avg - cAvg) * 10) / 10 : null;
+                    const maxScore = b.s.length ? Math.max(...b.s) : null;
+                    const minScore = b.s.length ? Math.min(...b.s) : null;
+                    const badgeInfo = getScoreBadgeInfo(avg);
+                    return {
+                        key: def.key,
+                        label: def.label,
+                        shortLabel: def.shortLabel,
+                        icon: def.icon,
+                        count: b.s.length,
+                        average: avg,
+                        classAverage: cAvg,
+                        diffFromClass: diff,
+                        maxScore: maxScore,
+                        minScore: minScore,
+                        badge: badgeInfo.label
+                    };
+                });
+
+                const allStudentScores = items.map(i => i.score);
+                const allClassAvgs = items.map(i => i.classAvg);
+                const overallAverage = avgArr(allStudentScores);
+                const classOverallAverage = avgArr(allClassAvgs);
+                const diffFromClassAvg = Math.round((overallAverage - classOverallAverage) * 10) / 10;
+
+                const unitTimeline = unitOrder.map(uKey => {
+                    const u = unitMap[uKey];
+                    return {
+                        unit: uKey,
+                        overallScore: avgArr(u.allScores),
+                        classOverallAvg: avgArr(u.allClass),
+                        workbook: avgArr(u.byCat.workbook),
+                        classWorkbook: avgArr(u.classByCat.workbook),
+                        homework: avgArr(u.byCat.homework),
+                        classHomework: avgArr(u.classByCat.homework),
+                        foundation: avgArr(u.byCat.foundation),
+                        classFoundation: avgArr(u.classByCat.foundation),
+                        quiz: avgArr(u.byCat.quiz),
+                        classQuiz: avgArr(u.classByCat.quiz)
+                    };
+                });
+
+                return {
+                    subject: subj.subject,
+                    overallAverage,
+                    classOverallAverage,
+                    diffFromClassAvg,
+                    prValue: subj.prValue || 80,
+                    totalItems: items.length,
+                    pillars,
+                    unitTimeline,
+                    items
+                };
+            });
+
+            // 產生自動診斷建議
+            const adviceParts = [];
+            const avgTotal = Math.round((processedSubjects.reduce((acc, s) => acc + s.overallAverage, 0) / processedSubjects.length) * 10) / 10;
+            adviceParts.push(`${rawDemo.name} 目前各科平時總平均為 ${avgTotal} 分。`);
+
+            processedSubjects.forEach(s => {
+                const wb = s.pillars.find(p => p.key === 'workbook');
+                const qz = s.pillars.find(p => p.key === 'quiz');
+                if (wb && qz && wb.average !== null && qz.average !== null) {
+                    const gap = Math.round((wb.average - qz.average) * 10) / 10;
+                    if (gap >= 8) {
+                        adviceParts.push(`【${s.subject}】習作平時平均 (${wb.average}分) 明顯高於單元測驗卷平均 (${qz.average}分)，代表平時隨堂練習認真，但綜合測驗卷題型變化時較易失分，考前建議針對錯題加強觀念融會貫通。`);
+                    }
+                }
+                const validUnits = s.unitTimeline.filter(u => u.overallScore !== null);
+                if (validUnits.length >= 2) {
+                    const sorted = [...validUnits].sort((a, b) => a.overallScore - b.overallScore);
+                    const weakest = sorted[0];
+                    const strongest = sorted[sorted.length - 1];
+                    if (strongest.overallScore - weakest.overallScore >= 8) {
+                        adviceParts.push(`【${s.subject}單元落差提醒】表現最佳為 ${strongest.unit} (均分 ${strongest.overallScore}分)，而 ${weakest.unit} 平時均分 (${weakest.overallScore}分) 相對偏低，建議期中/期末考前優先複習 ${weakest.unit}。`);
+                    }
+                }
+            });
+
+            if (adviceParts.length === 1) {
+                adviceParts.push(`各科「習作、作業卷、語詞與單元測驗卷」平時得分表現均衡穩定，且各單元進度（L1~L6）無明顯落差，請持續保持良好的平時學習節奏！`);
+            }
+
+            return {
+                status: "success",
+                updatedAt: "2026-10-16 16:30",
+                student: {
+                    seatNo: rawDemo.seatNo,
+                    name: rawDemo.name,
+                    className: rawDemo.className,
+                    token: rawDemo.token,
+                    subjects: processedSubjects,
+                    teacherAdvice: adviceParts.join(' ')
+                }
+            };
+        }
+
+        // =========================================================================
+        // 3. 頁面狀態與渲染引擎
+        // =========================================================================
+        let currentPortfolio = null;
+        let currentSubjectIdx = 0;
+        let currentChartMetric = 'overallScore';
+        let currentScoreViewMode = 'matrix'; // 'matrix' | 'cards'
+        let currentCategoryFilter = 'all';
+        let unitChartInstance = null;
+
+        // 支援來自教師端 QR Code 的顯示模組設定 (cfg bitmask)
+        // bit0(1): 顯示各科平時總均與班均對比
+        // bit1(2): 顯示四大分項平時平均剖析
+        // bit2(4): 顯示班級平均常模對比線與差值
+        // bit3(8): 顯示 L1~L6 單元成績走勢圖
+        // bit4(16): 顯示單元橫向成績總表与得分明細
+        // bit5(32): 顯示平時成績綜合診斷建議
+        let displayFlags = {
+            showOverallHero: true,
+            showPillars: true,
+            showClassNorm: true,
+            showTimeline: true,
+            showScoreMatrix: true,
+            showAdvice: true
+        };
+
+        function parseUrlDisplayConfig() {
+            const params = new URLSearchParams(window.location.search);
+            const cfgParam = params.get('cfg');
+            if (cfgParam !== null && !isNaN(parseInt(cfgParam, 10))) {
+                const mask = parseInt(cfgParam, 10);
+                displayFlags.showOverallHero = Boolean(mask & 1);
+                displayFlags.showPillars = Boolean(mask & 2);
+                displayFlags.showClassNorm = Boolean(mask & 4);
+                displayFlags.showTimeline = Boolean(mask & 8);
+                displayFlags.showScoreMatrix = Boolean(mask & 16);
+                displayFlags.showAdvice = Boolean(mask & 32);
+            }
+        }
+
+        function getSubjectIcon(subjName) {
+            const s = String(subjName || '');
+            if (s.includes('國')) return '📘';
+            if (s.includes('數')) return '📐';
+            if (s.includes('社')) return '🌍';
+            if (s.includes('自')) return '🔬';
+            if (s.includes('英') || s.includes('美')) return '🔤';
+            return '📊';
+        }
+
+        function formatDiffTag(diff) {
+            if (!displayFlags.showClassNorm || diff === null || diff === undefined || isNaN(diff)) return '';
+            if (diff > 0) {
+                return `<span class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-bold font-mono bg-emerald-50 text-emerald-700 border border-emerald-200/80">+${diff.toFixed(1)}</span>`;
+            }
+            if (diff < 0) {
+                return `<span class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-bold font-mono bg-rose-50 text-rose-700 border border-rose-200/80">${diff.toFixed(1)}</span>`;
+            }
+            return `<span class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-bold font-mono bg-stone-100 text-stone-600">持平</span>`;
+        }
+
+        function renderPortfolio(payload) {
+            currentPortfolio = payload;
+            const st = payload.student;
+            const subjects = st.subjects || [];
+
+            document.getElementById('loadingSection').classList.add('hidden');
+            document.getElementById('errorSection').classList.add('hidden');
+            document.getElementById('portfolioContainer').classList.remove('hidden');
+
+            // 1. 渲染 Hero 區塊
+            document.getElementById('heroClassSeat').textContent = `${st.className || '本班'} ‧ ${st.seatNo}號`;
+            document.getElementById('heroUpdatedAt').textContent = `資料更新：${payload.updatedAt || '最新學期平時成績'}`;
+            document.getElementById('heroStudentName').textContent = st.name;
+
+            // 計算跨科平時總均与最佳科目
+            const validSubjs = subjects.filter(s => s.overallAverage !== null && !isNaN(s.overallAverage));
+            if (validSubjs.length > 0) {
+                const totalAvg = validSubjs.reduce((acc, s) => acc + s.overallAverage, 0) / validSubjs.length;
+                const totalClassAvg = validSubjs.reduce((acc, s) => acc + (s.classOverallAverage || s.overallAverage), 0) / validSubjs.length;
+                const totalDiff = totalAvg - totalClassAvg;
+                const bestSubj = [...validSubjs].sort((a, b) => b.overallAverage - a.overallAverage)[0];
+
+                document.getElementById('heroOverallAvg').textContent = totalAvg.toFixed(1);
+                document.getElementById('heroOverallBadge').textContent = getScoreBadgeInfo(totalAvg).label;
+
+                if (displayFlags.showClassNorm) {
+                    document.getElementById('heroDiffClass').textContent = (totalDiff >= 0 ? '+' : '') + totalDiff.toFixed(1);
+                    document.getElementById('heroClassAvgLabel').textContent = `班均 ${totalClassAvg.toFixed(1)} 分`;
+                } else {
+                    document.getElementById('heroDiffClass').textContent = `${validSubjs.length} 科`;
+                    document.getElementById('heroClassAvgLabel').textContent = `平時評量科目`;
+                }
+
+                document.getElementById('heroBestSubject').textContent = `${getSubjectIcon(bestSubj.subject)} ${bestSubj.subject}`;
+                document.getElementById('heroBestSubjectScore').textContent = `平時均 ${bestSubj.overallAverage.toFixed(1)} 分`;
+            }
+
+            document.getElementById('heroStatsBox').classList.toggle('hidden', !displayFlags.showOverallHero);
+
+            // 2. 渲染科目切換膠囊列
+            document.getElementById('subjectCountTag').textContent = `共 ${subjects.length} 科平時成績`;
+            renderSubjectTabs();
+
+            // 3. 渲染當前選中科目之所有分析模組
+            if (currentSubjectIdx >= subjects.length) currentSubjectIdx = 0;
+            renderActiveSubjectModules();
+
+            // 4. 渲染教師平時成績診斷建議
+            const adviceSec = document.getElementById('sectionAdvice');
+            if (displayFlags.showAdvice && st.teacherAdvice) {
+                adviceSec.classList.remove('hidden');
+                document.getElementById('teacherAdviceText').textContent = st.teacherAdvice;
+            } else {
+                adviceSec.classList.add('hidden');
+            }
+        }
+
+        function renderSubjectTabs() {
+            const subjects = currentPortfolio.student.subjects || [];
+            const container = document.getElementById('subjectTabsContainer');
+            container.innerHTML = subjects.map((subj, idx) => {
+                const isActive = idx === currentSubjectIdx;
+                const icon = getSubjectIcon(subj.subject);
+                const avgText = subj.overallAverage !== null ? subj.overallAverage.toFixed(1) : '--';
+                const classAvgText = (displayFlags.showClassNorm && subj.classOverallAverage !== null)
+                    ? `班均 ${subj.classOverallAverage.toFixed(1)}`
+                    : `共 ${subj.totalItems || 0} 次平時成績`;
+                const diffHtml = formatDiffTag(subj.diffFromClassAvg);
+                const badgeInfo = getScoreBadgeInfo(subj.overallAverage);
+
+                return `
+                    <button onclick="selectSubject(${idx})"
+                        class="text-left p-4 rounded-2xl border transition-all duration-200 warm-card flex items-center justify-between gap-3 ${isActive ? 'subject-pill-active' : 'hover:border-amber-300/80 opacity-90 hover:opacity-100'}">
+                        <div class="space-y-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xl">${icon}</span>
+                                <span class="font-black text-stone-800 text-base truncate">${subj.subject}平時</span>
+                                <span class="text-[11px] font-bold px-2 py-0.5 rounded-full border ${badgeInfo.badgeClass}">${badgeInfo.label}</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-xs text-stone-500 font-mono">
+                                <span>${classAvgText}</span>
+                                ${diffHtml}
+                            </div>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <div class="text-[10px] font-bold text-stone-400">平時總均</div>
+                            <div class="text-2xl font-black font-mono tabular-nums ${isActive ? 'text-amber-700' : 'text-stone-800'}">${avgText}</div>
+                        </div>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function selectSubject(idx) {
+            currentSubjectIdx = idx;
+            currentCategoryFilter = 'all';
+            renderSubjectTabs();
+            renderActiveSubjectModules();
+        }
+
+        function renderActiveSubjectModules() {
+            const subj = currentPortfolio.student.subjects[currentSubjectIdx];
+            if (!subj) return;
+
+            // 控制各區塊顯示隱藏
+            document.getElementById('sectionPillars').classList.toggle('hidden', !displayFlags.showPillars);
+            document.getElementById('sectionTimeline').classList.toggle('hidden', !displayFlags.showTimeline);
+            document.getElementById('sectionScoreMatrix').classList.toggle('hidden', !displayFlags.showScoreMatrix);
+
+            // A. 四大分項平時平均卡片
+            document.getElementById('pillarSubjectTitle').textContent = subj.subject;
+            document.getElementById('currentSubjAvg').textContent = subj.overallAverage !== null ? subj.overallAverage.toFixed(1) : '--';
+            document.getElementById('currentSubjClassAvg').textContent = (displayFlags.showClassNorm && subj.classOverallAverage !== null)
+                ? `(班均 ${subj.classOverallAverage.toFixed(1)})`
+                : `(共 ${subj.totalItems || 0} 次評量)`;
+
+            const pillarsGrid = document.getElementById('pillarsGrid');
+            pillarsGrid.innerHTML = (subj.pillars || []).map(p => {
+                const hasData = p.average !== null && p.count > 0;
+                const avgStr = hasData ? p.average.toFixed(1) : '--';
+                const classStr = (displayFlags.showClassNorm && p.classAverage !== null) ? `班均 ${p.classAverage.toFixed(1)}` : `共 ${p.count} 次成績`;
+                const diffBadge = hasData ? formatDiffTag(p.diffFromClass) : '';
+                const badgeInfo = getScoreBadgeInfo(p.average);
+                const rangeStr = hasData ? `最高 ${p.maxScore} ‧ 最低 ${p.minScore}` : '尚無該類成績';
+                const barWidth = hasData ? Math.min(100, Math.max(20, p.average)) : 0;
+                const classMarkerLeft = (displayFlags.showClassNorm && p.classAverage !== null) ? Math.min(98, Math.max(10, p.classAverage)) : null;
+
+                return `
+                    <div class="p-4 rounded-2xl bg-stone-50/70 border border-stone-200/90 flex flex-col justify-between space-y-3 hover:border-amber-300/90 transition">
+                        <div class="flex items-start justify-between gap-2">
+                            <div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-base">${p.icon}</span>
+                                    <h4 class="font-extrabold text-stone-800 text-sm">${p.label}</h4>
+                                </div>
+                                <span class="text-[11px] text-stone-400 font-medium">採計 ${p.count} 次平時分數</span>
+                            </div>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${badgeInfo.badgeClass}">${badgeInfo.label}</span>
+                        </div>
+
+                        <div class="flex items-baseline justify-between pt-1">
+                            <div>
+                                <span class="text-2xl sm:text-3xl font-black font-mono tabular-nums text-stone-900">${avgStr}</span>
+                                <span class="text-xs font-bold text-stone-400 ml-0.5">分</span>
+                            </div>
+                            <div class="text-right space-y-0.5">
+                                <div class="text-xs font-mono text-stone-500">${classStr}</div>
+                                <div>${diffBadge}</div>
+                            </div>
+                        </div>
+
+                        <!-- 分數視覺量尺（含班均標記點） -->
+                        <div class="space-y-1.5 pt-1">
+                            <div class="relative h-2 w-full rounded-full bg-stone-200/80 overflow-visible">
+                                <div class="h-full rounded-full bg-gradient-to-r from-amber-400 to-amber-500 transition-all duration-500" style="width: ${barWidth}%"></div>
+                                ${classMarkerLeft !== null ? `
+                                    <div title="班級該分項平均 ${p.classAverage} 分" class="absolute -top-1 w-1.5 h-4 rounded-full bg-emerald-600 border border-white shadow" style="left: ${classMarkerLeft}%"></div>
+                                ` : ''}
+                            </div>
+                            <div class="flex items-center justify-between text-[11px] font-mono text-stone-500">
+                                <span>${rangeStr}</span>
+                                ${classMarkerLeft !== null ? `<span class="text-emerald-700 font-bold">▲ 綠點為班均</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // B. 渲染 L1 ~ L6 單元成績走勢圖與單元落點快篩
+            renderUnitTrendChart(subj);
+            renderUnitDiagnosticStrip(subj);
+
+            // C. 渲染單元橫向成績總表 & 各次評量得分明細
+            renderUnitMatrixTable(subj);
+            renderScoreItemCards(subj);
+        }
+
+        function switchChartMetric(metricKey) {
+            currentChartMetric = metricKey;
+            document.querySelectorAll('.chart-tab-btn').forEach(btn => {
+                const isSelected = btn.getAttribute('data-metric') === metricKey;
+                btn.className = isSelected
+                    ? 'chart-tab-btn px-2.5 py-1 rounded-lg text-xs font-bold transition bg-amber-500 text-white shadow-sm'
+                    : 'chart-tab-btn px-2.5 py-1 rounded-lg text-xs font-bold transition text-stone-600 hover:text-stone-900';
+            });
+            const subj = currentPortfolio.student.subjects[currentSubjectIdx];
+            if (subj) renderUnitTrendChart(subj);
+        }
+
+        function renderUnitTrendChart(subj) {
+            const timeline = subj.unitTimeline || [];
+            const labels = timeline.map(u => u.unit);
+
+            const metricMap = {
+                overallScore: { studentKey: 'overallScore', classKey: 'classOverallAvg', label: '個人單元總平均', classLabel: '班級單元總平均' },
+                quiz: { studentKey: 'quiz', classKey: 'classQuiz', label: '個人測驗卷成績', classLabel: '班級測驗卷平均' },
+                workbook: { studentKey: 'workbook', classKey: 'classWorkbook', label: '個人習作成績', classLabel: '班級習作平均' },
+                homework: { studentKey: 'homework', classKey: 'classHomework', label: '個人作業卷成績', classLabel: '班級作業卷平均' },
+                foundation: { studentKey: 'foundation', classKey: 'classFoundation', label: '個人語詞/基礎成績', classLabel: '班級語詞/基礎平均' }
+            };
+
+            const cfg = metricMap[currentChartMetric] || metricMap.overallScore;
+            const studentData = timeline.map(u => u[cfg.studentKey]);
+            const classData = timeline.map(u => u[cfg.classKey]);
+
+            // 自動計算合適的 Y 軸範圍
+            const allNums = [...studentData, ...(displayFlags.showClassNorm ? classData : [])].filter(v => v !== null && !isNaN(v));
+            const minVal = allNums.length ? Math.max(50, Math.floor((Math.min(...allNums) - 6) / 5) * 5) : 60;
+
+            const ctx = document.getElementById('unitTrendChart').getContext('2d');
+            if (unitChartInstance) {
+                unitChartInstance.destroy();
+            }
+
+            const datasets = [
+                {
+                    label: cfg.label,
+                    data: studentData,
+                    borderColor: '#D97706',
+                    backgroundColor: 'rgba(245, 158, 11, 0.14)',
+                    borderWidth: 3.5,
+                    pointBackgroundColor: '#FFFFFF',
+                    pointBorderColor: '#D97706',
+                    pointBorderWidth: 3,
+                    pointRadius: 5.5,
+                    pointHoverRadius: 7,
+                    tension: 0.32,
+                    fill: true,
+                    spanGaps: true
+                }
+            ];
+
+            if (displayFlags.showClassNorm) {
+                datasets.push({
+                    label: cfg.classLabel,
+                    data: classData,
+                    borderColor: '#059669',
+                    backgroundColor: 'transparent',
+                    borderWidth: 2.2,
+                    borderDash: [6, 5],
+                    pointBackgroundColor: '#059669',
+                    pointBorderColor: '#FFFFFF',
+                    pointBorderWidth: 1.5,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    tension: 0.32,
+                    fill: false,
+                    spanGaps: true
+                });
+            }
+
+            unitChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            align: 'end',
+                            labels: {
+                                usePointStyle: true,
+                                boxWidth: 8,
+                                font: { family: '"Noto Sans TC", sans-serif', size: 12, weight: 'bold' },
+                                color: '#44403c'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(28, 25, 23, 0.92)',
+                            titleFont: { family: '"Noto Sans TC", sans-serif', size: 13, weight: 'bold' },
+                            bodyFont: { family: '"JetBrains Mono", "Noto Sans TC", monospace', size: 12 },
+                            padding: 12,
+                            cornerRadius: 12,
+                            callbacks: {
+                                label: function (context) {
+                                    const val = context.parsed.y;
+                                    return ` ${context.dataset.label}: ${val !== null && val !== undefined ? val.toFixed(1) + ' 分' : '無資料'}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            min: minVal,
+                            max: 100,
+                            grid: {
+                                color: 'rgba(214, 211, 209, 0.45)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                font: { family: '"JetBrains Mono", monospace', size: 11, weight: '600' },
+                                color: '#78716c',
+                                callback: v => v + '分'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: { family: '"JetBrains Mono", "Noto Sans TC", sans-serif', size: 12, weight: '700' },
+                                color: '#44403c'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderUnitDiagnosticStrip(subj) {
+            const strip = document.getElementById('unitDiagnosticStrip');
+            const validUnits = (subj.unitTimeline || []).filter(u => u.overallScore !== null && !isNaN(u.overallScore));
+            if (validUnits.length === 0) {
+                strip.innerHTML = '';
+                return;
+            }
+            const sorted = [...validUnits].sort((a, b) => b.overallScore - a.overallScore);
+            const bestUnit = sorted[0];
+            const weakestUnit = sorted[sorted.length - 1];
+
+            const bestDiff = (displayFlags.showClassNorm && bestUnit.classOverallAvg !== null)
+                ? `（高於班均 +${(bestUnit.overallScore - bestUnit.classOverallAvg).toFixed(1)} 分）`
+                : '';
+            const weakDiff = (displayFlags.showClassNorm && weakestUnit.classOverallAvg !== null)
+                ? `（班均 ${weakestUnit.classOverallAvg.toFixed(1)} 分）`
+                : '';
+
+            strip.innerHTML = `
+                <div class="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-700 flex items-center justify-center font-black text-base">🌟</span>
+                        <div>
+                            <div class="text-[11px] font-bold text-emerald-800">表現最穩健單元</div>
+                            <div class="text-xs sm:text-sm font-black text-stone-800">${subj.subject} ${bestUnit.unit} 單元 <span class="text-xs font-normal text-stone-500">${bestDiff}</span></div>
+                        </div>
+                    </div>
+                    <div class="text-right font-mono font-black text-lg text-emerald-700 tabular-nums shrink-0">${bestUnit.overallScore.toFixed(1)} 分</div>
+                </div>
+
+                <div class="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200/80 flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-700 flex items-center justify-center font-black text-base">🔍</span>
+                        <div>
+                            <div class="text-[11px] font-bold text-amber-800">考前建議優先複習單元</div>
+                            <div class="text-xs sm:text-sm font-black text-stone-800">${subj.subject} ${weakestUnit.unit} 單元 <span class="text-xs font-normal text-stone-500">${weakDiff}</span></div>
+                        </div>
+                    </div>
+                    <div class="text-right font-mono font-black text-lg text-amber-700 tabular-nums shrink-0">${weakestUnit.overallScore.toFixed(1)} 分</div>
+                </div>
+            `;
+        }
+
+        function switchScoreViewMode(mode) {
+            currentScoreViewMode = mode;
+            const isMatrix = mode === 'matrix';
+            document.getElementById('matrixTableView').classList.toggle('hidden', !isMatrix);
+            document.getElementById('cardsDetailView').classList.toggle('hidden', isMatrix);
+
+            document.getElementById('btnViewMatrix').className = isMatrix
+                ? 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white text-stone-800 shadow-sm'
+                : 'px-3 py-1.5 rounded-lg text-xs font-bold transition text-stone-600 hover:text-stone-900';
+            document.getElementById('btnViewCards').className = !isMatrix
+                ? 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white text-stone-800 shadow-sm'
+                : 'px-3 py-1.5 rounded-lg text-xs font-bold transition text-stone-600 hover:text-stone-900';
+        }
+
+        function formatMatrixCell(score, classAvg) {
+            if (score === null || score === undefined || isNaN(score)) {
+                return `<span class="text-stone-300 font-mono">--</span>`;
+            }
+            const scoreColor = score >= 90 ? 'text-emerald-700 font-black' : (score < 80 ? 'text-rose-600 font-black' : 'text-stone-800 font-bold');
+            const normSub = (displayFlags.showClassNorm && classAvg !== null && !isNaN(classAvg))
+                ? `<div class="text-[10px] font-mono text-stone-400">班均 ${classAvg.toFixed(1)}</div>`
+                : '';
+            return `
+                <div class="font-mono tabular-nums ${scoreColor} text-sm">${score}</div>
+                ${normSub}
+            `;
+        }
+
+        function renderUnitMatrixTable(subj) {
+            const tbody = document.getElementById('unitMatrixTableBody');
+            const timeline = subj.unitTimeline || [];
+            if (timeline.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-stone-400">尚無各單元平時成績資料</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = timeline.map(u => {
+                const overallStr = u.overallScore !== null ? u.overallScore.toFixed(1) : '--';
+                const diffHtml = (u.overallScore !== null && u.classOverallAvg !== null)
+                    ? formatDiffTag(Math.round((u.overallScore - u.classOverallAvg) * 10) / 10)
+                    : '';
+                const classAvgText = (displayFlags.showClassNorm && u.classOverallAvg !== null)
+                    ? `<span class="text-[11px] text-stone-400 font-mono ml-1">(班均 ${u.classOverallAvg.toFixed(1)})</span>`
+                    : '';
+
+                return `
+                    <tr class="hover:bg-amber-50/40 transition">
+                        <td class="py-3 px-3.5 font-mono font-black text-stone-800 whitespace-nowrap">
+                            <span class="inline-flex items-center justify-center px-2.5 py-1 rounded-lg bg-stone-100 text-stone-800 text-xs">${u.unit}</span>
+                        </td>
+                        <td class="py-3 px-3 text-center">${formatMatrixCell(u.workbook, u.classWorkbook)}</td>
+                        <td class="py-3 px-3 text-center">${formatMatrixCell(u.homework, u.classHomework)}</td>
+                        <td class="py-3 px-3 text-center">${formatMatrixCell(u.foundation, u.classFoundation)}</td>
+                        <td class="py-3 px-3 text-center">${formatMatrixCell(u.quiz, u.classQuiz)}</td>
+                        <td class="py-3 px-3.5 text-right whitespace-nowrap">
+                            <div class="flex items-center justify-end gap-1.5">
+                                <span class="font-mono font-black text-base text-amber-700 tabular-nums">${overallStr}</span>
+                                ${diffHtml}
+                            </div>
+                            ${classAvgText}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filterItemCategory(catKey) {
+            currentCategoryFilter = catKey;
+            const subj = currentPortfolio.student.subjects[currentSubjectIdx];
+            if (subj) renderScoreItemCards(subj);
+        }
+
+        function renderScoreItemCards(subj) {
+            const items = subj.items || [];
+            const filterBar = document.getElementById('itemCategoryFilterBar');
+            const grid = document.getElementById('scoreItemsGrid');
+
+            const categories = [
+                { key: 'all', label: `全部平時成績 (${items.length})` },
+                { key: 'workbook', label: '📘 習作平時' },
+                { key: 'homework', label: '📝 作業卷平時' },
+                { key: 'foundation', label: '🔤 語詞/基礎' },
+                { key: 'quiz', label: '🎯 單元測驗卷' }
+            ];
+
+            filterBar.innerHTML = categories.map(c => {
+                const active = currentCategoryFilter === c.key;
+                return `
+                    <button onclick="filterItemCategory('${c.key}')"
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition border ${active ? 'bg-amber-500 text-white border-amber-500 shadow-sm' : 'bg-white text-stone-600 border-stone-200 hover:border-amber-300'}">
+                        ${c.label}
+                    </button>
+                `;
+            }).join('');
+
+            const filtered = currentCategoryFilter === 'all'
+                ? items
+                : items.filter(i => i.category === currentCategoryFilter);
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="col-span-full py-8 text-center text-stone-400 text-xs">此分類下尚無平時成績紀錄</div>`;
+                return;
+            }
+
+            grid.innerHTML = filtered.map(item => {
+                const hasScore = item.score !== null && item.score !== undefined && !isNaN(item.score);
+                const badgeInfo = getScoreBadgeInfo(item.score);
+                const diffHtml = hasScore ? formatDiffTag(item.diffFromClass) : '';
+                const classNormText = (displayFlags.showClassNorm && item.classAvg !== null)
+                    ? `班級平均 ${item.classAvg.toFixed(1)} 分`
+                    : `${item.categoryLabel}`;
+
+                return `
+                    <div class="p-3.5 rounded-2xl bg-stone-50/70 border border-stone-200/80 flex items-center justify-between gap-3 hover:border-amber-300/80 transition">
+                        <div class="space-y-1 min-w-0">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-sm">${item.categoryIcon || '📊'}</span>
+                                <span class="font-extrabold text-stone-800 text-sm truncate">${item.name}</span>
+                                <span class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-stone-200/70 text-stone-600">${item.unit}</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-[11px] text-stone-500 font-mono">
+                                <span>${classNormText}</span>
+                                ${diffHtml}
+                            </div>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <div class="text-xl font-black font-mono tabular-nums text-stone-900">${hasScore ? item.score : '--'}<span class="text-xs font-bold text-stone-400 ml-0.5">分</span></div>
+                            <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border ${badgeInfo.badgeClass}">${badgeInfo.label}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // =========================================================================
+        // 4. 查詢代碼與 API 連線流程
+        // =========================================================================
+        function showSearchModal() {
+            const banner = document.getElementById('searchBanner');
+            banner.classList.toggle('hidden');
+            if (!banner.classList.contains('hidden')) {
+                document.getElementById('tokenInput').focus();
+            }
+        }
+
+        function handleManualSearch(e) {
+            e.preventDefault();
+            const val = document.getElementById('tokenInput').value.trim().toUpperCase();
+            if (!val) return;
+            loadStudentPortfolioByToken(val);
+        }
+
+        function switchDemoStudent(demoToken) {
+            const selectEl = document.getElementById('demoStudentSelect');
+            if (selectEl) selectEl.value = demoToken;
+            loadStudentPortfolioByToken(demoToken);
+        }
+
+        async function loadStudentPortfolioByToken(token) {
+            const cleanToken = String(token || '').trim().toUpperCase();
+            document.getElementById('searchBanner').classList.add('hidden');
+
+            // 1. 優先檢查是否為內建 DEMO01 ~ DEMO05 範例代碼
+            if (DEMO_STUDENTS_DB[cleanToken]) {
+                document.getElementById('demoSwitcherWrap').classList.remove('hidden');
+                document.getElementById('demoSwitcherWrap').classList.add('flex');
+                const selectEl = document.getElementById('demoStudentSelect');
+                if (selectEl) selectEl.value = cleanToken;
+                const demoPayload = buildDemoPortfolio(DEMO_STUDENTS_DB[cleanToken]);
+                renderPortfolio(demoPayload);
+                return;
+            }
+
+            // 2. 若已綁定真實 Google Apps Script API_URL，向雲端拉取該學生的平時成績
+            const apiUrl = (typeof CONFIG !== 'undefined' && CONFIG.API_URL) ? CONFIG.API_URL.trim() : '';
+            if (!apiUrl) {
+                showErrorState('尚未設定雲端試算表連線或代碼無效', `找不到代碼「${cleanToken}」的資料。若要測試展示模式，請輸入 DEMO01 ~ DEMO05。`);
+                return;
+            }
+
+            document.getElementById('portfolioContainer').classList.add('hidden');
+            document.getElementById('errorSection').classList.add('hidden');
+            document.getElementById('loadingSection').classList.remove('hidden');
+
+            try {
+                const res = await fetch(`${apiUrl}?token=${encodeURIComponent(cleanToken)}`);
+                const data = await res.json();
+                if (data && data.status === 'success' && data.student) {
+                    renderPortfolio(data);
+                } else {
+                    showErrorState('查無此平時成績代碼', data.message || `找不到查詢代碼「${cleanToken}」對應的平時成績紀錄，請確認代碼是否輸入正確。`);
+                }
+            } catch (err) {
+                showErrorState('雲端連線失敗', '無法連線至 Google 試算表平時成績資料庫，請稍後再試或檢查網路連線。');
+            }
+        }
+
+        function showErrorState(title, desc) {
+            document.getElementById('loadingSection').classList.add('hidden');
+            document.getElementById('portfolioContainer').classList.add('hidden');
+            document.getElementById('errorSection').classList.remove('hidden');
+            document.getElementById('errorTitle').textContent = title;
+            document.getElementById('errorDesc').textContent = desc;
+        }
+
+        // 初始化啟動
+        window.addEventListener('DOMContentLoaded', () => {
+            parseUrlDisplayConfig();
+            const params = new URLSearchParams(window.location.search);
+            const urlToken = params.get('token');
+            if (urlToken) {
+                loadStudentPortfolioByToken(urlToken);
+            } else {
+                // 預設啟動 DEMO01 讓使用者打開就能看到完整平時成績分析
+                document.getElementById('demoSwitcherWrap').classList.remove('hidden');
+                document.getElementById('demoSwitcherWrap').classList.add('flex');
+                switchDemoStudent('DEMO01');
+            }
+        });
+    </script>
 </body>
+
 </html>

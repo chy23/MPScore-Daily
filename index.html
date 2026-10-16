@@ -1,1557 +1,1096 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MPScore-Daily - 學生平時學習歷程手札（教師引導設定與 PDF 通知單中心）</title>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- QRCode.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <!-- html2canvas & jsPDF 供客戶端直接生成高畫質多頁 A4 PDF 下載 -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <!-- 全域設定檔 -->
-  <script src="config.js"></script>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
-    body {
-      font-family: 'Plus Jakarta Sans', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
-      -webkit-font-smoothing: antialiased;
-      background-color: #FAF8F5;
-      color: #1E293B;
-    }
-    .font-num {
-      font-variant-numeric: tabular-nums;
-    }
-    .tactile-btn {
-      transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 140ms ease, background-color 140ms ease;
-    }
-    .tactile-btn:active {
-      transform: scale(0.97);
-    }
-
-    /* A4 紙張預覽與列印規格 */
-    .a4-print-sheet {
-      width: 210mm;
-      min-height: 297mm;
-      background: #ffffff;
-      margin: 0 auto;
-      padding: 10mm;
-      box-sizing: border-box;
-      box-shadow: 0 12px 32px -8px rgba(15, 23, 42, 0.14);
-      border-radius: 12px;
-    }
-
-    @media print {
-      @page {
-        size: A4 portrait;
-        margin: 0;
-      }
-      body {
-        background: #ffffff !important;
-      }
-      header, nav, main, footer, .no-print {
-        display: none !important;
-      }
-      #printPreviewModal {
-        position: static !important;
-        display: block !important;
-        background: transparent !important;
-        padding: 0 !important;
-        overflow: visible !important;
-      }
-      #printPreviewModal > div {
-        box-shadow: none !important;
-        border: none !important;
-        max-width: none !important;
-        max-height: none !important;
-        margin: 0 !important;
-      }
-      #printModalScrollArea {
-        padding: 0 !important;
-        background: transparent !important;
-        overflow: visible !important;
-      }
-      #printModalSheets {
-        max-width: none !important;
-        margin: 0 !important;
-        gap: 0 !important;
-      }
-      .a4-print-sheet {
-        box-shadow: none !important;
-        border-radius: 0 !important;
-        margin: 0 !important;
-        page-break-after: always;
-        break-after: page;
-      }
-      .a4-print-sheet:last-child {
-        page-break-after: auto;
-        break-after: auto;
-      }
-    }
-  </style>
-</head>
-<body class="min-h-screen flex flex-col justify-between selection:bg-amber-200 selection:text-amber-950">
-
-  <!-- ==================== 頂部品牌導航列 ==================== -->
-  <header class="no-print bg-white/90 backdrop-blur-md border-b border-amber-200/80 sticky top-0 z-40">
-    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-emerald-600 text-white flex items-center justify-center font-black text-xl shadow-sm">
-          🌱
-        </div>
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="font-black text-base md:text-lg tracking-tight text-slate-900">MPScore-Daily</span>
-            <span class="text-[11px] bg-amber-100 text-amber-950 px-2.5 py-0.5 rounded-full font-extrabold border border-amber-300/60">
-              學生平時學習歷程手札
-            </span>
-          </div>
-          <p class="text-[11px] text-slate-500 hidden sm:block">
-            課堂習作 ‧ 課後作業卷 ‧ 語詞聽寫 ‧ 單元測驗卷 ‧ 黃色缺交與粉紅複習自動轉化
-          </p>
-        </div>
-      </div>
-
-      <div class="flex items-center gap-2">
-        <div id="headerConnBadge" class="hidden md:flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-          <span class="w-2 h-2 rounded-full bg-slate-400" id="headerConnDot"></span>
-          <span id="headerConnText">示範資料模式</span>
-        </div>
-
-        <button onclick="openTeacherChangelogModal()" class="tactile-btn text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-950 px-3 py-2 rounded-xl border border-amber-200/80 flex items-center gap-1 cursor-pointer">
-          <span>📋</span>
-          <span class="hidden sm:inline">系統架構與更新</span>
-        </button>
-
-        <a href="parent.html?t=DEMO02" target="_blank" class="tactile-btn text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl shadow-xs flex items-center gap-1 cursor-pointer">
-          <span>📱</span>
-          <span>開啟家長端手札</span>
-        </a>
-      </div>
-    </div>
-  </header>
-
-  <!-- ==================== 教師端四大功能分頁切換列 ==================== -->
-  <nav id="teacherNavTabs" class="no-print bg-amber-50/70 border-b border-amber-200/70">
-    <div class="max-w-6xl mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-2">
-      <div class="flex flex-wrap items-center gap-1.5 bg-amber-100/70 p-1.5 rounded-2xl border border-amber-200/80">
-        <button id="tabBtn-wizard" onclick="switchTab('wizard')" class="tab-btn tactile-btn text-xs px-3.5 py-2 rounded-xl bg-white text-amber-900 font-black shadow-xs cursor-pointer flex items-center gap-1.5">
-          <span>🧭</span>
-          <span>1. 四步引導設定精靈</span>
-        </button>
-        <button id="tabBtn-dataHelper" onclick="switchTab('dataHelper')" class="tab-btn tactile-btn text-xs px-3.5 py-2 rounded-xl text-slate-600 hover:text-amber-900 font-bold cursor-pointer flex items-center gap-1.5">
-          <span>📥</span>
-          <span>2. 平時成績快貼小幫手</span>
-        </button>
-        <button id="tabBtn-printCenter" onclick="switchTab('printCenter')" class="tab-btn tactile-btn text-xs px-3.5 py-2 rounded-xl text-slate-600 hover:text-amber-900 font-bold cursor-pointer flex items-center gap-1.5">
-          <span>📄</span>
-          <span>3. A4 通知小卡與 PDF 下載</span>
-        </button>
-        <button id="tabBtn-previewSandbox" onclick="switchTab('previewSandbox')" class="tab-btn tactile-btn text-xs px-3.5 py-2 rounded-xl text-slate-600 hover:text-amber-900 font-bold cursor-pointer flex items-center gap-1.5">
-          <span>📱</span>
-          <span>4. 家長手機視角即時沙盒</span>
-        </button>
-      </div>
-
-      <div class="text-[11px] text-amber-900 font-bold flex items-center gap-1.5 px-2">
-        <span>💡</span>
-        <span>可與 MPScore 段考系統 <b>共用同一組學生 6 碼代碼</b>！</span>
-      </div>
-    </div>
-  </nav>
-
-  <!-- ==================== 主內容區 ==================== -->
-  <main class="no-print flex-1 max-w-6xl w-full mx-auto px-4 py-7 space-y-8">
-
-    <!-- ==================== TAB 1: 四步引導設定精靈 ==================== -->
-    <section id="tabContent-wizard" class="tab-content space-y-8">
-
-      <!-- 歡迎橫幅與核心特色 -->
-      <div class="bg-gradient-to-br from-amber-500 via-amber-600 to-emerald-700 rounded-3xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
-        <div class="relative z-10 max-w-3xl space-y-3">
-          <div class="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-black border border-white/25">
-            <span>🌱 形成性評量歷程平台</span>
-            <span>‧</span>
-            <span>不改變老師原有登記習慣</span>
-          </div>
-          <h1 class="text-2xl md:text-3xl font-black tracking-tight leading-snug">
-            從「查單次分數」升級為「看見孩子的學習習慣與單元脈絡」
-          </h1>
-          <p class="text-xs md:text-sm text-amber-50/95 leading-relaxed">
-            老師只需像平常一樣在 Google 試算表登記<b>「國習、數習、作業卷、語詞、測驗卷」</b>，缺交格子塗上<b>黃色底色</b>、需訂正塗上<b>粉紅色底色</b>，系統即自動歸納為「學習四大支柱」與「L1~L6 單元折線圖」！
-          </p>
-        </div>
-      </div>
-
-      <!-- 步驟 1：試算表結構說明 -->
-      <div class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-amber-200/80 space-y-5">
-        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
-          <div class="flex items-center gap-3">
-            <span class="w-9 h-9 rounded-2xl bg-amber-500 text-slate-950 font-black flex items-center justify-center text-base shadow-xs">1</span>
-            <div>
-              <h2 class="text-lg font-black text-slate-800">第 1 步：準備一張空白 Google 試算表</h2>
-              <p class="text-xs text-slate-500">無須手動排版！稍後點選試算表上方選單即可「一鍵建立初始表格」</p>
-            </div>
-          </div>
-          <a href="https://sheets.new" target="_blank" class="tactile-btn text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl shadow-xs flex items-center gap-1.5">
-            <span>➕ 點我開啟全新 Google 試算表 (sheets.new)</span>
-          </a>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
-          <!-- 左：四大支柱自動辨識規則 -->
-          <div class="bg-amber-50/60 rounded-2xl p-4 border border-amber-200/80 space-y-2.5">
-            <div class="font-black text-amber-950 text-sm flex items-center gap-1.5">
-              <span>🤖</span>
-              <span>系統如何自動看懂您的平時成績欄位？</span>
-            </div>
-            <p class="text-slate-600 leading-relaxed">
-              支援<b>單列標題</b>（如：`國習L1`、`作業卷L1`）與<b>雙列合併群組標題</b>（上列`國習`、下列`L1~L6`），並自動略過「平均、總均、名次」等統計欄：
-            </p>
-            <div class="grid grid-cols-2 gap-2 pt-1">
-              <div class="bg-white p-2.5 rounded-xl border border-amber-200/80">
-                <div class="font-black text-amber-800">📘 課堂習作表現</div>
-                <div class="text-[11px] text-slate-500 mt-0.5">欄名含「<b>習</b>」（國習L1、數習L1、社習）</div>
-              </div>
-              <div class="bg-white p-2.5 rounded-xl border border-emerald-200/80">
-                <div class="font-black text-emerald-800">📝 課後作業卷</div>
-                <div class="text-[11px] text-slate-500 mt-0.5">欄名含「<b>作業</b>、<b>練習</b>、<b>學習單</b>」</div>
-              </div>
-              <div class="bg-white p-2.5 rounded-xl border border-sky-200/80">
-                <div class="font-black text-sky-800">🔤 語詞基礎聽寫</div>
-                <div class="text-[11px] text-slate-500 mt-0.5">欄名含「<b>語詞</b>、<b>聽寫</b>、<b>圈詞</b>、<b>生字</b>」</div>
-              </div>
-              <div class="bg-white p-2.5 rounded-xl border border-amber-300/80">
-                <div class="font-black text-amber-900">🎯 單元測驗小考</div>
-                <div class="text-[11px] text-slate-500 mt-0.5">欄名含「<b>測驗</b>、<b>考</b>、<b>卷</b>、<b>單元</b>」</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 右：底色標記自動轉化說明 -->
-          <div class="bg-emerald-50/50 rounded-2xl p-4 border border-emerald-200/80 space-y-2.5">
-            <div class="font-black text-emerald-950 text-sm flex items-center gap-1.5">
-              <span>🎨</span>
-              <span>儲存格塗色 = 自動發送溫馨提醒給家長！</span>
-            </div>
-            <p class="text-slate-600 leading-relaxed">
-              老師在登記平時成績時，習慣用底色標記未交或待訂正的學生，系統會自動讀取儲存格背景色：
-            </p>
-            <div class="space-y-2 pt-1">
-              <div class="bg-amber-100/90 border border-amber-300 rounded-xl p-2.5 flex items-center justify-between">
-                <div>
-                  <span class="font-black text-amber-950">🟨 塗上「黃色底色」或填「缺」</span>
-                  <p class="text-[11px] text-amber-900 mt-0.5">代表作業未交、忘記帶或請假尚未補考</p>
-                </div>
-                <span class="bg-white text-amber-900 font-black px-2.5 py-1 rounded-lg text-[11px] border border-amber-300 shrink-0">
-                  ➔ ⏳ 待補交 / 待補測
-                </span>
-              </div>
-              <div class="bg-rose-100/85 border border-rose-300 rounded-xl p-2.5 flex items-center justify-between">
-                <div>
-                  <span class="font-black text-rose-950">🟥 塗上「粉紅色底色」或未滿60分</span>
-                  <p class="text-[11px] text-rose-900 mt-0.5">代表及格邊緣、觀念不熟或尚未完成訂正</p>
-                </div>
-                <span class="bg-white text-rose-800 font-black px-2.5 py-1 rounded-lg text-[11px] border border-rose-300 shrink-0">
-                  ➔ 🌱 需重點複習
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 步驟 2：複製 Apps Script 程式碼 -->
-      <div class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-amber-200/80 space-y-5">
-        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
-          <div class="flex items-center gap-3">
-            <span class="w-9 h-9 rounded-2xl bg-amber-500 text-slate-950 font-black flex items-center justify-center text-base shadow-xs">2</span>
-            <div>
-              <h2 class="text-lg font-black text-slate-800">第 2 步：貼上 Apps Script 後端程式碼並部署</h2>
-              <p class="text-xs text-slate-500">在試算表上方點選「擴充功能 > Apps Script」，貼上以下程式碼並部署為網頁應用程式</p>
-            </div>
-          </div>
-
-          <div class="flex flex-wrap items-center gap-2">
-            <div class="bg-slate-100 p-1 rounded-xl flex items-center text-xs">
-              <button id="codeModeBtn-loader" onclick="switchCodeMode('loader')" class="px-3 py-1.5 rounded-lg font-black bg-amber-500 text-slate-950 cursor-pointer">
-                模式 A：自動熱更新版 (推薦)
-              </button>
-              <button id="codeModeBtn-full" onclick="switchCodeMode('full')" class="px-3 py-1.5 rounded-lg font-bold text-slate-600 hover:text-amber-800 cursor-pointer">
-                模式 B：完整單機版
-              </button>
-            </div>
-
-            <button id="copyCodeBtn" onclick="copyGasCode()" class="tactile-btn bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer">
-              <span>📋 一鍵複製完整程式碼</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="bg-slate-900 text-amber-100 rounded-2xl p-4 font-mono text-xs max-h-56 overflow-y-auto border border-slate-800">
-          <pre id="gasCodePreview" class="whitespace-pre-wrap break-all"></pre>
-        </div>
-
-        <!-- 圖解部署 3 重點 -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-          <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-            <div class="font-black text-slate-800 mb-1">① 建立初始表格</div>
-            <p class="text-slate-600 leading-relaxed">儲存程式碼後回到試算表重新整理，點上方選單 <b>【🌱 MPScore-Daily 平時工具 > 🛠️ 建立初始表格】</b>。</p>
-          </div>
-          <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-            <div class="font-black text-slate-800 mb-1">② 部署為網頁應用程式</div>
-            <p class="text-slate-600 leading-relaxed">點右上角「部署 > 新部署」，類型選「網頁應用程式」，執行身分選「我」，誰可以存取務必選 <b>【所有人 (Anyone)】</b>。</p>
-          </div>
-          <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-            <div class="font-black text-slate-800 mb-1">③ 複製網頁應用程式網址</div>
-            <p class="text-slate-600 leading-relaxed">授權允許後，複製結尾為 <code>/exec</code> 的網址，貼到下方第 3 步進行連線檢測！</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- 步驟 3：API 連線檢測 -->
-      <div class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-amber-200/80 space-y-5">
-        <div class="flex items-center gap-3 border-b border-slate-100 pb-4">
-          <span class="w-9 h-9 rounded-2xl bg-amber-500 text-slate-950 font-black flex items-center justify-center text-base shadow-xs">3</span>
-          <div>
-            <h2 class="text-lg font-black text-slate-800">第 3 步：貼上部署網址，一鍵連線檢測與同步</h2>
-            <p class="text-xs text-slate-500">若尚未部署，您也可以直接跳到第 4 步體驗內建的 605 班 24 位學生完整示範資料！</p>
-          </div>
-        </div>
-
-        <div class="flex flex-col sm:flex-row gap-3">
-          <input type="url" id="apiEndpointInput" placeholder="請貼上 https://script.google.com/macros/s/.../exec 網址"
-            class="flex-1 px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-amber-500 focus:outline-none text-xs md:text-sm font-mono bg-slate-50">
-          <button onclick="runApiCheck(true)" id="checkApiBtn"
-            class="tactile-btn bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black px-6 py-3 rounded-2xl text-xs md:text-sm shadow-md shadow-amber-500/20 cursor-pointer shrink-0">
-            ⚡ 連線檢測並載入名單
-          </button>
-        </div>
-
-        <div id="apiStatusAlert" class="hidden p-4 rounded-2xl text-xs font-bold border"></div>
-      </div>
-
-      <!-- 步驟 4：前往列印通知單或預覽沙盒 -->
-      <div class="bg-gradient-to-r from-emerald-600 to-teal-700 rounded-3xl p-6 md:p-7 text-white shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
-        <div class="space-y-1">
-          <div class="text-xs font-black text-emerald-100">STEP 4 ‧ 準備就緒</div>
-          <h3 class="text-lg md:text-xl font-black">立即預覽 A4 平時歷程通知小卡 PDF 或體驗家長手機沙盒</h3>
-          <p class="text-xs text-emerald-100/90">支援「家長發放版（無代碼）」與「教師留存版（含代碼）」雙版本 PDF 一鍵下載</p>
-        </div>
-        <div class="flex flex-wrap items-center gap-3 shrink-0">
-          <button onclick="switchTab('printCenter')" class="tactile-btn bg-amber-400 hover:bg-amber-300 text-slate-950 font-black px-5 py-3 rounded-2xl text-xs shadow-md cursor-pointer">
-            📄 前往 A4 通知小卡與 PDF 中心
-          </button>
-          <button onclick="switchTab('previewSandbox')" class="tactile-btn bg-white/20 hover:bg-white/30 text-white font-bold px-4 py-3 rounded-2xl text-xs border border-white/30 cursor-pointer">
-            📱 手機沙盒預覽
-          </button>
-        </div>
-      </div>
-
-    </section>
-
-    <!-- ==================== TAB 2: 平時成績快貼小幫手 ==================== -->
-    <section id="tabContent-dataHelper" class="tab-content hidden space-y-6">
-      <div class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-amber-200/80 space-y-5">
-        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
-          <div>
-            <h2 class="text-lg font-black text-slate-800 flex items-center gap-2">
-              <span>📥</span>
-              <span>平時成績快貼與四大支柱智慧歸類預覽器</span>
-            </h2>
-            <p class="text-xs text-slate-500 mt-0.5">
-              可從 Excel 直接複製貼上（含座號、姓名、各課習作/作業卷/語詞/測驗卷），即時預覽四大支柱歸類結果並一鍵上傳至雲端試算表
-            </p>
-          </div>
-          <div class="flex flex-wrap gap-2">
-            <button onclick="fillSampleDailyData('chinese')" class="tactile-btn text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 px-3 py-2 rounded-xl border border-amber-200 cursor-pointer">
-              📘 載入【國語平時】範例
-            </button>
-            <button onclick="fillSampleDailyData('math')" class="tactile-btn text-xs font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-900 px-3 py-2 rounded-xl border border-emerald-200 cursor-pointer">
-              📐 載入【數學平時】範例
-            </button>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label class="block text-xs font-black text-slate-700 mb-1">目標科目分頁名稱：</label>
-            <input type="text" id="helperSheetName" value="國語平時"
-              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold bg-slate-50">
-          </div>
-          <div class="md:col-span-2 flex items-end gap-2">
-            <button onclick="parseHelperInput()" class="tactile-btn bg-amber-500 hover:bg-amber-600 text-slate-950 font-black px-4 py-2.5 rounded-xl text-xs cursor-pointer">
-              🔍 解析並預覽四大支柱歸類
-            </button>
-            <button onclick="uploadHelperToCloud()" id="uploadCloudBtn" class="tactile-btn bg-emerald-600 hover:bg-emerald-700 text-white font-black px-4 py-2.5 rounded-xl text-xs cursor-pointer">
-              ☁️ 一鍵上傳至 Google 試算表
-            </button>
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-xs font-black text-slate-700 mb-1.5">貼上 Excel / 試算表平時成績資料（第一列為標題：座號、姓名、國習L1...）：</label>
-          <textarea id="rawDailyInput" rows="7" oninput="parseHelperInput()"
-            class="w-full p-3.5 rounded-2xl border border-slate-200 font-mono text-xs bg-slate-50 focus:border-amber-500 focus:outline-none"></textarea>
-        </div>
-
-        <!-- 智慧欄位歸類預覽結果 -->
-        <div id="helperParseSummary" class="bg-amber-50/70 rounded-2xl p-4 border border-amber-200/80 text-xs space-y-2">
-          <!-- JS 動態顯示欄位歸類結果 -->
-        </div>
-      </div>
-    </section>
-
-    <!-- ==================== TAB 3: A4 通知小卡與 PDF 下載中心 ==================== -->
-    <section id="tabContent-printCenter" class="tab-content hidden space-y-6">
-
-      <!-- 頂部控制面板 -->
-      <div class="bg-white rounded-3xl p-6 md:p-7 shadow-sm border border-amber-200/80 space-y-6">
-        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
-          <div>
-            <h2 class="text-lg font-black text-slate-800 flex items-center gap-2">
-              <span>📄</span>
-              <span>A4 平時學習歷程通知小卡 ‧ PDF 預覽與雙版本下載中心</span>
-            </h2>
-            <p class="text-xs text-slate-500 mt-0.5">
-              支援自由調整小卡欄位與手機呈現內容，一鍵預覽並下載「家長發放版」與「教師留存版」高畫質 PDF
-            </p>
-          </div>
-
-          <div class="flex flex-wrap items-center gap-2.5">
-            <button onclick="syncStudentsFromCloud(true)" class="tactile-btn text-xs font-bold bg-slate-100 hover:bg-amber-50 text-slate-700 hover:text-amber-900 px-4 py-2.5 rounded-xl border border-slate-200 flex items-center gap-1.5 cursor-pointer">
-              <span>🔄 從試算表同步名單與平時統計</span>
-            </button>
-            <button onclick="openPrintModal()" class="tactile-btn text-xs font-black bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 px-5 py-2.5 rounded-xl shadow-md shadow-amber-500/20 flex items-center gap-1.5 cursor-pointer">
-              <span>📄 預覽 PDF ‧ 一鍵下載 / 列印</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- 標題與叮嚀文字設定 -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-          <div>
-            <label class="block font-black text-slate-700 mb-1">學校或班級抬頭：</label>
-            <input type="text" id="cardSchoolTitle" value="新北市林口區麗園國民小學" oninput="updatePrintCards()"
-              class="w-full px-3.5 py-2 rounded-xl border border-slate-200 font-bold bg-slate-50">
-          </div>
-          <div>
-            <label class="block font-black text-slate-700 mb-1">通知單主標題：</label>
-            <input type="text" id="cardNoticeTitle" value="115學年度第一學期 平時學習歷程通知單" oninput="updatePrintCards()"
-              class="w-full px-3.5 py-2 rounded-xl border border-slate-200 font-bold bg-slate-50">
-          </div>
-          <div>
-            <label class="block font-black text-slate-700 mb-1">底部導師溫馨叮嚀：</label>
-            <input type="text" id="cardFootnote" value="請掃描 QR Code 查看孩子本學期習作、作業卷與單元測驗脈絡及待補交提醒。" oninput="updatePrintCards()"
-              class="w-full px-3.5 py-2 rounded-xl border border-slate-200 font-medium bg-slate-50">
-          </div>
-        </div>
-
-        <!-- 雙軌顯示設定：手機網頁呈現 vs 紙本小卡印出 -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
-
-          <!-- 左：家長手機網頁呈現項目 (?v= 參數) -->
-          <div class="bg-emerald-50/50 rounded-2xl p-4 border border-emerald-200/80 space-y-3">
-            <div class="font-black text-emerald-950 flex items-center justify-between">
-              <span>📱 家長掃描 QR 後「手機網頁」顯示項目：</span>
-              <span class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">即時編碼入 QR</span>
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-              <label class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-emerald-200/70 cursor-pointer">
-                <input type="checkbox" id="webOptOverallAvg" checked onchange="updatePrintCards()" class="rounded text-emerald-600 w-4 h-4">
-                <span class="font-bold text-slate-700">各科平時總平均</span>
-              </label>
-              <label class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-emerald-200/70 cursor-pointer">
-                <input type="checkbox" id="webOptPillars" checked onchange="updatePrintCards()" class="rounded text-emerald-600 w-4 h-4">
-                <span class="font-bold text-slate-700">學習指標四大支柱</span>
-              </label>
-              <label class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-emerald-200/70 cursor-pointer">
-                <input type="checkbox" id="webOptClassAvg" checked onchange="updatePrintCards()" class="rounded text-emerald-600 w-4 h-4">
-                <span class="font-bold text-slate-700">班級平時平均參考</span>
-              </label>
-              <label class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-emerald-200/70 cursor-pointer">
-                <input type="checkbox" id="webOptTimeline" checked onchange="updatePrintCards()" class="rounded text-emerald-600 w-4 h-4">
-                <span class="font-bold text-slate-700">L1~L6 單元折線圖</span>
-              </label>
-              <label class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-emerald-200/70 cursor-pointer">
-                <input type="checkbox" id="webOptReminders" checked onchange="updatePrintCards()" class="rounded text-emerald-600 w-4 h-4">
-                <span class="font-bold text-slate-700">⏳ 待補交/複習提醒箱</span>
-              </label>
-              <label class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-emerald-200/70 cursor-pointer">
-                <input type="checkbox" id="webOptAdvice" checked onchange="updatePrintCards()" class="rounded text-emerald-600 w-4 h-4">
-                <span class="font-bold text-slate-700">💡 親師同心叮嚀</span>
-              </label>
-            </div>
-          </div>
-
-          <!-- 右：紙本通知小卡印出欄位 -->
-          <div class="bg-amber-50/60 rounded-2xl p-4 border border-amber-200/80 space-y-3">
-            <div class="font-black text-amber-950 flex items-center justify-between">
-              <span>📄 實體「紙本通知小卡」印出欄位：</span>
-              <span class="text-[10px] bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full font-bold">滿版清晰排版</span>
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-              <label class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-amber-200/80 cursor-pointer">
-                <input type="checkbox" id="printOptSubjects" checked onchange="updatePrintCards()" class="rounded text-amber-600 w-4 h-4">
-                <span class="font-bold text-slate-700">各科平時總均網格</span>
-              </label>
-              <label class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-amber-200/80 cursor-pointer">
-                <input type="checkbox" id="printOptReminders" checked onchange="updatePrintCards()" class="rounded text-amber-600 w-4 h-4">
-                <span class="font-bold text-slate-700">⏳ 待補交/待訂正提醒</span>
-              </label>
-              <label class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-amber-200/80 cursor-pointer">
-                <input type="checkbox" id="printOptStudentId" checked onchange="updatePrintCards()" class="rounded text-amber-600 w-4 h-4">
-                <span class="font-bold text-slate-700">班級-座號 (例如: 605-12)</span>
-              </label>
-              <label class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-amber-200/80 cursor-pointer">
-                <input type="checkbox" id="printOptToken" onchange="updatePrintCards()" class="rounded text-amber-600 w-4 h-4">
-                <span class="font-medium text-slate-700">文字查詢代碼</span>
-              </label>
-              <label class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-amber-200/80 cursor-pointer col-span-2">
-                <input type="checkbox" id="printOptFootnote" checked onchange="updatePrintCards()" class="rounded text-amber-600 w-4 h-4">
-                <span class="font-medium text-slate-700">底部導師溫馨叮嚀</span>
-              </label>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      <!-- 頁面下方即時小卡網格預覽 -->
-      <div class="space-y-3">
-        <div class="flex items-center justify-between px-1">
-          <div class="text-xs font-black text-slate-600">
-            👇 全班平時學習歷程小卡即時預覽（點擊上方【📄 預覽 PDF ‧ 一鍵下載 / 列印】可切換每頁張數並匯出雙版本 PDF）
-          </div>
-          <span id="cardsCountBadge" class="text-xs font-bold text-amber-900 bg-amber-100 px-3 py-1 rounded-full">
-            共 24 張小卡
-          </span>
-        </div>
-
-        <div id="cardsPreviewGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- JS 動態插入小卡預覽 -->
-        </div>
-      </div>
-
-    </section>
-
-    <!-- ==================== TAB 4: 家長手機視角即時沙盒 ==================== -->
-    <section id="tabContent-previewSandbox" class="tab-content hidden space-y-6">
-      <div class="bg-white rounded-3xl p-6 shadow-sm border border-amber-200/80 space-y-5">
-        <div class="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h2 class="text-lg font-black text-slate-800 flex items-center gap-2">
-              <span>📱</span>
-              <span>家長手機視角即時模擬沙盒</span>
-            </h2>
-            <p class="text-xs text-slate-500 mt-0.5">
-              在發放通知單前，老師可先在此切換任一位學生，親眼檢視家長掃描 QR Code 後看到的四大支柱與單元脈絡折線圖！
-            </p>
-          </div>
-
-          <div class="flex flex-wrap items-center gap-2.5">
-            <select id="previewStudentSelect" onchange="loadSandboxPreview()"
-              class="px-4 py-2.5 rounded-xl border border-amber-300 bg-amber-50/70 text-xs font-black text-slate-800 focus:outline-none">
-            </select>
-            <button onclick="openSelectedStudentInNewTab()" class="tactile-btn text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl cursor-pointer">
-              ↗ 全螢幕開啟該生手札
-            </button>
-          </div>
-        </div>
-
-        <!-- 模擬器視窗 -->
-        <div class="bg-slate-900 rounded-[2.5rem] p-3 md:p-4 max-w-5xl mx-auto shadow-2xl border-4 border-slate-800">
-          <div class="bg-slate-800 rounded-t-3xl px-4 py-2 flex items-center justify-between text-[11px] text-slate-300 font-mono">
-            <span>🔒 parent.html (高資安個人化隔離視角)</span>
-            <span id="sandboxUrlLabel">?t=DEMO02</span>
-          </div>
-          <iframe id="sandboxIframe" src="parent.html?t=DEMO02" class="w-full h-[720px] bg-[#FAF8F5] rounded-b-3xl border-0"></iframe>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- ==================== 頁尾 ==================== -->
-  <footer class="no-print bg-white border-t border-amber-200/70 py-5 px-4 text-center text-xs text-slate-500 mt-12">
-    <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-      <div>🌱 <b>MPScore-Daily 學生平時學習歷程手札</b> ‧ 專為形成性評量與親師正向溝通打造</div>
-      <div>網站作者 / 系統規劃：<b class="text-slate-700">楊家驊老師 (Chiahua Yang)</b></div>
-    </div>
-  </footer>
-
-  <!-- ==================== 📄 A4 通知小卡 PDF 預覽與下載列印對話框 (直屬 body 第一層) ==================== -->
-  <div id="printPreviewModal" onclick="if(event.target === this) closePrintModal()" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm hidden overflow-y-auto flex items-start justify-center p-3 md:p-6">
-    <div class="bg-white rounded-3xl shadow-2xl max-w-5xl w-full border border-slate-200 overflow-hidden my-4 flex flex-col max-h-[92vh]">
-
-      <!-- Modal 頂部控制列 (列印時隱藏) -->
-      <div class="no-print p-4 md:p-6 bg-slate-900 text-white flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 shrink-0">
-        <div>
-          <h3 class="text-base md:text-lg font-black flex items-center gap-2">
-            <span>📄 A4 平時學習歷程小卡 PDF 預覽與一鍵下載</span>
-          </h3>
-          <p class="text-xs text-slate-300 mt-1">
-            您可在此即時預覽 A4 分頁版面；確認無誤後，可直接下載【家長發放版】或【教師留存版】PDF，亦可直接列印。
-          </p>
-        </div>
-
-        <div class="flex flex-wrap items-center gap-2.5">
-          <button id="downloadParentPdfBtn" onclick="downloadPrintCardsPdf('parent')" class="tactile-btn bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-lg cursor-pointer">
-            <span>📥 下載【家長發放版】PDF</span>
-          </button>
-          <button id="downloadTeacherPdfBtn" onclick="downloadPrintCardsPdf('teacher')" class="tactile-btn bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-lg cursor-pointer">
-            <span>📋 下載【教師留存版】PDF (含代碼)</span>
-          </button>
-          <button onclick="triggerDirectPrint()" class="tactile-btn bg-slate-700 hover:bg-slate-600 text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1 cursor-pointer">
-            <span>🖨️ 友善列印</span>
-          </button>
-          <button onclick="closePrintModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer">
-            ✕ 關閉
-          </button>
-        </div>
-      </div>
-
-      <!-- 版本切換與每頁張數控制列 (列印時隱藏) -->
-      <div class="no-print p-3 md:p-4 bg-amber-50/90 border-b border-amber-200 flex flex-wrap items-center justify-between gap-3 text-xs shrink-0">
-        <div class="flex flex-wrap items-center gap-4">
-          <div class="flex items-center gap-1.5">
-            <span class="font-black text-amber-950">👁️ 預覽版本：</span>
-            <div class="bg-white p-1 rounded-xl border border-amber-200 flex items-center gap-1">
-              <button type="button" id="editionBtn-parent" onclick="switchPrintEdition('parent')" class="px-2.5 py-1 rounded-lg font-black text-xs bg-amber-500 text-slate-950 shadow-xs cursor-pointer">
-                👨‍👩‍👧 家長版 (無代碼)
-              </button>
-              <button type="button" id="editionBtn-teacher" onclick="switchPrintEdition('teacher')" class="px-2.5 py-1 rounded-lg font-bold text-xs text-slate-600 hover:text-amber-700 cursor-pointer">
-                🧑‍🏫 教師版 (含代碼)
-              </button>
-            </div>
-          </div>
-
-          <div class="flex items-center gap-1.5">
-            <span class="font-black text-amber-950">📄 每頁張數：</span>
-            <div class="bg-white p-1 rounded-xl border border-amber-200 flex items-center gap-1">
-              <button type="button" onclick="changeCardsPerPage(4)" data-count="4" class="cards-per-page-btn px-2.5 py-1 rounded-lg font-black text-xs bg-amber-500 text-slate-950 shadow-xs cursor-pointer">
-                4 張 (2×2 標準)
-              </button>
-              <button type="button" onclick="changeCardsPerPage(6)" data-count="6" class="cards-per-page-btn px-2.5 py-1 rounded-lg font-bold text-xs text-slate-600 hover:text-amber-700 cursor-pointer">
-                6 張 (2×3 省紙)
-              </button>
-              <button type="button" onclick="changeCardsPerPage(8)" data-count="8" class="cards-per-page-btn px-2.5 py-1 rounded-lg font-bold text-xs text-slate-600 hover:text-amber-700 cursor-pointer">
-                8 張 (2×4 隨身)
-              </button>
-              <button type="button" onclick="changeCardsPerPage(2)" data-count="2" class="cards-per-page-btn px-2.5 py-1 rounded-lg font-bold text-xs text-slate-600 hover:text-amber-700 cursor-pointer">
-                2 張 (1×2 大字)
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <span id="printPageStats" class="text-amber-950 font-bold bg-amber-100/80 px-3 py-1 rounded-lg border border-amber-200/60">
-          全班共 24 位學生 ‧ 預計產生 6 頁 A4
-        </span>
-      </div>
-
-      <!-- A4 預覽滾動區 -->
-      <div class="p-4 md:p-8 bg-slate-100 overflow-y-auto flex-1 space-y-8" id="printModalScrollArea">
-        <div class="no-print max-w-3xl mx-auto bg-amber-50 text-amber-900 text-xs px-4 py-2.5 rounded-xl border border-amber-200 flex items-center gap-2 shadow-2xs">
-          <span>💡</span>
-          <span><b>PDF 預覽提示：</b>下方即為真實 A4 分頁畫面。點選上方<b>【📥 下載家長發放版 PDF】</b>發給家長（乾淨無代碼），亦可點選<b>【📋 下載教師留存版 PDF】</b>保存全班學生代碼以備查閱補發！</span>
-        </div>
-
-        <div id="printModalSheets" class="space-y-8 max-w-4xl mx-auto">
-          <!-- JS 動態生成 .a4-print-sheet -->
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ==================== 📋 系統架構與更新紀錄 Modal ==================== -->
-  <div id="teacherChangelogModal" onclick="if(event.target === this) closeTeacherChangelogModal()" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm hidden overflow-y-auto flex items-start justify-center p-4">
-    <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full border border-amber-200 overflow-hidden my-8 p-6 md:p-7 space-y-4">
-      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-        <h3 class="text-base md:text-lg font-black text-slate-800 flex items-center gap-2">
-          <span>🌱</span>
-          <span>MPScore-Daily 學生平時學習歷程手札・核心設計與更新紀錄</span>
-        </h3>
-        <button onclick="closeTeacherChangelogModal()" class="text-slate-400 hover:text-slate-600 font-bold text-sm px-2 py-1">✕</button>
-      </div>
-      <div class="space-y-3 text-xs text-slate-600 leading-relaxed max-h-[70vh] overflow-y-auto pr-1">
-        <div class="bg-amber-50/70 p-4 rounded-2xl border border-amber-200/80 space-y-1.5">
-          <div class="font-black text-amber-950 text-sm">✨ v1.0 形成性評量歷程手札正式上線</div>
-          <ul class="list-disc list-inside space-y-1">
-            <li><b>四大支柱自動分群</b>：自動將試算表中的「習作、作業卷、語詞聽寫、單元測驗卷」歸納為四大指標，免去老師手動拉公式。</li>
-            <li><b>儲存格底色智慧轉化</b>：試算表塗上<b>黃色底色</b>自動轉為前台「⏳ 待補交 / 待補測」提醒；塗上<b>粉紅色底色</b>自動轉為「🌱 需重點複習 / 待訂正」。</li>
-            <li><b>L1~L6 單元學習脈絡折線圖</b>：橫軸依單元時序展開，自動標示吸收最佳單元與「▲ 發現弱點單元」。</li>
-            <li><b>A4 通知小卡 PDF 即時預覽與雙版本下載</b>：支援家長發放版（無代碼）與教師留存版（含代碼）一鍵匯出高畫質 PDF，且學生代碼可與 MPScore 段考系統 100% 互通共用！</li>
-          </ul>
-        </div>
-      </div>
-      <button onclick="closeTeacherChangelogModal()" class="tactile-btn w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-black py-2.5 rounded-2xl text-xs cursor-pointer">
-        關閉視窗
-      </button>
-    </div>
-  </div>
-
-  <!-- ==================== 教師端核心腳本 ==================== -->
-  <script>
-    // 內建 605 班 24 位學生示範資料 (與 parent.html 及 MPScore 一致)
-    const DEMO_RAW_ROSTER = [
-      { seat: '01', name: '陳小明', chi: 94.5, math: 91.2, soc: 93.0, missing: [], review: [] },
-      { seat: '02', name: '陳小華', chi: 91.5, math: 87.7, soc: 89.2, missing: ['國語:作業卷L3'], review: ['國語:測驗卷L3', '數學:測驗卷L2'] },
-      { seat: '03', name: '陳大美', chi: 92.4, math: 93.0, soc: 90.5, missing: [], review: [] },
-      { seat: '04', name: '陳志豪', chi: 77.5, math: 79.2, soc: 76.0, missing: ['國語:語詞L3'], review: ['國語:測驗卷L3'] },
-      { seat: '06', name: '黃小琪', chi: 86.2, math: 83.5, soc: 85.0, missing: [], review: [] },
-      { seat: '07', name: '李大偉', chi: 95.0, math: 95.8, soc: 94.5, missing: [], review: [] },
-      { seat: '08', name: '林子涵', chi: 97.6, math: 96.5, soc: 96.8, missing: [], review: [] },
-      { seat: '09', name: '凌雅婷', chi: 81.4, math: 79.5, soc: 83.0, missing: [], review: [] },
-      { seat: '10', name: '劉建銘', chi: 84.2, math: 86.0, soc: 85.2, missing: [], review: [] },
-      { seat: '11', name: '王冠宇', chi: 70.2, math: 67.5, soc: 72.0, missing: ['數學:作業卷L3'], review: ['國語:測驗卷L3'] },
-      { seat: '12', name: '吳宗憲', chi: 85.4, math: 83.2, soc: 91.0, missing: [], review: [] },
-      { seat: '13', name: '嚴立婷', chi: 93.2, math: 96.4, soc: 94.0, missing: [], review: [] },
-      { seat: '14', name: '余承恩', chi: 78.6, math: 75.8, soc: 76.5, missing: [], review: [] },
-      { seat: '15', name: '嚴佳慧', chi: 92.0, math: 92.2, soc: 93.0, missing: [], review: [] },
-      { seat: '16', name: '羅品安', chi: 95.8, math: 94.0, soc: 94.8, missing: [], review: [] },
-      { seat: '17', name: '羅廷宇', chi: 71.8, math: 69.5, soc: 71.0, missing: [], review: ['數學:測驗卷L2'] },
-      { seat: '18', name: '蕭雅云', chi: 93.0, math: 92.0, soc: 94.5, missing: [], review: [] },
-      { seat: '19', name: '張凱傑', chi: 80.5, math: 77.5, soc: 79.2, missing: [], review: [] },
-      { seat: '20', name: '茅文傑', chi: 91.2, math: 89.4, soc: 92.0, missing: [], review: [] },
-      { seat: '21', name: '洪宇成', chi: 79.4, math: 75.6, soc: 77.5, missing: [], review: [] },
-      { seat: '22', name: '林郁潔', chi: 90.4, math: 91.0, soc: 92.0, missing: [], review: [] },
-      { seat: '23', name: '周奕翔', chi: 96.5, math: 89.5, soc: 94.0, missing: [], review: [] },
-      { seat: '24', name: '吳秉翰', chi: 83.2, math: 79.4, soc: 82.0, missing: [], review: [] },
-      { seat: '25', name: '李勝吉', chi: 71.0, math: 66.8, soc: 70.2, missing: ['國語:作業卷L4'], review: ['數學:測驗卷L3'] }
-    ];
-
-    const DEMO_STUDENTS = DEMO_RAW_ROSTER.map(st => ({
-      className: '605',
-      seatNumber: st.seat,
-      name: st.name,
-      token: 'DEMO' + st.seat,
-      studentId: '605-' + st.seat,
-      subjectStats: {
-        '國語平時': {
-          sheetName: '國語平時',
-          subjectShortName: '國語',
-          overallAverage: st.chi,
-          classOverallAverage: 88.7,
-          missingCount: st.missing.filter(m => m.startsWith('國語:')).length,
-          reviewCount: st.review.filter(r => r.startsWith('國語:')).length,
-          missingItems: st.missing.filter(m => m.startsWith('國語:')).map(m => ({ title: m.split(':')[1] })),
-          reviewItems: st.review.filter(r => r.startsWith('國語:')).map(r => ({ title: r.split(':')[1] }))
-        },
-        '數學平時': {
-          sheetName: '數學平時',
-          subjectShortName: '數學',
-          overallAverage: st.math,
-          classOverallAverage: 86.8,
-          missingCount: st.missing.filter(m => m.startsWith('數學:')).length,
-          reviewCount: st.review.filter(r => r.startsWith('數學:')).length,
-          missingItems: st.missing.filter(m => m.startsWith('數學:')).map(m => ({ title: m.split(':')[1] })),
-          reviewItems: st.review.filter(r => r.startsWith('數學:')).map(r => ({ title: r.split(':')[1] }))
-        },
-        '社會平時': {
-          sheetName: '社會平時',
-          subjectShortName: '社會',
-          overallAverage: st.soc,
-          classOverallAverage: 87.9,
-          missingCount: 0,
-          reviewCount: 0,
-          missingItems: [],
-          reviewItems: []
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MPScore-Daily — 教師平時成績管理與通知小卡列印中心</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans TC"', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    }
+                }
+            }
         }
-      }
-    }));
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700;800&family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- QRCode.js & html2pdf.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- System Config -->
+    <script src="config.js"></script>
 
-    // 內嵌 Loader.gs 供步驟 2 一鍵複製
-    const LOADER_CODE_CONTENT = `/**
- * MPScore-Daily - 學生平時學習歷程手札 GitHub 自動熱更新引導核心
- * 只要貼上這段程式碼，未來 GitHub (chy23/MPScore-Daily) 有任何功能更新，試算表皆會自動同步！
+    <style>
+        :root {
+            --bg-cream: #FAF8F5;
+            --border-warm: #E6E1D6;
+        }
+
+        body {
+            background-color: var(--bg-cream);
+            background-image:
+                radial-gradient(at 10% 10%, rgba(251, 191, 36, 0.12) 0px, transparent 50%),
+                radial-gradient(at 90% 12%, rgba(16, 185, 129, 0.08) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: #1c1917;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .warm-card {
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(230, 225, 214, 0.95);
+            box-shadow: 0 10px 30px -8px rgba(120, 90, 50, 0.06), 0 2px 8px -2px rgba(120, 90, 50, 0.04);
+        }
+
+        .tabular-nums {
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* A4 紙張列印與 PDF 匯出專用滿版雙欄十格樣式 */
+        .a4-sheet {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 8mm 10mm;
+            margin: 0 auto;
+            background: #ffffff;
+            box-sizing: border-box;
+            box-shadow: 0 12px 36px rgba(28, 25, 23, 0.12);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            page-break-after: always;
+        }
+
+        .a4-grid-10 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 3.5mm 4.5mm;
+            flex: 1;
+        }
+
+        .slip-card {
+            border: 1.5px dashed #cbd5e1;
+            border-radius: 10px;
+            padding: 3mm 3.5mm;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background: #ffffff;
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+        }
+
+        @media print {
+            body {
+                background: #ffffff !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            #printPreviewModal {
+                position: static !important;
+                background: transparent !important;
+                padding: 0 !important;
+            }
+            .a4-sheet {
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                margin: 0 !important;
+                width: 210mm !important;
+                height: 297mm !important;
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col selection:bg-amber-200 selection:text-amber-950">
+
+    <!-- 頂部導覽列 -->
+    <header class="no-print sticky top-0 z-30 bg-[#FAF8F5]/90 backdrop-blur-md border-b border-stone-200/80 px-4 py-3">
+        <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-md shadow-amber-500/20 font-black text-xl">
+                    📊
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-black text-stone-800 tracking-tight text-base sm:text-lg">MPScore-Daily 教師管理與列印中心</h1>
+                        <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">平時成績專用系統</span>
+                    </div>
+                    <p class="text-xs text-stone-500">自動結算習作 ‧ 作業卷 ‧ 語詞 ‧ 測驗卷四大分項平均與 L1~L6 單元走勢</p>
+                </div>
+            </div>
+
+            <!-- 頂部三大模式切換器 -->
+            <div class="flex items-center gap-1.5 bg-white p-1.5 rounded-2xl border border-stone-200/90 shadow-sm">
+                <button onclick="switchMainTab('wizard')" id="tabBtnWizard" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition bg-amber-500 text-white shadow-sm">
+                    🪄 1. 試算表平時成績設定精靈
+                </button>
+                <button onclick="switchMainTab('print')" id="tabBtnPrint" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition text-stone-600 hover:text-stone-900">
+                    🖨️ 2. 平時成績總覽與通知卡列印
+                </button>
+                <a href="parent.html?token=DEMO01" target="_blank" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition text-emerald-700 hover:bg-emerald-50 flex items-center gap-1">
+                    <span>📱 預覽家長端平時成績</span>
+                    <span>↗</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主內容區 -->
+    <main class="no-print flex-1 max-w-6xl w-full mx-auto px-4 pt-6 pb-20">
+
+        <!-- ========================================================================= -->
+        <!-- 分頁一：🪄 試算表平時成績三步驟設定精靈 -->
+        <!-- ========================================================================= -->
+        <div id="viewWizard" class="space-y-6">
+
+            <!-- 系統核心價值橫幅：強調平時成績自動統計（免除老師手動拉公式） -->
+            <section class="rounded-3xl bg-gradient-to-br from-amber-500 via-amber-500 to-orange-500 text-white p-6 sm:p-7 shadow-xl shadow-amber-900/10 relative overflow-hidden">
+                <div class="absolute -right-10 -top-10 w-48 h-48 rounded-full bg-white/10 blur-2xl pointer-events-none"></div>
+                <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                    <div class="space-y-2 max-w-2xl">
+                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-xs font-bold">
+                            <span>✨ 專為國中小老師設計的「平時成績簿」升級方案</span>
+                        </div>
+                        <h2 class="text-xl sm:text-2xl font-black tracking-tight">只要在試算表登記各次分數，系統自動算好所有分項平均與班均！</h2>
+                        <p class="text-xs sm:text-sm text-amber-50/95 leading-relaxed">
+                            您不需要在 Excel / Google 試算表手動寫複雜的 <code class="bg-black/20 px-1.5 py-0.5 rounded font-mono">AVERAGE</code> 公式。系統會根據表頭名稱（如：國習L1、作業卷L1、語詞L1、測驗卷L1），自動幫每位學生算出<strong>「習作平均、作業卷平均、語詞平均、測驗卷平均、各科平時總均、班級平均對比與 L1~L6 單元走勢圖」</strong>！
+                        </p>
+                    </div>
+                    <div class="flex flex-wrap gap-2.5 shrink-0">
+                        <button onclick="loadDemoToPrintCenter()" class="px-4 py-3 rounded-2xl bg-white text-amber-700 hover:bg-amber-50 font-black text-xs sm:text-sm shadow-lg transition flex items-center gap-2">
+                            <span>🎯</span>
+                            <span>免設定！直接體驗全班平時成績與列印預覽</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 三步驟設定卡片 -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+                <!-- 步驟 1：產生平時成績範本與名單快貼 -->
+                <div class="warm-card rounded-3xl p-5 sm:p-6 flex flex-col justify-between space-y-4">
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="px-2.5 py-1 rounded-xl bg-amber-100 text-amber-800 font-black text-xs">STEP 1</span>
+                            <span class="text-xs font-bold text-stone-400">支援 Excel / 校務系統直接貼上</span>
+                        </div>
+                        <h3 class="font-black text-stone-800 text-lg">準備試算表與各科平時成績表</h3>
+                        <p class="text-xs text-stone-600 leading-relaxed">
+                            開啟任一空白 Google 試算表。系統可一鍵建立「國語平時、數學平時、社會平時」範例表，或您可直接將現有成績單貼入試算表。
+                        </p>
+
+                        <div class="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200/80 space-y-2">
+                            <div class="text-xs font-extrabold text-amber-900">💡 智慧表頭自動分類規則：</div>
+                            <ul class="text-[11px] text-stone-600 space-y-1 leading-relaxed">
+                                <li>‧ <strong>📘 習作平時</strong>：國習L1、數習L2、習作...</li>
+                                <li>‧ <strong>📝 作業卷平時</strong>：作業卷L1、學習單、甲卷...</li>
+                                <li>‧ <strong>🔤 語詞/基礎</strong>：語詞L1、聽寫、圈詞、計算L1...</li>
+                                <li>‧ <strong>🎯 單元測驗卷</strong>：測驗卷L1、平時考、小考...</li>
+                            </ul>
+                        </div>
+
+                        <!-- 全班名單 / 平時成績 TSV 產生器 -->
+                        <div class="space-y-1.5 pt-1">
+                            <label class="block text-xs font-extrabold text-stone-700">📋 班級學生名單快貼工具（選填）：</label>
+                            <textarea id="quickRosterInput" rows="3" placeholder="每行一位學生姓名（或直接貼上「座號 姓名」），可產生標準試算表名單格式..."
+                                class="w-full rounded-xl border border-stone-200 p-2.5 text-xs font-mono text-stone-700 bg-stone-50/70 focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+                        </div>
+                    </div>
+
+                    <button onclick="copyFormattedRosterTSV()" class="w-full py-2.5 px-4 rounded-xl bg-stone-800 hover:bg-stone-900 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-sm">
+                        <span>📋</span>
+                        <span id="btnCopyRosterText">複製標準「座號 + 姓名」試算表格式</span>
+                    </button>
+                </div>
+
+                <!-- 步驟 2：植入免維護 Loader.gs -->
+                <div class="warm-card rounded-3xl p-5 sm:p-6 flex flex-col justify-between space-y-4">
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="px-2.5 py-1 rounded-xl bg-amber-100 text-amber-800 font-black text-xs">STEP 2</span>
+                            <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">免維護 Loader 架構</span>
+                        </div>
+                        <h3 class="font-black text-stone-800 text-lg">貼上 Loader 啟動碼並產生代碼</h3>
+                        <p class="text-xs text-stone-600 leading-relaxed">
+                            在試算表上方點選「擴充功能 ➔ Apps Script」，清空原本內容並貼上下方啟動碼，存檔後重新整理試算表即可看到<strong>「⚡ MPScore-Daily 平時成績工具」</strong>選單！
+                        </p>
+
+                        <div class="rounded-2xl bg-stone-900 text-stone-200 p-3 font-mono text-[11px] leading-relaxed max-h-40 overflow-y-auto select-all border border-stone-700">
+                            <pre id="loaderCodePreview" class="whitespace-pre-wrap break-all"></pre>
+                        </div>
+
+                        <div class="text-[11px] text-stone-500 space-y-1">
+                            <div>1️⃣ 點選試算表選單「🌱 產生範例平時成績資料表」（若尚無成績表）</div>
+                            <div>2️⃣ 點選「🔑 1. 產生或更新學生專屬查詢代碼」自動建立 8 碼安全代碼</div>
+                        </div>
+                    </div>
+
+                    <button onclick="copyLoaderCode()" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/20">
+                        <span>⚡</span>
+                        <span id="btnCopyLoaderText">一鍵複製 Loader.gs 啟動程式碼</span>
+                    </button>
+                </div>
+
+                <!-- 步驟 3：連線 Web App API 載入全班平時成績 -->
+                <div class="warm-card rounded-3xl p-5 sm:p-6 flex flex-col justify-between space-y-4">
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="px-2.5 py-1 rounded-xl bg-amber-100 text-amber-800 font-black text-xs">STEP 3</span>
+                            <span class="text-xs font-bold text-stone-400">部署為網頁應用程式</span>
+                        </div>
+                        <h3 class="font-black text-stone-800 text-lg">貼上部署網址，載入全班平時成績</h3>
+                        <p class="text-xs text-stone-600 leading-relaxed">
+                            於 Apps Script 右上角點選「部署 ➔ 新增部署 ➔ 網頁應用程式」（誰可以存取選「所有人」），將取得的 <code class="font-mono text-amber-700">https://script.google.com/.../exec</code> 貼在下方：
+                        </p>
+
+                        <div class="space-y-2 pt-1">
+                            <label class="block text-xs font-extrabold text-stone-700">🔗 試算表 Web App API 網址：</label>
+                            <input id="apiUrlInput" type="url" placeholder="https://script.google.com/macros/s/.../exec"
+                                class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-xs font-mono text-stone-800 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            <p id="apiStatusMsg" class="text-[11px] text-stone-500">若尚未部署試算表，可直接點下方「載入內建 501 班範例平時成績」體驗完整功能。</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <button onclick="connectCloudGradebook()" class="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-sm">
+                            <span>☁️</span>
+                            <span>連線試算表並載入全班平時成績</span>
+                        </button>
+                        <button onclick="loadDemoToPrintCenter()" class="w-full py-2 px-4 rounded-xl bg-amber-100/80 hover:bg-amber-200/70 text-amber-900 font-bold text-xs transition flex items-center justify-center gap-1.5">
+                            <span>✨</span>
+                            <span>載入內建 501 班範例平時成績（10人）</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- 分頁二：🖨️ 全班平時成績總覽與 A4 通知小卡列印中心 -->
+        <!-- ========================================================================= -->
+        <div id="viewPrintCenter" class="hidden space-y-6">
+
+            <!-- 頂部班級平時成績摘要統計列 -->
+            <section class="warm-card rounded-3xl p-5 sm:p-6">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-stone-200/80 pb-4">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span id="rosterBadgeSource" class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">✨ 範例班級：501班（10位學生）</span>
+                            <span class="text-xs text-stone-400 font-mono" id="rosterUpdatedTime">更新時間：2026-10-16</span>
+                        </div>
+                        <h2 class="text-lg sm:text-xl font-black text-stone-800 mt-1">全班各科平時成績總均與四大分項均標一覽</h2>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <button onclick="openPrintPreviewModal()" class="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black text-xs sm:text-sm shadow-lg shadow-amber-500/20 transition flex items-center gap-2">
+                            <span>🖨️</span>
+                            <span>預覽與下載 A4 平時成績通知小卡 PDF</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 雙維度顯示控制面板（家長網頁端顯示項目 + 紙本小卡列印項目） -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-4">
+                    <!-- 維度 A：家長掃碼後網頁顯示模組控制 -->
+                    <div class="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/80 space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <div class="text-xs font-black text-amber-950 flex items-center gap-1.5">
+                                <span>📱 家長掃描 QR Code 後「手機網頁」顯示內容設定</span>
+                            </div>
+                            <span class="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">即時編入 QR 網址</span>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                            <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
+                                <input type="checkbox" id="webOptOverallHero" checked onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
+                                <span>各科平時總均摘要</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
+                                <input type="checkbox" id="webOptPillars" checked onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
+                                <span>四大分項平時平均</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
+                                <input type="checkbox" id="webOptClassNorm" checked onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
+                                <span>班級平均常模對比</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
+                                <input type="checkbox" id="webOptTimeline" checked onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
+                                <span>L1~L6 單元走勢圖</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
+                                <input type="checkbox" id="webOptMatrix" checked onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
+                                <span>單元橫向成績總表</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
+                                <input type="checkbox" id="webOptAdvice" checked onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
+                                <span>平時成績診斷建議</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 維度 B：A4 紙本平時成績通知小卡列印項目控制 -->
+                    <div class="p-4 rounded-2xl bg-stone-50/90 border border-stone-200/90 space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <div class="text-xs font-black text-stone-800 flex items-center gap-1.5">
+                                <span>📄 A4 紙本「平時成績通知小卡」票面顯示項目</span>
+                            </div>
+                            <span class="text-[10px] font-bold text-stone-500 bg-stone-200/70 px-2 py-0.5 rounded-full">一頁 10 張裁切小卡</span>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                            <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
+                                <input type="checkbox" id="printOptSubjAvg" checked onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
+                                <span>各科平時總均網格</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
+                                <input type="checkbox" id="printOptPillars" checked onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
+                                <span>四大分項平時平均</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
+                                <input type="checkbox" id="printOptClassAvg" checked onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
+                                <span>班級平均對比差值</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
+                                <input type="checkbox" id="printOptSeatClass" checked onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
+                                <span>班級與座號標示</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
+                                <input type="checkbox" id="printOptTokenText" checked onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
+                                <span>8 碼文字查詢代碼</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
+                                <input type="checkbox" id="printOptSignBox" checked onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
+                                <span>底部家長簽章欄</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 全班平時成績總表 (支援勾選列印、查看各科平時總均、四大分項平均與一鍵開啟家長端) -->
+            <section class="warm-card rounded-3xl p-5 sm:p-6 space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <label class="inline-flex items-center gap-2 text-xs font-extrabold text-stone-700 cursor-pointer">
+                            <input type="checkbox" id="selectAllCheckbox" checked onchange="toggleSelectAllStudents(this.checked)" class="w-4 h-4 rounded text-amber-600 focus:ring-amber-500">
+                            <span>全選學生</span>
+                        </label>
+                        <span id="selectedCountBadge" class="text-xs font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full">已選取 10 位列印</span>
+                    </div>
+
+                    <div class="text-xs text-stone-500">
+                        💡 點擊右側「查看歷程」可直接開啟該名學生的家長端平時成績分析頁
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto rounded-2xl border border-stone-200/90">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-stone-100/90 text-stone-600 text-xs font-extrabold border-b border-stone-200/90">
+                                <th class="py-3 px-3 text-center w-10">列印</th>
+                                <th class="py-3 px-3 whitespace-nowrap">座號 ‧ 姓名</th>
+                                <th class="py-3 px-3 whitespace-nowrap">查詢代碼</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">📘 國語平時總均 (四分項均)</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">📐 數學平時總均 (四分項均)</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">🌍 社會平時總均 (四分項均)</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">🌟 跨科平時總均</th>
+                                <th class="py-3 px-3 text-right whitespace-nowrap">家長端預覽</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teacherRosterTableBody" class="divide-y divide-stone-200/70 text-xs sm:text-sm bg-white">
+                            <!-- JS 動態渲染全班平時成績列 -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+    </main>
+
+    <!-- ========================================================================= -->
+    <!-- 模態視窗：🖨️ A4 平時成績通知小卡 PDF 預覽與雙版本下載中心 -->
+    <!-- ========================================================================= -->
+    <div id="printPreviewModal" class="hidden fixed inset-0 z-50 bg-stone-900/75 backdrop-blur-sm overflow-y-auto p-3 sm:p-6">
+        <div class="max-w-5xl mx-auto space-y-4">
+
+            <!-- 頂部浮動控制列 (列印時自動隱藏) -->
+            <div class="no-print sticky top-2 z-50 bg-white/95 backdrop-blur-md rounded-2xl p-4 border border-stone-200 shadow-xl flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center font-black text-lg">🖨️</div>
+                    <div>
+                        <h3 class="font-black text-stone-800 text-sm sm:text-base">A4 平時成績通知小卡預覽（雙欄 10 格滿版）</h3>
+                        <p class="text-[11px] text-stone-500">可切換「家長發放版（學生個別裁切小卡）」與「教師留存備查版（全班代碼與平時總均留底）」</p>
+                    </div>
+                </div>
+
+                <!-- 版本切換與下載按鈕組 -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <div class="flex items-center bg-stone-100 p-1 rounded-xl border border-stone-200">
+                        <button id="btnEditionParent" onclick="switchPrintEdition('parent')" class="px-3 py-1.5 rounded-lg text-xs font-extrabold transition bg-amber-500 text-white shadow-sm">
+                            👨‍👩‍👧 家長發放版小卡
+                        </button>
+                        <button id="btnEditionTeacher" onclick="switchPrintEdition('teacher')" class="px-3 py-1.5 rounded-lg text-xs font-extrabold transition text-stone-600 hover:text-stone-900">
+                            📋 教師留存總表版
+                        </button>
+                    </div>
+
+                    <button onclick="downloadPdfFile('parent')" class="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-sm transition flex items-center gap-1">
+                        <span>⬇️ 下載家長版 PDF</span>
+                    </button>
+                    <button onclick="downloadPdfFile('teacher')" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition flex items-center gap-1">
+                        <span>⬇️ 下載教師留存 PDF</span>
+                    </button>
+                    <button onclick="window.print()" class="px-3.5 py-2 rounded-xl bg-stone-800 hover:bg-stone-900 text-white font-bold text-xs shadow-sm transition flex items-center gap-1">
+                        <span>🖨️ 直接列印</span>
+                    </button>
+                    <button onclick="closePrintPreviewModal()" class="px-3 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs transition">
+                        ✕ 關閉
+                    </button>
+                </div>
+            </div>
+
+            <!-- A4 畫布渲染容器 -->
+            <div id="a4PreviewContainer" class="space-y-6 pb-12 overflow-x-auto">
+                <!-- JS 動態生成 A4 頁面 -->
+            </div>
+
+        </div>
+    </div>
+
+    <!-- JavaScript 邏輯 -->
+    <script>
+        // =========================================================================
+        // 1. 免維護 Loader.gs 啟動碼內容
+        // =========================================================================
+        const LOADER_GS_SOURCE = `/**
+ * ⚡ MPScore-Daily — 免維護遠端載入器 (Loader.gs)
+ * 請將此段程式碼貼入 Google 試算表「擴充功能 ➔ Apps Script」，存檔後重新整理試算表即可！
  */
-var GITHUB_CORE_URL = "https://raw.githubusercontent.com/chy23/MPScore-Daily/main/gas/Code.gs";
-var _cachedEngine = null;
+const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/chy23/MPScore-Daily/main/gas/';
 
-function setup() {
-  getEngine();
-  SpreadsheetApp.getActiveSpreadsheet();
-}
-
-function getEngine() {
-  if (!_cachedEngine) {
-    var t = new Date().getTime();
-    var response = UrlFetchApp.fetch(GITHUB_CORE_URL + "?t=" + t);
-    var code = response.getContentText();
-    (1, eval)(code);
-    if (typeof MPScoreDailyEngine !== 'undefined') {
-      _cachedEngine = MPScoreDailyEngine;
-    } else {
-      throw new Error("無法載入 MPScore-Daily 核心模組");
-    }
+function loadRemoteCore_() {
+  const cache = CacheService.getScriptCache();
+  let code = cache.get('mpdaily_remote_core_v2');
+  if (!code) {
+    const res = UrlFetchApp.fetch(GITHUB_RAW_BASE + 'Code.gs?t=' + new Date().getTime());
+    code = res.getContentText();
+    cache.put('mpdaily_remote_core_v2', code, 21600);
   }
-  return _cachedEngine;
+  eval(code);
 }
 
 function onOpen() {
-  var ui = SpreadsheetApp.getUi();
-  ui.createMenu('🌱 MPScore-Daily 平時工具')
-    .addItem('🛠️ 建立初始表格（空白試算表第一次使用）', 'setupStandardSheets')
+  SpreadsheetApp.getUi()
+    .createMenu('⚡ MPScore-Daily 平時成績工具')
+    .addItem('🔑 1. 產生或更新學生專屬查詢代碼', 'menuGenerateStudentTokens')
     .addSeparator()
-    .addItem('➕ 新增平時科目分頁（自動帶入學生名單）', 'createNewSubjectSheetFromRoster')
-    .addItem('🔄 用最新成績名單，更新「學生名冊」', 'syncStudentsFromSheet')
-    .addItem('🔑 為全班產生「家長查詢代碼」', 'generateTokensForStudents')
+    .addItem('📊 2. 查看全班各科平時總均與分項平均統計', 'menuPreviewClassScoreSummary')
+    .addItem('🌱 3. 產生「國語/數學/社會」範例平時成績資料表', 'menuCreateDemoDailySheets')
     .addSeparator()
-    .addItem('⏳ 查看全班「待補交・待訂正」彙整清單', 'previewMissingAndReviewItems')
-    .addItem('📊 查看全班各科平時總均與四大支柱統計', 'previewClassStatistics')
-    .addItem('📐 自動整理欄寬與表格排版', 'autoFormatAndResizeAllSheets')
-    .addItem('🚀 立即更新雲端資料（改完分數或標色點此）', 'clearSystemCache')
-    .addSeparator()
-    .addItem('📶 檢查系統連線狀態', 'testGitHubConnection')
+    .addItem('🔄 4. 清除快取並更新至最新雲端版本', 'menuClearCache')
     .addToUi();
 }
 
-function setupStandardSheets() { getEngine().setupStandardSheets(); }
-function createNewSubjectSheetFromRoster() { getEngine().createNewSubjectSheetFromRoster(); }
-function syncStudentsFromSheet() { getEngine().syncStudentsFromSheet(); }
-function generateTokensForStudents() { getEngine().generateTokensForStudents(); }
-function previewMissingAndReviewItems() { getEngine().previewMissingAndReviewItems(); }
-function previewClassStatistics() { getEngine().previewClassStatistics(); }
-function autoFormatAndResizeAllSheets() { getEngine().autoFormatAndResizeAllSheets(); }
-function clearSystemCache() { getEngine().clearSystemCache(); }
-
-function doGet(e) {
-  try {
-    return getEngine().handleDoGet(e);
-  } catch (err) {
-    var out = { success: false, message: "Loader 執行異常: " + err.toString() };
-    return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
-  }
+function menuGenerateStudentTokens() { loadRemoteCore_(); generateOrUpdateStudentTokens(); }
+function menuPreviewClassScoreSummary() { loadRemoteCore_(); previewClassScoreSummary(); }
+function menuCreateDemoDailySheets() { loadRemoteCore_(); createDemoDailySheets(); }
+function menuClearCache() {
+  CacheService.getScriptCache().remove('mpdaily_remote_core_v2');
+  SpreadsheetApp.getUi().alert('✅ 已成功清除快取並同步至最新雲端版本！');
 }
 
-function doPost(e) { return doGet(e); }
-
-function testGitHubConnection() {
-  try {
-    getEngine();
-    SpreadsheetApp.getUi().alert("🎉 連線成功！已成功自 GitHub 載入最新版 MPScore-Daily 核心模組。");
-  } catch (err) {
-    SpreadsheetApp.getUi().alert("⚠️ 連線失敗: " + err.toString());
-  }
-}`;
-
-    let currentCodeMode = 'loader';
-    let fullGasCodeCache = '';
-    let activeApiUrl = '';
-    let cachedStudents = DEMO_STUDENTS;
-    let currentCardsPerPage = 4;
-    let currentPrintEdition = 'parent';
-
-    window.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('gasCodePreview').innerText = LOADER_CODE_CONTENT;
-
-      // 預先抓取 gas/Code.gs 供模式 B 使用
-      fetch('gas/Code.gs').then(r => r.ok ? r.text() : '').then(txt => {
-        if (txt) fullGasCodeCache = txt;
-      }).catch(() => {});
-
-      const savedApi = (window.MPSCORE_DAILY_CONFIG && window.MPSCORE_DAILY_CONFIG.apiUrl) || localStorage.getItem('mpscore_daily_api_url') || '';
-      if (savedApi) {
-        activeApiUrl = savedApi;
-        document.getElementById('apiEndpointInput').value = savedApi;
-        runApiCheck(false);
-      } else {
-        cachedStudents = DEMO_STUDENTS;
-        populateSandboxSelect(cachedStudents);
-        renderPrintCards(cachedStudents);
-      }
-
-      fillSampleDailyData('chinese');
-
-      // 監聽 ESC 關閉 Modal
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-          closePrintModal();
-          closeTeacherChangelogModal();
-        }
-      });
-    });
-
-    // 分頁切換
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('bg-white', 'text-amber-900', 'font-black', 'shadow-xs');
-        btn.classList.add('text-slate-600', 'font-bold');
-      });
-      document.querySelectorAll('.tab-content').forEach(sec => sec.classList.add('hidden'));
-
-      const activeBtn = document.getElementById('tabBtn-' + tabId);
-      if (activeBtn) {
-        activeBtn.classList.add('bg-white', 'text-amber-900', 'font-black', 'shadow-xs');
-        activeBtn.classList.remove('text-slate-600', 'font-bold');
-      }
-      const target = document.getElementById('tabContent-' + tabId);
-      if (target) target.classList.remove('hidden');
-
-      if (tabId === 'printCenter') {
-        renderPrintCards(cachedStudents);
-      }
-      if (tabId === 'previewSandbox') {
-        loadSandboxPreview();
-      }
-    }
-
-    function switchCodeMode(mode) {
-      currentCodeMode = mode;
-      const btnLoader = document.getElementById('codeModeBtn-loader');
-      const btnFull = document.getElementById('codeModeBtn-full');
-      const preview = document.getElementById('gasCodePreview');
-
-      if (mode === 'full') {
-        btnFull.className = 'px-3 py-1.5 rounded-lg font-black bg-amber-500 text-slate-950 cursor-pointer';
-        btnLoader.className = 'px-3 py-1.5 rounded-lg font-bold text-slate-600 hover:text-amber-800 cursor-pointer';
-        preview.innerText = fullGasCodeCache || LOADER_CODE_CONTENT;
-      } else {
-        btnLoader.className = 'px-3 py-1.5 rounded-lg font-black bg-amber-500 text-slate-950 cursor-pointer';
-        btnFull.className = 'px-3 py-1.5 rounded-lg font-bold text-slate-600 hover:text-amber-800 cursor-pointer';
-        preview.innerText = LOADER_CODE_CONTENT;
-      }
-    }
-
-    function copyGasCode() {
-      const code = document.getElementById('gasCodePreview').innerText;
-      navigator.clipboard.writeText(code).then(() => {
-        const btn = document.getElementById('copyCodeBtn');
-        btn.innerHTML = '<span>✅ 已成功複製程式碼！</span>';
-        setTimeout(() => {
-          btn.innerHTML = '<span>📋 一鍵複製完整程式碼</span>';
-        }, 2500);
-      });
-    }
-
-    // 步驟 3：連線檢測
-    async function runApiCheck(showFeedback = true) {
-      const input = document.getElementById('apiEndpointInput');
-      const url = (input.value || '').trim();
-      const alertBox = document.getElementById('apiStatusAlert');
-
-      if (!url) {
-        if (showFeedback) {
-          alertBox.className = 'p-4 rounded-2xl text-xs font-bold border bg-rose-50 border-rose-200 text-rose-700';
-          alertBox.innerText = '⚠️ 請先貼上 Apps Script 部署後的網頁應用程式網址（結尾為 /exec）！';
-          alertBox.classList.remove('hidden');
-        }
-        return;
-      }
-
-      const btn = document.getElementById('checkApiBtn');
-      const origHtml = btn.innerHTML;
-      btn.innerHTML = '⏳ 連線檢測中...';
-      btn.disabled = true;
-
-      try {
-        const res = await fetch(`${url}?action=ping`);
-        const data = await res.json();
-        btn.innerHTML = origHtml;
-        btn.disabled = false;
-
-        if (data && data.success) {
-          activeApiUrl = url;
-          localStorage.setItem('mpscore_daily_api_url', url);
-
-          alertBox.className = 'p-4 rounded-2xl text-xs font-bold border bg-emerald-50 border-emerald-200 text-emerald-900';
-          alertBox.innerHTML = `✅ ${data.message}<br><span class="text-[11px] font-normal text-emerald-700">試算表名稱：${data.spreadsheetName || '平時成績系統'} ‧ 科目分頁：${(data.subjectList || []).join('、') || '尚無'}</span>`;
-          alertBox.classList.remove('hidden');
-
-          document.getElementById('headerConnDot').className = 'w-2 h-2 rounded-full bg-emerald-500';
-          document.getElementById('headerConnText').innerText = `已連線 (${data.studentCount}人)`;
-
-          await syncStudentsFromCloud(false);
-        } else {
-          alertBox.className = 'p-4 rounded-2xl text-xs font-bold border bg-amber-50 border-amber-200 text-amber-900';
-          alertBox.innerText = '⚠️ 連線回應：' + (data.message || '請確認試算表是否已建立【學生名冊】');
-          alertBox.classList.remove('hidden');
-        }
-      } catch (err) {
-        btn.innerHTML = origHtml;
-        btn.disabled = false;
-        if (showFeedback) {
-          alertBox.className = 'p-4 rounded-2xl text-xs font-bold border bg-rose-50 border-rose-200 text-rose-700';
-          alertBox.innerText = '❌ 無法連線至此網址，請確認部署時【誰可以存取】是否已設為【所有人 (Anyone)】。';
-          alertBox.classList.remove('hidden');
-        }
-      }
-    }
-
-    async function syncStudentsFromCloud(showAlert = false) {
-      if (!activeApiUrl) {
-        cachedStudents = DEMO_STUDENTS;
-        populateSandboxSelect(cachedStudents);
-        renderPrintCards(cachedStudents);
-        if (showAlert) alert('目前處於示範模式（已載入 605 班 24 位示範學生平時紀錄）。若要同步您的雲端試算表，請先於【第 1 步精靈】貼上部署網址！');
-        return;
-      }
-
-      try {
-        const res = await fetch(`${activeApiUrl}?action=getStudentsForPrint`);
-        const data = await res.json();
-        if (data && data.success && data.students && data.students.length > 0) {
-          cachedStudents = data.students;
-          populateSandboxSelect(cachedStudents);
-          renderPrintCards(cachedStudents);
-          if (showAlert) alert(`✨ 成功從雲端試算表同步 ${cachedStudents.length} 位學生的平時學習歷程與待補交統計！`);
-        }
-      } catch (err) {
-        console.error(err);
-        if (showAlert) alert('同步失敗：' + err.message);
-      }
-    }
-
-    // ==================== TAB 2: 平時成績快貼小幫手邏輯 ====================
-    function fillSampleDailyData(type) {
-      const sheetInput = document.getElementById('helperSheetName');
-      const rawArea = document.getElementById('rawDailyInput');
-      if (type === 'math') {
-        sheetInput.value = '數學平時';
-        rawArea.value = [
-          '座號\t姓名\t數習L1\t數習L2\t數習L3\t作業卷L1\t作業卷L2\t作業卷L3\t測驗卷L1\t測驗卷L2\t測驗卷L3',
-          '01\t陳小明\t96\t95\t94\t92\t94\t90\t93\t90\t92',
-          '02\t陳小華\t92\t90\t88\t90\t88\t85\t90\t72\t88',
-          '03\t陳大美\t98\t96\t95\t94\t96\t92\t92\t94\t95',
-          '04\t陳志豪\t84\t80\t82\t78\t80\t缺\t76\t64\t75'
-        ].join('\n');
-      } else {
-        sheetInput.value = '國語平時';
-        rawArea.value = [
-          '座號\t姓名\t國習L1\t國習L2\t國習L3\t作業卷L1\t作業卷L2\t作業卷L3\t語詞L1\t語詞L2\t語詞L3\t測驗卷L1\t測驗卷L2\t測驗卷L3',
-          '01\t陳小明\t98\t96\t95\t96\t94\t95\t95\t92\t94\t94\t96\t92',
-          '02\t陳小華\t96\t95\t94\t94\t92\t缺\t92\t90\t84\t92\t94\t74',
-          '03\t陳大美\t96\t98\t96\t95\t96\t94\t94\t96\t92\t90\t92\t94',
-          '04\t陳志豪\t85\t82\t80\t80\t78\t82\t82\t76\t缺\t78\t75\t62'
-        ].join('\n');
-      }
-      parseHelperInput();
-    }
-
-    function parseHelperInput() {
-      const raw = (document.getElementById('rawDailyInput').value || '').trim();
-      const summaryBox = document.getElementById('helperParseSummary');
-      if (!raw) {
-        summaryBox.innerHTML = '<span class="text-slate-400">請在上方貼上資料以預覽四大支柱欄位歸類...</span>';
-        return null;
-      }
-
-      const lines = raw.split(/\r?\n/).filter(l => l.trim());
-      if (lines.length < 2) return null;
-
-      const delimiter = lines[0].includes('\t') ? '\t' : ',';
-      const headers = lines[0].split(delimiter).map(s => s.trim());
-      const rows = lines.slice(1).map(l => l.split(delimiter).map(s => s.trim()));
-
-      const groups = { workbook: [], homework: [], foundation: [], quiz: [] };
-      headers.slice(2).forEach(h => {
-        if (!h) return;
-        if (h.includes('習')) groups.workbook.push(h);
-        else if (h.includes('作業') || h.includes('練習')) groups.homework.push(h);
-        else if (h.includes('語詞') || h.includes('聽寫') || h.includes('圈詞') || h.includes('生字')) groups.foundation.push(h);
-        else groups.quiz.push(h);
-      });
-
-      summaryBox.innerHTML = `
-        <div class="font-black text-amber-950 flex items-center justify-between">
-          <span>✅ 已成功解析 ${rows.length} 位學生、共 ${headers.length - 2} 項平時紀錄欄位：</span>
-          <span class="text-[11px] text-emerald-800">四大支柱自動歸類如下</span>
-        </div>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 pt-1">
-          <div class="bg-white p-2.5 rounded-xl border border-amber-200">
-            <div class="font-black text-amber-800">📘 課堂習作 (${groups.workbook.length})</div>
-            <div class="text-[11px] text-slate-500 truncate mt-0.5">${groups.workbook.join('、') || '無'}</div>
-          </div>
-          <div class="bg-white p-2.5 rounded-xl border border-emerald-200">
-            <div class="font-black text-emerald-800">📝 課後作業卷 (${groups.homework.length})</div>
-            <div class="text-[11px] text-slate-500 truncate mt-0.5">${groups.homework.join('、') || '無'}</div>
-          </div>
-          <div class="bg-white p-2.5 rounded-xl border border-sky-200">
-            <div class="font-black text-sky-800">🔤 語詞聽寫 (${groups.foundation.length})</div>
-            <div class="text-[11px] text-slate-500 truncate mt-0.5">${groups.foundation.join('、') || '無'}</div>
-          </div>
-          <div class="bg-white p-2.5 rounded-xl border border-amber-300">
-            <div class="font-black text-amber-900">🎯 單元測驗 (${groups.quiz.length})</div>
-            <div class="text-[11px] text-slate-500 truncate mt-0.5">${groups.quiz.join('、') || '無'}</div>
-          </div>
-        </div>
-      `;
-
-      return {
-        sheetName: (document.getElementById('helperSheetName').value || '國語平時').trim(),
-        headers,
-        rows
-      };
-    }
-
-    async function uploadHelperToCloud() {
-      const parsed = parseHelperInput();
-      if (!parsed) {
-        alert('請先貼上有效的平時成績資料！');
-        return;
-      }
-      if (!activeApiUrl) {
-        alert('請先於【1. 四步引導設定精靈】貼上您的 Google Apps Script 部署網址！');
-        return;
-      }
-
-      const btn = document.getElementById('uploadCloudBtn');
-      const orig = btn.innerHTML;
-      btn.innerHTML = '⏳ 上傳中...';
-      btn.disabled = true;
-
-      try {
-        const res = await fetch(`${activeApiUrl}?action=appendDailyScores`, {
-          method: 'POST',
-          body: JSON.stringify(parsed)
-        });
-        const data = await res.json();
-        btn.innerHTML = orig;
-        btn.disabled = false;
-        if (data && data.success) {
-          alert('🎉 ' + data.message);
-          syncStudentsFromCloud(false);
-        } else {
-          alert('上傳失敗：' + (data.message || '未知錯誤'));
-        }
-      } catch (err) {
-        btn.innerHTML = orig;
-        btn.disabled = false;
-        alert('上傳連線異常：' + err.message);
-      }
-    }
-
-    // ==================== TAB 3: A4 通知小卡與 PDF 下載中心邏輯 ====================
-    function getVisibilityFlagString() {
-      const f1 = document.getElementById('webOptOverallAvg')?.checked ? '1' : '0';
-      const f2 = document.getElementById('webOptPillars')?.checked ? '1' : '0';
-      const f3 = document.getElementById('webOptClassAvg')?.checked ? '1' : '0';
-      const f4 = document.getElementById('webOptTimeline')?.checked ? '1' : '0';
-      const f5 = document.getElementById('webOptReminders')?.checked ? '1' : '0';
-      const f6 = document.getElementById('webOptAdvice')?.checked ? '1' : '0';
-      return `${f1}${f2}${f3}${f4}${f5}${f6}`;
-    }
-
-    function getPaperPrintConfig() {
-      return {
-        showSubjects: document.getElementById('printOptSubjects')?.checked ?? true,
-        showReminders: document.getElementById('printOptReminders')?.checked ?? true,
-        showStudentId: document.getElementById('printOptStudentId')?.checked ?? true,
-        showToken: document.getElementById('printOptToken')?.checked ?? false,
-        showFootnote: document.getElementById('printOptFootnote')?.checked ?? true
-      };
-    }
-
-    function updatePrintCards() {
-      renderPrintCards(cachedStudents);
-    }
-
-    function buildDailyCardHtml(st, pCfg, queryUrl, qrContainerId, schoolTitle, noticeTitle, footnote, isCompact) {
-      const subStatsObj = st.subjectStats || {};
-      const subEntries = Object.values(subStatsObj);
-
-      // 滿版等寬各科平時總均網格
-      let subjectsBarHtml = '';
-      if (pCfg.showSubjects && subEntries.length > 0) {
-        const colStyle = `grid-template-columns: repeat(${subEntries.length}, minmax(0, 1fr));`;
-        const fontName = isCompact ? 'text-[10px]' : 'text-xs';
-        const fontScore = isCompact ? 'text-xs md:text-sm' : 'text-sm md:text-base';
-        const padClass = isCompact ? 'py-1 px-0.5' : 'py-1.5 px-1';
-
-        subjectsBarHtml = `
-          <div class="w-full bg-amber-50/85 rounded-xl border border-amber-300 ${isCompact ? 'p-1 my-1' : 'p-1.5 my-1.5'} shadow-2xs">
-            <div class="grid gap-1.5 text-center items-stretch" style="${colStyle}">
-              ${subEntries.map(s => `
-                <div class="bg-white/95 rounded-lg border border-amber-200/90 ${padClass} flex flex-col items-center justify-center text-center shadow-2xs">
-                  <span class="${fontName} font-bold text-slate-700 truncate w-full block leading-tight">${s.subjectShortName || s.sheetName}平時</span>
-                  <span class="${fontScore} font-black font-num text-amber-800 tracking-tight leading-tight mt-0.5">${s.overallAverage !== null && s.overallAverage !== undefined ? s.overallAverage : '--'}</span>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        `;
-      }
-
-      // 彙整該生待補交與待複習提醒
-      let reminderBarHtml = '';
-      if (pCfg.showReminders) {
-        const allMissing = [];
-        const allReview = [];
-        subEntries.forEach(s => {
-          const sName = s.subjectShortName || s.sheetName;
-          (s.missingItems || []).forEach(m => allMissing.push(`${sName}:${m.title}`));
-          (s.reviewItems || []).forEach(r => allReview.push(`${sName}:${r.title}`));
-        });
-
-        if (allMissing.length === 0 && allReview.length === 0) {
-          reminderBarHtml = `
-            <div class="text-[10px] bg-emerald-50/90 text-emerald-800 border border-emerald-200 rounded-lg px-2 py-1 font-bold flex items-center justify-between my-1">
-              <span>🎉 目前各科平時習作、作業卷與測驗皆如期完成！</span>
-              <span class="text-[9px] bg-emerald-600 text-white px-1.5 py-0.2 rounded font-black">全勤習慣佳</span>
-            </div>
-          `;
-        } else {
-          const parts = [];
-          if (allMissing.length > 0) parts.push(`<b class="text-amber-900">⏳待補交(${allMissing.length})：</b>${allMissing.slice(0, 3).join('、')}`);
-          if (allReview.length > 0) parts.push(`<b class="text-rose-800">🌱需複習(${allReview.length})：</b>${allReview.slice(0, 3).join('、')}`);
-          reminderBarHtml = `
-            <div class="text-[10px] bg-amber-50/90 text-slate-700 border border-amber-300 rounded-lg px-2 py-1 leading-snug my-1 truncate">
-              ${parts.join(' ‧ ')}
-            </div>
-          `;
-        }
-      }
-
-      return `
-        <div class="border-2 border-dashed border-slate-300 rounded-2xl ${isCompact ? 'p-2.5' : 'p-3.5'} bg-white flex flex-col justify-between h-full">
-          <div>
-            <!-- 頂部學校與通知單抬頭 -->
-            <div class="flex items-start justify-between gap-2 border-b border-slate-200 pb-1.5">
-              <div class="min-w-0">
-                <div class="text-[10px] font-bold text-amber-800 tracking-wide truncate">${schoolTitle}</div>
-                <div class="${isCompact ? 'text-xs' : 'text-sm'} font-black text-slate-900 leading-tight mt-0.5 truncate">${noticeTitle}</div>
-              </div>
-              <span class="text-[10px] font-black bg-amber-100 text-amber-950 px-2 py-0.5 rounded-md border border-amber-200 shrink-0">${st.className} 班</span>
-            </div>
-
-            <!-- 學生姓名、班級-座號與 QR Code -->
-            <div class="flex items-center justify-between gap-2 my-1.5">
-              <div class="space-y-0.5 flex-1 min-w-0">
-                <div class="${isCompact ? 'text-sm' : 'text-base'} font-black text-slate-900">
-                  ${st.name} <span class="text-[11px] font-bold text-slate-500">(${st.seatNumber}號)</span>
-                </div>
-                ${pCfg.showStudentId ? `
-                  <div class="text-[10px] text-slate-500 font-medium">
-                    班級-座號：<span class="font-mono text-slate-700 font-bold">${st.studentId || (st.className + '-' + st.seatNumber)}</span>
-                  </div>
-                ` : ''}
-                ${pCfg.showToken ? `
-                  <div class="text-[10px] text-amber-950 font-bold bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200/90 inline-flex items-center gap-1 shadow-2xs mt-0.5">
-                    <span class="text-amber-700 font-bold">代碼：</span>
-                    <span class="font-mono ${isCompact ? 'text-xs' : 'text-sm'} font-black tracking-wider text-amber-800">${st.token}</span>
-                  </div>
-                ` : ''}
-              </div>
-
-              <!-- QR Code 容器 -->
-              <div class="flex flex-col items-center shrink-0">
-                <div id="${qrContainerId}" class="p-1 bg-white border border-slate-200 rounded-lg shadow-2xs"></div>
-                <span class="text-[8px] text-slate-400 mt-0.5 leading-none">手機掃描看歷程</span>
-              </div>
-            </div>
-
-            ${subjectsBarHtml}
-            ${reminderBarHtml}
-          </div>
-
-          ${pCfg.showFootnote && footnote ? `
-            <div class="text-[9px] text-slate-500 border-t border-slate-100 pt-1 mt-1 leading-tight truncate">
-              💡 ${footnote}
-            </div>
-          ` : ''}
-        </div>
-      `;
-    }
-
-    function buildStudentQueryUrl(st) {
-      const baseUrl = window.location.origin + window.location.pathname;
-      const parentBaseUrl = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1) + 'parent.html';
-      let apiId = '';
-      if (activeApiUrl) {
-        const m = activeApiUrl.match(/macros\/s\/([^\/]+)/);
-        if (m && m[1]) apiId = m[1];
-      }
-      return `${parentBaseUrl}?t=${encodeURIComponent(st.token)}${apiId ? '&a=' + apiId : ''}&v=${getVisibilityFlagString()}`;
-    }
-
-    function renderPrintCards(students) {
-      const pool = (students && students.length > 0) ? students : DEMO_STUDENTS;
-      const grid = document.getElementById('cardsPreviewGrid');
-      if (!grid) return;
-      grid.innerHTML = '';
-
-      document.getElementById('cardsCountBadge').innerText = `共 ${pool.length} 張小卡`;
-
-      const pCfg = getPaperPrintConfig();
-      const schoolTitle = document.getElementById('cardSchoolTitle')?.value || '新北市林口區麗園國民小學';
-      const noticeTitle = document.getElementById('cardNoticeTitle')?.value || '115學年度第一學期 平時學習歷程通知單';
-      const footnote = document.getElementById('cardFootnote')?.value || '';
-
-      pool.forEach((st, idx) => {
-        const queryUrl = buildStudentQueryUrl(st);
-        const qrId = 'preview-qr-' + idx;
-        const wrapper = document.createElement('div');
-        wrapper.innerHTML = buildDailyCardHtml(st, pCfg, queryUrl, qrId, schoolTitle, noticeTitle, footnote, false);
-        grid.appendChild(wrapper.firstElementChild);
-
-        setTimeout(() => {
-          const qrEl = document.getElementById(qrId);
-          if (qrEl && typeof QRCode !== 'undefined') {
-            qrEl.innerHTML = '';
-            new QRCode(qrEl, {
-              text: queryUrl,
-              width: 78,
-              height: 78,
-              correctLevel: QRCode.CorrectLevel.L
-            });
-          }
-        }, 30);
-      });
-
-      const modal = document.getElementById('printPreviewModal');
-      if (modal && !modal.classList.contains('hidden')) {
-        renderPrintModalPages();
-      }
-    }
-
-    function openPrintModal() {
-      const modal = document.getElementById('printPreviewModal');
-      if (!modal) return;
-      modal.classList.remove('hidden');
-      modal.style.display = 'flex';
-      document.body.style.overflow = 'hidden';
-      switchPrintEdition('parent');
-    }
-
-    function closePrintModal() {
-      const modal = document.getElementById('printPreviewModal');
-      if (modal) {
-        modal.classList.add('hidden');
-        modal.style.display = 'none';
-        document.body.style.overflow = '';
-      }
-    }
-
-    function switchPrintEdition(edition) {
-      currentPrintEdition = edition === 'teacher' ? 'teacher' : 'parent';
-      const btnParent = document.getElementById('editionBtn-parent');
-      const btnTeacher = document.getElementById('editionBtn-teacher');
-      if (btnParent && btnTeacher) {
-        if (currentPrintEdition === 'teacher') {
-          btnTeacher.className = 'px-2.5 py-1 rounded-lg font-black text-xs bg-amber-500 text-slate-950 shadow-xs cursor-pointer';
-          btnParent.className = 'px-2.5 py-1 rounded-lg font-bold text-xs text-slate-600 hover:text-amber-700 cursor-pointer';
-        } else {
-          btnParent.className = 'px-2.5 py-1 rounded-lg font-black text-xs bg-amber-500 text-slate-950 shadow-xs cursor-pointer';
-          btnTeacher.className = 'px-2.5 py-1 rounded-lg font-bold text-xs text-slate-600 hover:text-amber-700 cursor-pointer';
-        }
-      }
-      renderPrintModalPages();
-    }
-
-    function changeCardsPerPage(count) {
-      currentCardsPerPage = parseInt(count, 10) || 4;
-      document.querySelectorAll('.cards-per-page-btn').forEach(btn => {
-        const c = parseInt(btn.getAttribute('data-count'), 10);
-        if (c === currentCardsPerPage) {
-          btn.className = 'cards-per-page-btn px-2.5 py-1 rounded-lg font-black text-xs bg-amber-500 text-slate-950 shadow-xs cursor-pointer';
-        } else {
-          btn.className = 'cards-per-page-btn px-2.5 py-1 rounded-lg font-bold text-xs text-slate-600 hover:text-amber-700 cursor-pointer';
-        }
-      });
-      renderPrintModalPages();
-    }
-
-    function renderPrintModalPages() {
-      const pool = (cachedStudents && cachedStudents.length > 0) ? cachedStudents : DEMO_STUDENTS;
-      const sheetsContainer = document.getElementById('printModalSheets');
-      if (!sheetsContainer) return;
-      sheetsContainer.innerHTML = '';
-
-      const baseCfg = getPaperPrintConfig();
-      const pCfg = Object.assign({}, baseCfg);
-      pCfg.showToken = (currentPrintEdition === 'teacher');
-
-      const schoolTitle = document.getElementById('cardSchoolTitle')?.value || '新北市林口區麗園國民小學';
-      const noticeTitle = document.getElementById('cardNoticeTitle')?.value || '115學年度第一學期 平時學習歷程通知單';
-      const footnote = document.getElementById('cardFootnote')?.value || '';
-
-      const totalStudents = pool.length;
-      const totalPages = Math.ceil(totalStudents / currentCardsPerPage);
-
-      const statsEl = document.getElementById('printPageStats');
-      if (statsEl) {
-        statsEl.innerText = `全班共 ${totalStudents} 位學生 ‧ 預計產生 ${totalPages} 頁 A4`;
-      }
-
-      let gridClass = 'grid-cols-2 grid-rows-2 gap-3';
-      let isCompact = false;
-      if (currentCardsPerPage === 2) {
-        gridClass = 'grid-cols-1 grid-rows-2 gap-4';
-      } else if (currentCardsPerPage === 6) {
-        gridClass = 'grid-cols-2 grid-rows-3 gap-2.5';
-        isCompact = true;
-      } else if (currentCardsPerPage === 8) {
-        gridClass = 'grid-cols-2 grid-rows-4 gap-2';
-        isCompact = true;
-      }
-
-      for (let p = 0; p < totalPages; p++) {
-        const start = p * currentCardsPerPage;
-        const pageStudents = pool.slice(start, start + currentCardsPerPage);
-
-        const sheetEl = document.createElement('div');
-        sheetEl.className = 'a4-print-sheet flex flex-col justify-between';
-
-        const gridEl = document.createElement('div');
-        gridEl.className = `grid ${gridClass} flex-1`;
-        sheetEl.appendChild(gridEl);
-
-        const footerEl = document.createElement('div');
-        footerEl.className = 'text-center text-[10px] text-slate-400 pt-2 border-t border-slate-200 mt-2 flex justify-between items-center';
-        footerEl.innerHTML = `
-          <span>✂️ 請沿虛線裁切發給家長</span>
-          <span class="font-bold text-slate-600">第 ${p + 1} / ${totalPages} 頁 ‧ ${currentPrintEdition === 'teacher' ? '🧑‍🏫【教師留存版・含代碼】' : '👨‍👩‍👧【家長發放版】'} (每頁 ${currentCardsPerPage} 張)</span>
-          <span>MPScore-Daily 平時學習歷程手札</span>
-        `;
-        sheetEl.appendChild(footerEl);
-        sheetsContainer.appendChild(sheetEl);
-
-        pageStudents.forEach((st, sIdx) => {
-          const globalIdx = start + sIdx;
-          const queryUrl = buildStudentQueryUrl(st);
-          const modalQrId = 'modal-qr-' + globalIdx;
-
-          const cardWrap = document.createElement('div');
-          cardWrap.innerHTML = buildDailyCardHtml(st, pCfg, queryUrl, modalQrId, schoolTitle, noticeTitle, footnote, isCompact);
-          gridEl.appendChild(cardWrap.firstElementChild);
-
-          setTimeout(() => {
-            const qrEl = document.getElementById(modalQrId);
-            if (qrEl && typeof QRCode !== 'undefined') {
-              qrEl.innerHTML = '';
-              new QRCode(qrEl, {
-                text: queryUrl,
-                width: isCompact ? 66 : 82,
-                height: isCompact ? 66 : 82,
-                correctLevel: QRCode.CorrectLevel.L
-              });
+function doGet(e) { loadRemoteCore_(); return handleGetRequest(e); }
+function doPost(e) { loadRemoteCore_(); return handlePostRequest(e); }`;
+
+        // =========================================================================
+        // 2. 內建 10 位範例學生平時成績資料（涵蓋國語、數學、社會三大科與四大分項平均）
+        // =========================================================================
+        const DEMO_CLASS_STUDENTS = [
+            {
+                seatNo: "01", name: "王小華", className: "501班", token: "DEMO01", selected: true,
+                subjects: [
+                    { subject: "國語", overallAverage: 95.3, classOverallAverage: 89.2, diffFromClassAvg: 6.1, pillars: { workbook: 96.0, homework: 94.5, foundation: 98.0, quiz: 92.7 } },
+                    { subject: "數學", overallAverage: 92.8, classOverallAverage: 86.4, diffFromClassAvg: 6.4, pillars: { workbook: 93.2, homework: 91.0, foundation: 95.2, quiz: 89.5 } },
+                    { subject: "社會", overallAverage: 92.5, classOverallAverage: 87.9, diffFromClassAvg: 4.6, pillars: { workbook: 93.3, homework: 91.2, foundation: 94.5, quiz: 90.2 } }
+                ]
+            },
+            {
+                seatNo: "02", name: "陳品妍", className: "501班", token: "DEMO02", selected: true,
+                subjects: [
+                    { subject: "國語", overallAverage: 90.8, classOverallAverage: 89.2, diffFromClassAvg: 1.6, pillars: { workbook: 95.2, homework: 92.5, foundation: 94.5, quiz: 81.7 } },
+                    { subject: "數學", overallAverage: 88.2, classOverallAverage: 86.4, diffFromClassAvg: 1.8, pillars: { workbook: 93.8, homework: 90.5, foundation: 91.7, quiz: 77.7 } },
+                    { subject: "社會", overallAverage: 90.7, classOverallAverage: 87.9, diffFromClassAvg: 2.8, pillars: { workbook: 94.5, homework: 91.8, foundation: 93.3, quiz: 83.7 } }
+                ]
+            },
+            {
+                seatNo: "03", name: "林宥廷", className: "501班", token: "DEMO03", selected: true,
+                subjects: [
+                    { subject: "國語", overallAverage: 87.8, classOverallAverage: 89.2, diffFromClassAvg: -1.4, pillars: { workbook: 89.7, homework: 87.3, foundation: 89.7, quiz: 85.5 } },
+                    { subject: "數學", overallAverage: 88.3, classOverallAverage: 86.4, diffFromClassAvg: 1.9, pillars: { workbook: 89.3, homework: 87.2, foundation: 91.0, quiz: 86.0 } },
+                    { subject: "社會", overallAverage: 88.8, classOverallAverage: 87.9, diffFromClassAvg: 0.9, pillars: { workbook: 90.2, homework: 88.0, foundation: 90.3, quiz: 86.7 } }
+                ]
+            },
+            {
+                seatNo: "04", name: "張語恩", className: "501班", token: "DEMO04", selected: true,
+                subjects: [
+                    { subject: "國語", overallAverage: 97.7, classOverallAverage: 89.2, diffFromClassAvg: 8.5, pillars: { workbook: 98.7, homework: 96.7, foundation: 99.3, quiz: 95.8 } },
+                    { subject: "數學", overallAverage: 86.1, classOverallAverage: 86.4, diffFromClassAvg: -0.3, pillars: { workbook: 87.0, homework: 84.5, foundation: 89.0, quiz: 83.2 } },
+                    { subject: "社會", overallAverage: 94.6, classOverallAverage: 87.9, diffFromClassAvg: 6.7, pillars: { workbook: 95.7, homework: 93.5, foundation: 96.2, quiz: 92.0 } }
+                ]
+            },
+            {
+                seatNo: "05", name: "李冠宇", className: "501班", token: "DEMO05", selected: true,
+                subjects: [
+                    { subject: "國語", overallAverage: 83.0, classOverallAverage: 89.2, diffFromClassAvg: -6.2, pillars: { workbook: 85.3, homework: 82.3, foundation: 84.3, quiz: 79.5 } },
+                    { subject: "數學", overallAverage: 85.8, classOverallAverage: 86.4, diffFromClassAvg: -0.6, pillars: { workbook: 87.0, homework: 84.0, foundation: 89.0, quiz: 82.7 } },
+                    { subject: "社會", overallAverage: 86.8, classOverallAverage: 87.9, diffFromClassAvg: -1.1, pillars: { workbook: 88.3, homework: 85.5, foundation: 88.0, quiz: 83.8 } }
+                ]
+            },
+            {
+                seatNo: "06", name: "黃子軒", className: "501班", token: "DEMO01", selected: true,
+                subjects: [
+                    { subject: "國語", overallAverage: 91.4, classOverallAverage: 89.2, diffFromClassAvg: 2.2, pillars: { workbook: 93.0, homework: 91.2, foundation: 92.5, quiz: 89.0 } },
+                    { subject: "數學", overallAverage: 94.2, classOverallAverage: 86.4, diffFromClassAvg: 7.8, pillars: { workbook: 95.0, homework: 93.5, foundation: 96.0, quiz: 92.2 } },
+                    { subject: "社會", overallAverage: 89.5, classOverallAverage: 87.9, diffFromClassAvg: 1.6, pillars: { workbook: 91.0, homework: 88.8, foundation: 90.5, quiz: 87.7 } }
+                ]
+            },
+            {
+                seatNo: "07", name: "吳采潔", className: "501班", token: "DEMO02", selected: true,
+                subjects: [
+                    { subject: "國語", overallAverage: 93.6, classOverallAverage: 89.2, diffFromClassAvg: 4.4, pillars: { workbook: 95.0, homework: 93.2, foundation: 95.5, quiz: 90.8 } },
+                    { subject: "數學", overallAverage: 89.5, classOverallAverage: 86.4, diffFromClassAvg: 3.1, pillars: { workbook: 91.2, homework: 88.5, foundation: 91.0, quiz: 87.2 } },
+                    { subject: "社會", overallAverage: 91.8, classOverallAverage: 87.9, diffFromClassAvg: 3.9, pillars: { workbook: 93.0, homework: 91.2, foundation: 92.8, quiz: 90.2 } }
+                ]
+            },
+            {
+                seatNo: "08", name: "蔡承翰", className: "501班", token: "DEMO03", selected: true,
+                subjects: [
+                    { subject: "國語", overallAverage: 86.5, classOverallAverage: 89.2, diffFromClassAvg: -2.7, pillars: { workbook: 88.5, homework: 86.0, foundation: 87.5, quiz: 84.0 } },
+                    { subject: "數學", overallAverage: 90.4, classOverallAverage: 86.4, diffFromClassAvg: 4.0, pillars: { workbook: 92.0, homework: 89.5, foundation: 92.2, quiz: 88.0 } },
+                    { subject: "社會", overallAverage: 87.2, classOverallAverage: 87.9, diffFromClassAvg: -0.7, pillars: { workbook: 89.0, homework: 86.5, foundation: 88.2, quiz: 85.0 } }
+                ]
+            },
+            {
+                seatNo: "09", name: "許芷晴", className: "501班", token: "DEMO04", selected: true,
+                subjects: [
+                    { subject: "國語", overallAverage: 94.8, classOverallAverage: 89.2, diffFromClassAvg: 5.6, pillars: { workbook: 96.2, homework: 94.0, foundation: 96.5, quiz: 92.5 } },
+                    { subject: "數學", overallAverage: 91.0, classOverallAverage: 86.4, diffFromClassAvg: 4.6, pillars: { workbook: 92.5, homework: 90.2, foundation: 92.8, quiz: 88.5 } },
+                    { subject: "社會", overallAverage: 93.2, classOverallAverage: 87.9, diffFromClassAvg: 5.3, pillars: { workbook: 94.5, homework: 92.5, foundation: 94.8, quiz: 91.0 } }
+                ]
+            },
+            {
+                seatNo: "10", name: "鄭宇翔", className: "501班", token: "DEMO05", selected: true,
+                subjects: [
+                    { subject: "國語", overallAverage: 88.4, classOverallAverage: 89.2, diffFromClassAvg: -0.8, pillars: { workbook: 90.5, homework: 88.0, foundation: 89.5, quiz: 85.5 } },
+                    { subject: "數學", overallAverage: 87.6, classOverallAverage: 86.4, diffFromClassAvg: 1.2, pillars: { workbook: 89.5, homework: 87.0, foundation: 89.0, quiz: 85.0 } },
+                    { subject: "社會", overallAverage: 88.1, classOverallAverage: 87.9, diffFromClassAvg: 0.2, pillars: { workbook: 90.0, homework: 87.5, foundation: 89.0, quiz: 86.0 } }
+                ]
             }
-          }, 20);
+        ];
+
+        let currentRoster = JSON.parse(JSON.stringify(DEMO_CLASS_STUDENTS));
+        let currentPrintEdition = 'parent'; // 'parent' | 'teacher'
+
+        // =========================================================================
+        // 3. 分頁切換與設定精靈輔助工具
+        // =========================================================================
+        function switchMainTab(tab) {
+            const isWizard = tab === 'wizard';
+            document.getElementById('viewWizard').classList.toggle('hidden', !isWizard);
+            document.getElementById('viewPrintCenter').classList.toggle('hidden', isWizard);
+
+            document.getElementById('tabBtnWizard').className = isWizard
+                ? 'px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition bg-amber-500 text-white shadow-sm'
+                : 'px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition text-stone-600 hover:text-stone-900';
+            document.getElementById('tabBtnPrint').className = !isWizard
+                ? 'px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition bg-amber-500 text-white shadow-sm'
+                : 'px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition text-stone-600 hover:text-stone-900';
+
+            if (!isWizard) {
+                renderTeacherRosterTable();
+            }
+        }
+
+        function copyLoaderCode() {
+            navigator.clipboard.writeText(LOADER_GS_SOURCE).then(() => {
+                const btnText = document.getElementById('btnCopyLoaderText');
+                btnText.textContent = '✅ 已複製 Loader.gs！請貼入 Apps Script';
+                setTimeout(() => {
+                    btnText.textContent = '一鍵複製 Loader.gs 啟動程式碼';
+                }, 2500);
+            });
+        }
+
+        function copyFormattedRosterTSV() {
+            const raw = document.getElementById('quickRosterInput').value.trim();
+            const lines = raw ? raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean) : [
+                "王小華", "陳品妍", "林宥廷", "張語恩", "李冠宇"
+            ];
+            const tsvRows = [
+                ["座號", "姓名", "國習L1", "國習L2", "作業卷L1", "作業卷L2", "語詞L1", "語詞L2", "測驗卷L1", "測驗卷L2"].join("\t")
+            ];
+            lines.forEach((line, idx) => {
+                const parts = line.split(/\s+/);
+                const seat = parts.length > 1 && /^\d+$/.test(parts[0]) ? parts[0].padStart(2, '0') : String(idx + 1).padStart(2, '0');
+                const name = parts.length > 1 && /^\d+$/.test(parts[0]) ? parts.slice(1).join('') : line;
+                tsvRows.push(`${seat}\t${name}`);
+            });
+            navigator.clipboard.writeText(tsvRows.join("\n")).then(() => {
+                const btn = document.getElementById('btnCopyRosterText');
+                btn.textContent = '✅ 已複製！請至 Google 試算表 A1 儲存格貼上';
+                setTimeout(() => {
+                    btn.textContent = '複製標準「座號 + 姓名」試算表格式';
+                }, 2500);
+            });
+        }
+
+        function loadDemoToPrintCenter() {
+            currentRoster = JSON.parse(JSON.stringify(DEMO_CLASS_STUDENTS));
+            document.getElementById('rosterBadgeSource').textContent = '✨ 範例班級：501班（10位學生平時成績）';
+            switchMainTab('print');
+        }
+
+        async function connectCloudGradebook() {
+            const inputUrl = document.getElementById('apiUrlInput').value.trim();
+            const statusMsg = document.getElementById('apiStatusMsg');
+            if (!inputUrl) {
+                statusMsg.textContent = '⚠️ 請先貼上 Google Apps Script 部署網址，或點擊下方按鈕載入內建範例班級。';
+                statusMsg.className = 'text-[11px] text-rose-600 font-bold';
+                return;
+            }
+
+            statusMsg.textContent = '⏳ 正在從 Google 試算表同步全班各科平時成績與分項平均...';
+            statusMsg.className = 'text-[11px] text-amber-700 font-bold';
+
+            try {
+                const res = await fetch(`${inputUrl}?action=getRoster`);
+                const data = await res.json();
+                if (data && data.status === 'success' && Array.isArray(data.students)) {
+                    localStorage.setItem('mpdaily_api_url', inputUrl);
+                    currentRoster = data.students.map(st => {
+                        const normalizedSubjs = (st.subjects || []).map(s => {
+                            const pillarObj = { workbook: null, homework: null, foundation: null, quiz: null };
+                            if (Array.isArray(s.pillars)) {
+                                s.pillars.forEach(p => { pillarObj[p.key] = p.average; });
+                            } else if (s.pillars) {
+                                Object.assign(pillarObj, s.pillars);
+                            }
+                            return {
+                                subject: s.subject,
+                                overallAverage: s.overallAverage,
+                                classOverallAverage: s.classOverallAverage,
+                                diffFromClassAvg: s.diffFromClassAvg,
+                                pillars: pillarObj
+                            };
+                        });
+                        return {
+                            seatNo: st.seatNo,
+                            name: st.name,
+                            className: st.className || '本班',
+                            token: st.token,
+                            selected: true,
+                            subjects: normalizedSubjs
+                        };
+                    });
+                    document.getElementById('rosterBadgeSource').textContent = `☁️ 已連線雲端試算表（共 ${currentRoster.length} 位學生）`;
+                    document.getElementById('rosterUpdatedTime').textContent = `更新時間：${data.updatedAt || '剛剛'}`;
+                    switchMainTab('print');
+                } else {
+                    statusMsg.textContent = '⚠️ 無法解析試算表資料，請確認已執行選單「1. 產生或更新學生專屬查詢代碼」。';
+                    statusMsg.className = 'text-[11px] text-rose-600 font-bold';
+                }
+            } catch (e) {
+                statusMsg.textContent = '⚠️ 連線失敗，請確認部署權限已設為「所有人 (Anyone)」。';
+                statusMsg.className = 'text-[11px] text-rose-600 font-bold';
+            }
+        }
+
+        // =========================================================================
+        // 4. 全班平時成績總表與顯示選項編碼
+        // =========================================================================
+        function computeWebConfigBitmask() {
+            let mask = 0;
+            if (document.getElementById('webOptOverallHero').checked) mask |= 1;
+            if (document.getElementById('webOptPillars').checked) mask |= 2;
+            if (document.getElementById('webOptClassNorm').checked) mask |= 4;
+            if (document.getElementById('webOptTimeline').checked) mask |= 8;
+            if (document.getElementById('webOptMatrix').checked) mask |= 16;
+            if (document.getElementById('webOptAdvice').checked) mask |= 32;
+            return mask;
+        }
+
+        function buildParentPortalUrl(token) {
+            const base = window.location.href.replace(/\/[^\/]*$/, '/parent.html');
+            const cfgMask = computeWebConfigBitmask();
+            return `${base}?token=${encodeURIComponent(token)}&cfg=${cfgMask}`;
+        }
+
+        function handleOptionsChange() {
+            renderTeacherRosterTable();
+            if (!document.getElementById('printPreviewModal').classList.contains('hidden')) {
+                renderA4PrintSheets();
+            }
+        }
+
+        function toggleSelectAllStudents(checked) {
+            currentRoster.forEach(st => { st.selected = checked; });
+            renderTeacherRosterTable();
+        }
+
+        function toggleStudentSelection(idx, checked) {
+            if (currentRoster[idx]) {
+                currentRoster[idx].selected = checked;
+            }
+            updateSelectedBadge();
+        }
+
+        function updateSelectedBadge() {
+            const count = currentRoster.filter(s => s.selected).length;
+            document.getElementById('selectedCountBadge').textContent = `已選取 ${count} 位列印`;
+        }
+
+        function formatSubjectTableCell(subjObj) {
+            if (!subjObj || subjObj.overallAverage === null || subjObj.overallAverage === undefined) {
+                return `<span class="text-stone-300 font-mono">--</span>`;
+            }
+            const p = subjObj.pillars || {};
+            const diff = subjObj.diffFromClassAvg;
+            const diffBadge = (diff !== null && diff !== undefined)
+                ? `<span class="text-[10px] font-mono px-1 py-0.5 rounded ${diff >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}">${diff >= 0 ? '+' + diff.toFixed(1) : diff.toFixed(1)}</span>`
+                : '';
+
+            return `
+                <div class="flex items-center justify-center gap-1">
+                    <span class="font-mono font-black text-sm text-stone-800 tabular-nums">${subjObj.overallAverage.toFixed(1)}</span>
+                    ${diffBadge}
+                </div>
+                <div class="text-[10px] font-mono text-stone-400 mt-0.5">
+                    習${p.workbook ? Math.round(p.workbook) : '-'} ‧ 作${p.homework ? Math.round(p.homework) : '-'} ‧ 測${p.quiz ? Math.round(p.quiz) : '-'}
+                </div>
+            `;
+        }
+
+        function renderTeacherRosterTable() {
+            const tbody = document.getElementById('teacherRosterTableBody');
+            updateSelectedBadge();
+
+            tbody.innerHTML = currentRoster.map((st, idx) => {
+                const subjs = st.subjects || [];
+                const chn = subjs.find(s => s.subject.includes('國')) || subjs[0];
+                const math = subjs.find(s => s.subject.includes('數')) || subjs[1];
+                const soc = subjs.find(s => s.subject.includes('社')) || subjs[2];
+
+                const validSubjs = subjs.filter(s => s.overallAverage !== null && !isNaN(s.overallAverage));
+                const overallAvg = validSubjs.length
+                    ? (validSubjs.reduce((a, b) => a + b.overallAverage, 0) / validSubjs.length).toFixed(1)
+                    : '--';
+
+                const parentUrl = buildParentPortalUrl(st.token);
+
+                return `
+                    <tr class="hover:bg-amber-50/40 transition">
+                        <td class="py-3 px-3 text-center">
+                            <input type="checkbox" ${st.selected ? 'checked' : ''} onchange="toggleStudentSelection(${idx}, this.checked)"
+                                class="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 cursor-pointer">
+                        </td>
+                        <td class="py-3 px-3 whitespace-nowrap">
+                            <div class="flex items-center gap-2">
+                                <span class="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 font-mono font-black text-xs flex items-center justify-center">${st.seatNo}</span>
+                                <div>
+                                    <div class="font-black text-stone-800 text-sm">${st.name}</div>
+                                    <div class="text-[10px] text-stone-400 font-bold">${st.className || '501班'}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-3 px-3 whitespace-nowrap">
+                            <span class="px-2 py-1 rounded-lg bg-stone-100 border border-stone-200 font-mono font-bold text-xs text-stone-700">${st.token}</span>
+                        </td>
+                        <td class="py-3 px-3 text-center">${formatSubjectTableCell(chn)}</td>
+                        <td class="py-3 px-3 text-center">${formatSubjectTableCell(math)}</td>
+                        <td class="py-3 px-3 text-center">${formatSubjectTableCell(soc)}</td>
+                        <td class="py-3 px-3 text-center">
+                            <span class="font-mono font-black text-base text-amber-700 tabular-nums">${overallAvg}</span>
+                        </td>
+                        <td class="py-3 px-3 text-right whitespace-nowrap">
+                            <a href="${parentUrl}" target="_blank" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200/80 font-bold text-xs transition">
+                                <span>📊 查看平時歷程</span>
+                                <span>↗</span>
+                            </a>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // =========================================================================
+        // 5. A4 平時成績通知小卡預覽與 PDF 雙版本匯出引擎
+        // =========================================================================
+        function openPrintPreviewModal() {
+            document.getElementById('printPreviewModal').classList.remove('hidden');
+            renderA4PrintSheets();
+        }
+
+        function closePrintPreviewModal() {
+            document.getElementById('printPreviewModal').classList.add('hidden');
+        }
+
+        function switchPrintEdition(edition) {
+            currentPrintEdition = edition;
+            const isParent = edition === 'parent';
+            document.getElementById('btnEditionParent').className = isParent
+                ? 'px-3 py-1.5 rounded-lg text-xs font-extrabold transition bg-amber-500 text-white shadow-sm'
+                : 'px-3 py-1.5 rounded-lg text-xs font-extrabold transition text-stone-600 hover:text-stone-900';
+            document.getElementById('btnEditionTeacher').className = !isParent
+                ? 'px-3 py-1.5 rounded-lg text-xs font-extrabold transition bg-emerald-600 text-white shadow-sm'
+                : 'px-3 py-1.5 rounded-lg text-xs font-extrabold transition text-stone-600 hover:text-stone-900';
+            renderA4PrintSheets();
+        }
+
+        function renderA4PrintSheets() {
+            const container = document.getElementById('a4PreviewContainer');
+            const selectedStudents = currentRoster.filter(s => s.selected);
+
+            if (selectedStudents.length === 0) {
+                container.innerHTML = `<div class="bg-white rounded-2xl p-10 text-center text-stone-500 font-bold">請至少勾選 1 位學生以產生平時成績通知單</div>`;
+                return;
+            }
+
+            if (currentPrintEdition === 'teacher') {
+                renderTeacherArchiveA4(container, selectedStudents);
+            } else {
+                renderParentSlipsA4(container, selectedStudents);
+            }
+        }
+
+        // 渲染「家長發放版」A4 雙欄 10 格平時成績通知小卡
+        function renderParentSlipsA4(container, students) {
+            const optSubjAvg = document.getElementById('printOptSubjAvg').checked;
+            const optPillars = document.getElementById('printOptPillars').checked;
+            const optClassAvg = document.getElementById('printOptClassAvg').checked;
+            const optSeatClass = document.getElementById('printOptSeatClass').checked;
+            const optTokenText = document.getElementById('printOptTokenText').checked;
+            const optSignBox = document.getElementById('printOptSignBox').checked;
+
+            const chunks = [];
+            for (let i = 0; i < students.length; i += 10) {
+                chunks.push(students.slice(i, i + 10));
+            }
+
+            container.innerHTML = chunks.map((pageStudents, pageIdx) => {
+                const cardsHtml = pageStudents.map((st, cardIdx) => {
+                    const qrDomId = `qr_${pageIdx}_${cardIdx}`;
+                    const subjs = st.subjects || [];
+                    const validSubjs = subjs.filter(s => s.overallAverage !== null && !isNaN(s.overallAverage));
+                    const totalAvg = validSubjs.length
+                        ? (validSubjs.reduce((a, b) => a + b.overallAverage, 0) / validSubjs.length).toFixed(1)
+                        : '--';
+
+                    const subjGridHtml = optSubjAvg ? `
+                        <div class="grid grid-cols-3 gap-1 my-1">
+                            ${subjs.slice(0, 3).map(s => {
+                                const diffStr = (optClassAvg && s.diffFromClassAvg !== null && s.diffFromClassAvg !== undefined)
+                                    ? `(${s.diffFromClassAvg >= 0 ? '+' : ''}${s.diffFromClassAvg.toFixed(1)})`
+                                    : '';
+                                const p = s.pillars || {};
+                                const pillarLine = optPillars
+                                    ? `<div class="text-[8px] text-stone-500 font-mono leading-tight truncate">習${p.workbook ? Math.round(p.workbook) : '-'} 作${p.homework ? Math.round(p.homework) : '-'} 測${p.quiz ? Math.round(p.quiz) : '-'}</div>`
+                                    : '';
+                                return `
+                                    <div class="bg-amber-50/70 border border-amber-200/80 rounded px-1.5 py-1 text-center">
+                                        <div class="text-[9px] font-extrabold text-stone-700">${s.subject}平時</div>
+                                        <div class="text-xs font-black font-mono text-amber-800 leading-tight">${s.overallAverage !== null ? s.overallAverage.toFixed(1) : '--'} <span class="text-[8px] font-normal text-emerald-700">${diffStr}</span></div>
+                                        ${pillarLine}
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    ` : '';
+
+                    return `
+                        <div class="slip-card">
+                            <!-- 頂部學生資訊列 -->
+                            <div class="flex items-center justify-between border-b border-stone-200 pb-1">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="px-1.5 py-0.5 rounded bg-amber-500 text-white font-black text-[9px]">平時成績通知</span>
+                                    ${optSeatClass ? `<span class="text-[10px] font-bold text-stone-600">${st.className || '501班'} ${st.seatNo}號</span>` : ''}
+                                    <span class="text-sm font-black text-stone-900">${st.name}</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-[9px] font-bold text-stone-400">平時總均</span>
+                                    <span class="text-xs font-black font-mono text-amber-700 ml-0.5">${totalAvg}</span>
+                                </div>
+                            </div>
+
+                            <!-- 中段：左側各科平時成績摘要 + 右側專屬 QR Code -->
+                            <div class="flex items-center justify-between gap-2 my-auto py-1">
+                                <div class="flex-1 min-w-0">
+                                    ${subjGridHtml}
+                                    <div class="text-[8.5px] text-stone-500 leading-snug mt-0.5">
+                                        📱 手機掃描右側 QR Code 查看<strong>各單元 (L1~L6) 平時成績走勢圖、習作/作業卷/測驗卷平均與班均對比</strong>。
+                                    </div>
+                                </div>
+                                <div class="shrink-0 flex flex-col items-center justify-center p-1 border border-stone-200 rounded-lg bg-white">
+                                    <div id="${qrDomId}" data-token="${st.token}" class="qr-target w-[54px] h-[54px] flex items-center justify-center"></div>
+                                    ${optTokenText ? `<div class="text-[8px] font-mono font-bold text-stone-600 mt-0.5">${st.token}</div>` : ''}
+                                </div>
+                            </div>
+
+                            <!-- 底部家長簽章與導師叮嚀 -->
+                            <div class="flex items-center justify-between border-t border-stone-200 pt-1 text-[8.5px] text-stone-500">
+                                <span>📊 定期檢視平時成績，考前複習更精準</span>
+                                ${optSignBox ? `<span class="font-bold text-stone-700">家長簽章：_______________</span>` : `<span>MPScore-Daily</span>`}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="a4-sheet">
+                        <div class="flex items-center justify-between text-[10px] text-stone-400 pb-1.5 border-b border-stone-200 mb-2">
+                            <span class="font-bold text-stone-600">📊 MPScore-Daily 學生平時成績歷程通知單（家長發放裁切版）</span>
+                            <span>第 ${pageIdx + 1} / ${chunks.length} 頁（沿虛線裁切發放）</span>
+                        </div>
+                        <div class="a4-grid-10">
+                            ${cardsHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // 生成所有 QR Code
+            setTimeout(() => {
+                document.querySelectorAll('.qr-target').forEach(el => {
+                    el.innerHTML = '';
+                    const token = el.getAttribute('data-token');
+                    const url = buildParentPortalUrl(token);
+                    new QRCode(el, {
+                        text: url,
+                        width: 54,
+                        height: 54,
+                        colorDark: "#1c1917",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.M
+                    });
+                });
+            }, 30);
+        }
+
+        // 渲染「教師留存備查版」A4 全班平時成績與代碼總表
+        function renderTeacherArchiveA4(container, students) {
+            const rowsHtml = students.map(st => {
+                const subjs = st.subjects || [];
+                const chn = subjs.find(s => s.subject.includes('國')) || subjs[0];
+                const math = subjs.find(s => s.subject.includes('數')) || subjs[1];
+                const soc = subjs.find(s => s.subject.includes('社')) || subjs[2];
+                const validSubjs = subjs.filter(s => s.overallAverage !== null && !isNaN(s.overallAverage));
+                const overallAvg = validSubjs.length
+                    ? (validSubjs.reduce((a, b) => a + b.overallAverage, 0) / validSubjs.length).toFixed(1)
+                    : '--';
+
+                const fmtSubj = s => {
+                    if (!s || s.overallAverage === null) return '--';
+                    const p = s.pillars || {};
+                    return `<span class="font-bold text-stone-900">${s.overallAverage.toFixed(1)}</span> <span class="text-[9px] text-stone-500">(習${p.workbook ? Math.round(p.workbook) : '-'} 作${p.homework ? Math.round(p.homework) : '-'} 測${p.quiz ? Math.round(p.quiz) : '-'})</span>`;
+                };
+
+                return `
+                    <tr class="border-b border-stone-200 text-[11px] font-mono">
+                        <td class="py-2 px-2 font-bold text-stone-800">${st.seatNo}</td>
+                        <td class="py-2 px-2 font-sans font-bold text-stone-900">${st.name}</td>
+                        <td class="py-2 px-2 font-bold text-amber-800">${st.token}</td>
+                        <td class="py-2 px-2 text-center">${fmtSubj(chn)}</td>
+                        <td class="py-2 px-2 text-center">${fmtSubj(math)}</td>
+                        <td class="py-2 px-2 text-center">${fmtSubj(soc)}</td>
+                        <td class="py-2 px-2 text-right font-black text-amber-700">${overallAvg}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            container.innerHTML = `
+                <div class="a4-sheet">
+                    <div class="space-y-4">
+                        <div class="border-b-2 border-stone-800 pb-3 flex items-end justify-between">
+                            <div>
+                                <div class="text-xs font-bold text-amber-700">MPScore-Daily 教師留存備查檔案</div>
+                                <h2 class="text-xl font-black text-stone-900 mt-0.5">全班各科平時成績總平均與查詢代碼對照總表</h2>
+                            </div>
+                            <div class="text-right text-xs text-stone-500 font-mono">
+                                <div>列印日期：${new Date().toISOString().slice(0, 10)}</div>
+                                <div>學生人數：共 ${students.length} 人</div>
+                            </div>
+                        </div>
+
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-stone-100 border-b border-stone-300 text-[11px] font-extrabold text-stone-700">
+                                    <th class="py-2 px-2">座號</th>
+                                    <th class="py-2 px-2">姓名</th>
+                                    <th class="py-2 px-2">專屬代碼</th>
+                                    <th class="py-2 px-2 text-center">國語平時均 (習/作/測)</th>
+                                    <th class="py-2 px-2 text-center">數學平時均 (習/作/測)</th>
+                                    <th class="py-2 px-2 text-center">社會平時均 (習/作/測)</th>
+                                    <th class="py-2 px-2 text-right">跨科總均</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${rowsHtml}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="border-t border-stone-200 pt-2 flex items-center justify-between text-[10px] text-stone-400">
+                        <span>本表供導師與科任教師留存備查，家長若遺失小卡可直接依「專屬代碼」查詢平時成績</span>
+                        <span>MPScore-Daily 平時成績管理系統</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function downloadPdfFile(edition) {
+            if (currentPrintEdition !== edition) {
+                switchPrintEdition(edition);
+            }
+            setTimeout(() => {
+                const target = document.getElementById('a4PreviewContainer');
+                const filename = edition === 'teacher'
+                    ? `MPScore-Daily_教師留存平時成績總表_${new Date().toISOString().slice(0, 10)}.pdf`
+                    : `MPScore-Daily_家長版平時成績通知小卡_${new Date().toISOString().slice(0, 10)}.pdf`;
+
+                html2pdf().set({
+                    margin: 0,
+                    filename: filename,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                }).from(target).save();
+            }, 250);
+        }
+
+        // 初始化
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('loaderCodePreview').textContent = LOADER_GS_SOURCE;
+            const savedUrl = localStorage.getItem('mpdaily_api_url') || ((typeof CONFIG !== 'undefined' && CONFIG.API_URL) ? CONFIG.API_URL : '');
+            if (savedUrl) {
+                document.getElementById('apiUrlInput').value = savedUrl;
+            }
+            renderTeacherRosterTable();
         });
-      }
-    }
-
-    async function downloadPrintCardsPdf(editionToExport) {
-      if (currentPrintEdition !== editionToExport) {
-        switchPrintEdition(editionToExport);
-        await new Promise(r => setTimeout(r, 250));
-      }
-
-      const sheets = document.querySelectorAll('#printModalSheets .a4-print-sheet');
-      if (!sheets || sheets.length === 0) return;
-
-      const btnId = editionToExport === 'teacher' ? 'downloadTeacherPdfBtn' : 'downloadParentPdfBtn';
-      const btn = document.getElementById(btnId);
-      const origHtml = btn ? btn.innerHTML : '';
-      if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = `<span>⏳ 準備匯出 PDF (0/${sheets.length}頁)...</span>`;
-      }
-
-      try {
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
-
-        for (let i = 0; i < sheets.length; i++) {
-          if (btn) btn.innerHTML = `<span>⏳ 生成 PDF (${i + 1}/${sheets.length}頁)...</span>`;
-          const sheet = sheets[i];
-          const prevRadius = sheet.style.borderRadius;
-          const prevShadow = sheet.style.boxShadow;
-          sheet.style.borderRadius = '0px';
-          sheet.style.boxShadow = 'none';
-
-          const canvas = await html2canvas(sheet, {
-            scale: 2,
-            useCORS: true,
-            logging: false,
-            backgroundColor: '#ffffff'
-          });
-
-          sheet.style.borderRadius = prevRadius;
-          sheet.style.boxShadow = prevShadow;
-
-          const imgData = canvas.toDataURL('image/jpeg', 0.95);
-          if (i > 0) pdf.addPage('a4', 'portrait');
-          pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
-        }
-
-        const schoolTitle = (document.getElementById('cardSchoolTitle')?.value || '學校').trim();
-        const noticeTitle = (document.getElementById('cardNoticeTitle')?.value || '平時學習歷程通知單').trim();
-        const suffix = editionToExport === 'teacher' ? '【教師留存版_含代碼】' : '【家長發放版】';
-        const filename = `${schoolTitle}_${noticeTitle}_${suffix}.pdf`.replace(/[\/\\:*?"<>|]/g, '_');
-
-        pdf.save(filename);
-
-        if (btn) {
-          btn.innerHTML = `<span>✅ ${editionToExport === 'teacher' ? '教師版' : '家長版'} 下載完成！</span>`;
-          setTimeout(() => {
-            btn.innerHTML = origHtml;
-            btn.disabled = false;
-          }, 2800);
-        }
-      } catch (err) {
-        console.error(err);
-        triggerDirectPrint();
-        if (btn) {
-          btn.innerHTML = origHtml;
-          btn.disabled = false;
-        }
-      }
-    }
-
-    function triggerDirectPrint() {
-      setTimeout(() => window.print(), 100);
-    }
-
-    // ==================== TAB 4: 手機沙盒預覽邏輯 ====================
-    function populateSandboxSelect(students) {
-      const sel = document.getElementById('previewStudentSelect');
-      if (!sel) return;
-      sel.innerHTML = '';
-      students.forEach((st, idx) => {
-        const opt = document.createElement('option');
-        opt.value = st.token;
-        opt.innerText = `${st.className}-${st.seatNumber} ${st.name} (代碼: ${st.token})`;
-        if (idx === 1) opt.selected = true; // 預設選 02號 陳小華
-        sel.appendChild(opt);
-      });
-    }
-
-    function loadSandboxPreview() {
-      const sel = document.getElementById('previewStudentSelect');
-      const token = sel ? sel.value : 'DEMO02';
-      let apiId = '';
-      if (activeApiUrl) {
-        const m = activeApiUrl.match(/macros\/s\/([^\/]+)/);
-        if (m && m[1]) apiId = m[1];
-      }
-      const url = `parent.html?t=${encodeURIComponent(token)}${apiId ? '&a=' + apiId : ''}&v=${getVisibilityFlagString()}`;
-      document.getElementById('sandboxUrlLabel').innerText = url;
-      document.getElementById('sandboxIframe').src = url;
-    }
-
-    function openSelectedStudentInNewTab() {
-      const url = document.getElementById('sandboxIframe').src;
-      window.open(url, '_blank');
-    }
-
-    function openTeacherChangelogModal() {
-      const m = document.getElementById('teacherChangelogModal');
-      m.classList.remove('hidden');
-      m.style.display = 'flex';
-    }
-
-    function closeTeacherChangelogModal() {
-      const m = document.getElementById('teacherChangelogModal');
-      if (m) {
-        m.classList.add('hidden');
-        m.style.display = 'none';
-      }
-    }
-  </script>
+    </script>
 </body>
+
 </html>

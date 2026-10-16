@@ -1,5 +1,5 @@
 /**
- * MPScore-Daily - 學生平時學習歷程手札 GitHub 自動熱更新引導核心
+ * MPScore-Daily - 學生平時成績歷程系統 GitHub 自動熱更新引導核心
  * 網站作者 / 系統規劃：楊家驊老師 (Chiahua Yang)
  *
  * 只要在 Apps Script 貼上這段程式碼，未來 GitHub (chy23/MPScore-Daily) 有任何演算法或功能更新，
@@ -36,17 +36,16 @@ function getEngine() {
 // 靜態建立選單（不使用 UrlFetchApp，確保試算表每次開啟時都能 100% 穩定出現選單！）
 function onOpen() {
   var ui = SpreadsheetApp.getUi();
-  ui.createMenu('🌱 MPScore-Daily 平時工具')
+  ui.createMenu('⚡ MPScore-Daily 平時成績工具')
     .addItem('🛠️ 建立初始表格（空白試算表第一次使用）', 'setupStandardSheets')
     .addSeparator()
-    .addItem('➕ 新增平時科目分頁（自動帶入學生名單）', 'createNewSubjectSheetFromRoster')
+    .addItem('➕ 新增平時成績科目分頁（自動帶入學生名單）', 'createNewSubjectSheetFromRoster')
     .addItem('🔄 用最新成績名單，更新「學生名冊」', 'syncStudentsFromSheet')
     .addItem('🔑 為全班產生「家長查詢代碼」', 'generateTokensForStudents')
     .addSeparator()
-    .addItem('⏳ 查看全班「待補交・待訂正」彙整清單', 'previewMissingAndReviewItems')
-    .addItem('📊 查看全班各科平時總均與四大支柱統計', 'previewClassStatistics')
+    .addItem('📊 查看全班各科平時總均與分項平均統計', 'previewClassStatistics')
     .addItem('📐 自動整理欄寬與表格排版', 'autoFormatAndResizeAllSheets')
-    .addItem('🚀 立即更新雲端資料（改完分數或標色點此）', 'clearSystemCache')
+    .addItem('🚀 立即更新雲端資料（改完分數點此）', 'clearSystemCache')
     .addSeparator()
     .addItem('📶 檢查系統連線狀態', 'testGitHubConnection')
     .addToUi();
@@ -57,7 +56,6 @@ function setupStandardSheets() { getEngine().setupStandardSheets(); }
 function createNewSubjectSheetFromRoster() { getEngine().createNewSubjectSheetFromRoster(); }
 function syncStudentsFromSheet() { getEngine().syncStudentsFromSheet(); }
 function generateTokensForStudents() { getEngine().generateTokensForStudents(); }
-function previewMissingAndReviewItems() { getEngine().previewMissingAndReviewItems(); }
 function previewClassStatistics() { getEngine().previewClassStatistics(); }
 function autoFormatAndResizeAllSheets() { getEngine().autoFormatAndResizeAllSheets(); }
 function clearSystemCache() { getEngine().clearSystemCache(); }
@@ -83,7 +81,7 @@ function doPost(e) {
 function testGitHubConnection() {
   try {
     var engine = getEngine();
-    SpreadsheetApp.getUi().alert("🎉 連線成功！已成功自 GitHub (chy23/MPScore-Daily) 載入最新版 MPScore-Daily 平時學習歷程核心模組。");
+    SpreadsheetApp.getUi().alert("🎉 連線成功！已成功自 GitHub (chy23/MPScore-Daily) 載入最新版 MPScore-Daily 平時成績歷程核心模組。");
   } catch (err) {
     SpreadsheetApp.getUi().alert("⚠️ 連線失敗: " + err.toString());
   }
