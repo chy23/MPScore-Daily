@@ -98,25 +98,38 @@ function safeFreezeSheet_(sheet, freezeRows, freezeCols) {
 function clearSystemCache() {
   var ui = SpreadsheetApp.getUi();
   try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
     var cache = CacheService.getScriptCache();
-    var keys = ['mpdaily_print_summary_v2', 'mpdaily_print_summary_v3'];
+    var keys = [
+      'mpdaily_print_summary_v2',
+      'mpdaily_print_summary_v3',
+      'mpdaily_print_summary_v4',
+      'mpdaily_print_summary_v5',
+      'mpdaily_print_summary_v6'
+    ];
     for (var i = 1; i <= 60; i++) {
       var s = i < 10 ? '0' + i : '' + i;
-      keys.push('mpdaily_score_v2_DEMO' + s);
-      keys.push('mpdaily_score_v2_' + s);
-      keys.push('mpdaily_score_v3_DEMO' + s);
-      keys.push('mpdaily_score_v3_' + s);
+      ['v2', 'v3', 'v4', 'v5', 'v6'].forEach(function(ver) {
+        keys.push('mpdaily_score_' + ver + '_DEMO' + s);
+        keys.push('mpdaily_score_' + ver + '_' + s);
+      });
     }
     try {
-      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      var sheets = ss.getSheets();
+      for (var shIdx = 0; shIdx < sheets.length; shIdx++) {
+        if (!isSystemSheet(sheets[shIdx].getName())) {
+          ensureAssessmentTypeRow_(sheets[shIdx]);
+        }
+      }
       var sSheet = ss.getSheetByName('學生名冊');
       if (sSheet && sSheet.getLastRow() > 1) {
         var sData = sSheet.getDataRange().getValues();
         for (var r = 1; r < sData.length; r++) {
           var tok = (sData[r][3] || '').toString().trim().toUpperCase();
           if (tok) {
-            keys.push('mpdaily_score_v2_' + tok);
-            keys.push('mpdaily_score_v3_' + tok);
+            ['v2', 'v3', 'v4', 'v5', 'v6'].forEach(function(ver) {
+              keys.push('mpdaily_score_' + ver + '_' + tok);
+            });
           }
         }
       }
@@ -501,128 +514,296 @@ function isAssessmentTypeRow_(row, seatCol, nameCol) {
   }
   var isNotStudentSeat = (!sCell || isNaN(parseInt(sCell, 10)));
   if (isNotStudentSeat && !nCell) {
-    for (var i = 2; i < row.length; i++) {
+    var hasTypeKeyword = false;
+    var hasNonTypeItem = false;
+    for (var i = 0; i < row.length; i++) {
+      if (i === seatCol || i === nameCol) continue;
       var v = (row[i] || '').toString().trim();
-      if (v === '作業' || v === '考試' || v === '不計分' || v === '習作' || v === '測驗') {
-        return true;
+      if (!v) continue;
+      if (v === '作業' || v === '考試' || v === '不計分' || v === '略過' || v === '習作' || v === '測驗' || v === '加分' || v === '扣分') {
+        hasTypeKeyword = true;
+      } else {
+        hasNonTypeItem = true;
       }
     }
+    if (hasTypeKeyword && !hasNonTypeItem) return true;
   }
   return false;
 }
 
 /**
- * 確保平時成績分頁在「項目列」與「學生成績列」之間擁有「作業／考試」類別列（若無則由電腦自動判斷並插入，若有新增欄位則自動補齊空白格，不覆蓋老師手動修改值）
+ * 智慧定位科目平時成績表的各關鍵列位置（完整相容單列標題、雙列群組與垂直合併「座號/姓名」標題，並自動識別異常空白/錯位列）
  */
-function ensureAssessmentTypeRow_(sheet) {
-  try {
-    var data = sheet.getDataRange().getValues();
-    if (!data || data.length < 2) return;
+function locateSubjectSheetRows_(data) {
+  var result = {
+    seatCol: 0,
+    nameCol: 1,
+    itemHeaderRowIdx: -1,
+    typeRowIdx: -1,
+    firstStudentRowIdx: -1,
+    misplacedRowIndices: []
+  };
+  if (!data || data.length === 0) return result;
 
-    var headerRowIdx = -1;
-    for (var r = 0; r < Math.min(5, data.length); r++) {
-      var rowStr = data[r].join(' ');
-      if (rowStr.indexOf('座號') !== -1 || rowStr.indexOf('姓名') !== -1) {
-        headerRowIdx = r;
+  var headerCandidateRowIdx = -1;
+  for (var r = 0; r < Math.min(10, data.length); r++) {
+    for (var c = 0; c < Math.min(8, data[r].length); c++) {
+      var cellStr = (data[r][c] || '').toString().trim();
+      if (cellStr === '座號' || cellStr.indexOf('座號') !== -1) {
+        result.seatCol = c;
+        if (headerCandidateRowIdx === -1) headerCandidateRowIdx = r;
+      } else if (cellStr === '姓名' || cellStr.indexOf('姓名') !== -1) {
+        result.nameCol = c;
+        if (headerCandidateRowIdx === -1) headerCandidateRowIdx = r;
+      }
+    }
+  }
+
+  // 1. 尋找第一位學生的資料列 (具備有效座號數字 1..99 與學生姓名)
+  for (var sRow = 1; sRow < data.length; sRow++) {
+    if (isAssessmentTypeRow_(data[sRow], result.seatCol, result.nameCol)) continue;
+    var sVal = (data[sRow][result.seatCol] !== undefined && data[sRow][result.seatCol] !== null) ? data[sRow][result.seatCol].toString().trim() : '';
+    var nVal = (data[sRow][result.nameCol] !== undefined && data[sRow][result.nameCol] !== null) ? data[sRow][result.nameCol].toString().trim() : '';
+    if (!sVal || !nVal) continue;
+    if (/^\d{1,2}$/.test(sVal)) {
+      var seatNum = parseInt(sVal, 10);
+      if (seatNum >= 1 && seatNum <= 99 && nVal.indexOf('姓名') === -1 && nVal.indexOf('平均') === -1 && nVal.indexOf('作業') === -1 && nVal.indexOf('標準差') === -1) {
+        result.firstStudentRowIdx = sRow;
         break;
       }
     }
-    if (headerRowIdx === -1) return;
+  }
 
-    var itemHeaderRow = data[headerRowIdx];
-    var seatCol = 0;
-    var nameCol = 1;
+  var searchUpper = result.firstStudentRowIdx !== -1 ? result.firstStudentRowIdx : Math.min(data.length, 12);
+
+  // 2. 在第一位學生列上方，找出真正包含各次平時評量項目名稱（如：數習L1、L1測驗卷）的標題列
+  var bestItemCount = -1;
+  for (var hRow = 0; hRow < searchUpper; hRow++) {
+    if (isAssessmentTypeRow_(data[hRow], result.seatCol, result.nameCol)) continue;
+    var itemCount = 0;
+    for (var col = 0; col < data[hRow].length; col++) {
+      if (col === result.seatCol || col === result.nameCol) continue;
+      var v = (data[hRow][col] || '').toString().trim();
+      if (!v || v === '📌 學生名單') continue;
+      if (v === '作業' || v === '考試' || v === '不計分' || v === '略過') continue;
+      itemCount++;
+    }
+    if (itemCount > 0 && itemCount >= bestItemCount) {
+      bestItemCount = itemCount;
+      result.itemHeaderRowIdx = hRow;
+    }
+  }
+
+  if (result.itemHeaderRowIdx === -1 && headerCandidateRowIdx !== -1) {
+    result.itemHeaderRowIdx = headerCandidateRowIdx;
+  }
+  if (result.itemHeaderRowIdx === -1) return result;
+
+  // 3. 檢查 itemHeaderRowIdx 上方是否有因垂直合併標題誤插入的空白列或錯位「作業/考試」列 (r >= 1 且 r < itemHeaderRowIdx)
+  for (var aboveRow = 1; aboveRow < result.itemHeaderRowIdx; aboveRow++) {
+    var isTypeAbove = isAssessmentTypeRow_(data[aboveRow], result.seatCol, result.nameCol);
+    var nonTypeCountAbove = 0;
+    for (var ac = 0; ac < data[aboveRow].length; ac++) {
+      if (ac === result.seatCol || ac === result.nameCol) continue;
+      var av = (data[aboveRow][ac] || '').toString().trim();
+      if (av && av !== '作業' && av !== '考試' && av !== '不計分' && av !== '略過') {
+        nonTypeCountAbove++;
+      }
+    }
+    if (isTypeAbove || nonTypeCountAbove === 0) {
+      result.misplacedRowIndices.push(aboveRow);
+    }
+  }
+
+  // 4. 在 itemHeaderRowIdx 與 firstStudentRowIdx 之間尋找正確的「作業／考試」列
+  for (var belowRow = result.itemHeaderRowIdx + 1; belowRow < searchUpper; belowRow++) {
+    if (isAssessmentTypeRow_(data[belowRow], result.seatCol, result.nameCol)) {
+      if (result.typeRowIdx === -1) {
+        result.typeRowIdx = belowRow;
+      } else {
+        result.misplacedRowIndices.push(belowRow);
+      }
+    } else {
+      var anyContent = false;
+      for (var bc = 0; bc < data[belowRow].length; bc++) {
+        if ((data[belowRow][bc] || '').toString().trim() !== '') {
+          anyContent = true;
+          break;
+        }
+      }
+      if (!anyContent) {
+        result.misplacedRowIndices.push(belowRow);
+      }
+    }
+  }
+
+  if (result.firstStudentRowIdx === -1) {
+    result.firstStudentRowIdx = (result.typeRowIdx !== -1) ? (result.typeRowIdx + 1) : (result.itemHeaderRowIdx + 1);
+  }
+
+  return result;
+}
+
+/**
+ * 確保平時成績分頁在「項目列」與「學生成績列」之間擁有「作業／考試」類別列
+ * （若已有且無缺漏則 0ms 直接返回，不執行任何試算表寫入；若需建立或清理錯位列則透過 LockService 安全批次寫入）
+ */
+function ensureAssessmentTypeRow_(sheet, optData) {
+  var data = optData || null;
+  try {
+    if (!data) {
+      data = sheet.getDataRange().getValues();
+    }
+    if (!data || data.length < 2) return data;
+
+    var loc = locateSubjectSheetRows_(data);
+    if (loc.itemHeaderRowIdx === -1) return data;
+
+    var itemHeaderRow = data[loc.itemHeaderRowIdx];
+    var lastActiveCol = Math.max(loc.seatCol, loc.nameCol);
     for (var c = 0; c < itemHeaderRow.length; c++) {
-      var hText = (itemHeaderRow[c] || '').toString().trim();
-      if (hText.indexOf('座號') !== -1) seatCol = c;
-      if (hText.indexOf('姓名') !== -1) nameCol = c;
+      if ((itemHeaderRow[c] || '').toString().trim() !== '') {
+        lastActiveCol = c;
+      }
     }
 
-    var nextRow = (headerRowIdx + 1 < data.length) ? data[headerRowIdx + 1] : null;
-    var numCols = itemHeaderRow.length;
+    var hasMisplaced = loc.misplacedRowIndices.length > 0;
+    var needsInsert = loc.typeRowIdx === -1;
+    var needsFillMissingCols = false;
 
-    if (!nextRow || !isAssessmentTypeRow_(nextRow, seatCol, nameCol)) {
-      // 尚未建立「作業／考試」列 -> 自動在項目列下方插入一列並填入電腦初步判斷
-      sheet.insertRowAfter(headerRowIdx + 1);
-      var typeRow1Idx = headerRowIdx + 2; // 1-indexed
-      var typeValues = [];
-      var bgColors = [];
-      var fontColors = [];
+    if (!needsInsert && loc.typeRowIdx < data.length) {
+      var existingTypeRow = data[loc.typeRowIdx];
+      for (var checkCol = 0; checkCol <= lastActiveCol; checkCol++) {
+        if (checkCol === loc.seatCol || checkCol === loc.nameCol) continue;
+        var titleText = (itemHeaderRow[checkCol] || '').toString().trim();
+        var curTypeText = (existingTypeRow[checkCol] || '').toString().trim();
+        if (titleText && !curTypeText) {
+          needsFillMissingCols = true;
+          break;
+        }
+      }
+    }
 
-      for (var col = 0; col < numCols; col++) {
-        if (col === seatCol) {
-          typeValues.push('評量');
-          bgColors.push('#475569');
-          fontColors.push('#ffffff');
-        } else if (col === nameCol) {
-          typeValues.push('作業/考試');
-          bgColors.push('#475569');
-          fontColors.push('#ffffff');
-        } else {
-          var rawTitle = (itemHeaderRow[col] || '').toString().trim();
-          var autoType = inferDefaultAssessmentType(rawTitle);
-          typeValues.push(autoType);
-          if (autoType === '作業') {
-            bgColors.push('#fef3c7');
-            fontColors.push('#92400e');
-          } else if (autoType === '考試') {
-            bgColors.push('#e0f2fe');
-            fontColors.push('#075985');
+    // 快速通道：若無錯位列、且已有完整「作業／考試」列，直接回傳記憶體資料（零寫入 API 呼叫）
+    if (!hasMisplaced && !needsInsert && !needsFillMissingCols) {
+      return data;
+    }
+
+    var lock = LockService.getScriptLock();
+    if (!lock.tryLock(800)) {
+      return data;
+    }
+
+    try {
+      data = sheet.getDataRange().getValues();
+      loc = locateSubjectSheetRows_(data);
+      if (loc.itemHeaderRowIdx === -1) return data;
+
+      // Step 1: 清理任何誤插在項目列上方的空白列或重複類別列（由下往上刪除）
+      if (loc.misplacedRowIndices.length > 0) {
+        var toDelete = loc.misplacedRowIndices.slice().sort(function(a, b) { return b - a; });
+        for (var d = 0; d < toDelete.length; d++) {
+          sheet.deleteRow(toDelete[d] + 1);
+        }
+        data = sheet.getDataRange().getValues();
+        loc = locateSubjectSheetRows_(data);
+        if (loc.itemHeaderRowIdx === -1) return data;
+      }
+
+      itemHeaderRow = data[loc.itemHeaderRowIdx];
+      lastActiveCol = Math.max(loc.seatCol, loc.nameCol);
+      for (var c2 = 0; c2 < itemHeaderRow.length; c2++) {
+        if ((itemHeaderRow[c2] || '').toString().trim() !== '') {
+          lastActiveCol = c2;
+        }
+      }
+      var numCols = lastActiveCol + 1;
+
+      if (loc.typeRowIdx === -1) {
+        // Step 2: 在真正的項目列 (itemHeaderRowIdx) 下方插入「作業／考試」列
+        sheet.insertRowAfter(loc.itemHeaderRowIdx + 1);
+        var typeRow1Idx = loc.itemHeaderRowIdx + 2; // 1-indexed
+        var typeValues = [];
+        var bgColors = [];
+        var fontColors = [];
+
+        for (var col = 0; col < numCols; col++) {
+          if (col === loc.seatCol) {
+            typeValues.push('評量');
+            bgColors.push('#475569');
+            fontColors.push('#ffffff');
+          } else if (col === loc.nameCol) {
+            typeValues.push('作業/考試');
+            bgColors.push('#475569');
+            fontColors.push('#ffffff');
           } else {
-            bgColors.push('#f5f5f4');
-            fontColors.push('#78716c');
-          }
-        }
-      }
-
-      sheet.getRange(typeRow1Idx, 1, 1, numCols)
-        .setValues([typeValues])
-        .setBackgrounds([bgColors])
-        .setFontColors([fontColors])
-        .setFontWeight('bold')
-        .setFontSize(10)
-        .setHorizontalAlignment('center')
-        .setVerticalAlignment('middle');
-      sheet.setRowHeight(typeRow1Idx, 26);
-
-      if (numCols > 2) {
-        var rule = SpreadsheetApp.newDataValidation()
-          .requireValueInList(['作業', '考試', '不計分'], true)
-          .setAllowInvalid(true)
-          .build();
-        sheet.getRange(typeRow1Idx, 3, 1, numCols - 2).setDataValidation(rule);
-      }
-      safeFreezeSheet_(sheet, typeRow1Idx, 2);
-    } else {
-      // 已有「作業／考試」列 -> 檢查老師是否有新增欄位尚未填入預設類別（僅補齊空白格，100% 保留老師手動修改）
-      var typeRow1IdxExisting = headerRowIdx + 2;
-      var ruleExisting = null;
-      for (var colIdx = 0; colIdx < numCols; colIdx++) {
-        if (colIdx === seatCol || colIdx === nameCol) continue;
-        var itemTitle = (itemHeaderRow[colIdx] || '').toString().trim();
-        var currentType = (nextRow[colIdx] || '').toString().trim();
-        if (itemTitle && !currentType) {
-          var inferred = inferDefaultAssessmentType(itemTitle);
-          if (inferred) {
-            var targetCell = sheet.getRange(typeRow1IdxExisting, colIdx + 1);
-            targetCell.setValue(inferred)
-              .setFontWeight('bold')
-              .setFontSize(10)
-              .setHorizontalAlignment('center')
-              .setBackground(inferred === '作業' ? '#fef3c7' : (inferred === '考試' ? '#e0f2fe' : '#f5f5f4'))
-              .setFontColor(inferred === '作業' ? '#92400e' : (inferred === '考試' ? '#075985' : '#78716c'));
-            if (!ruleExisting) {
-              ruleExisting = SpreadsheetApp.newDataValidation()
-                .requireValueInList(['作業', '考試', '不計分'], true)
-                .setAllowInvalid(true)
-                .build();
+            var rawTitle = (itemHeaderRow[col] || '').toString().trim();
+            var autoType = inferDefaultAssessmentType(rawTitle);
+            typeValues.push(autoType);
+            if (autoType === '作業') {
+              bgColors.push('#fef3c7');
+              fontColors.push('#92400e');
+            } else if (autoType === '考試') {
+              bgColors.push('#e0f2fe');
+              fontColors.push('#075985');
+            } else {
+              bgColors.push('#f5f5f4');
+              fontColors.push('#78716c');
             }
-            targetCell.setDataValidation(ruleExisting);
           }
         }
+
+        sheet.getRange(typeRow1Idx, 1, 1, numCols)
+          .setValues([typeValues])
+          .setBackgrounds([bgColors])
+          .setFontColors([fontColors])
+          .setFontWeight('bold')
+          .setFontSize(10)
+          .setHorizontalAlignment('center')
+          .setVerticalAlignment('middle');
+        sheet.setRowHeight(typeRow1Idx, 26);
+
+        if (numCols > 2) {
+          var rule = SpreadsheetApp.newDataValidation()
+            .requireValueInList(['作業', '考試', '不計分'], true)
+            .setAllowInvalid(true)
+            .build();
+          sheet.getRange(typeRow1Idx, 3, 1, numCols - 2).setDataValidation(rule);
+        }
+        data = sheet.getDataRange().getValues();
+      } else {
+        // Step 3: 已有「作業／考試」列 -> 批次補齊新增欄位之預設類別（100% 保留老師手動修改值）
+        var typeRow1IdxExisting = loc.typeRowIdx + 1;
+        var curRow = data[loc.typeRowIdx];
+        var updatedValues = [];
+        var hasAnyUpdate = false;
+        for (var colIdx = 0; colIdx < numCols; colIdx++) {
+          var curVal = (curRow[colIdx] !== undefined && curRow[colIdx] !== null) ? curRow[colIdx].toString().trim() : '';
+          if (colIdx === loc.seatCol) {
+            updatedValues.push(curVal || '評量');
+          } else if (colIdx === loc.nameCol) {
+            updatedValues.push(curVal || '作業/考試');
+          } else {
+            var itemTitle = (itemHeaderRow[colIdx] || '').toString().trim();
+            if (itemTitle && !curVal) {
+              var inferred = inferDefaultAssessmentType(itemTitle);
+              updatedValues.push(inferred);
+              hasAnyUpdate = true;
+            } else {
+              updatedValues.push(curVal);
+            }
+          }
+        }
+        if (hasAnyUpdate) {
+          sheet.getRange(typeRow1IdxExisting, 1, 1, numCols).setValues([updatedValues]);
+          data = sheet.getDataRange().getValues();
+        }
       }
+    } finally {
+      try { lock.releaseLock(); } catch (ignoreLock) {}
     }
   } catch (ignore) {}
+  return data;
 }
 
 /**
@@ -708,45 +889,29 @@ function getScoreGradeInfo(score) {
  * 解析單一平時成績工作表（自動確保「作業／考試」列存在，並僅回傳該試算表實際存在的評量分項！）
  */
 function parseDailySubjectSheet(sheet) {
-  ensureAssessmentTypeRow_(sheet);
+  var rawData = sheet.getDataRange().getValues();
+  if (!rawData || rawData.length < 2) return null;
 
-  var data = sheet.getDataRange().getValues();
-  if (!data || data.length < 2) return null;
+  var data = ensureAssessmentTypeRow_(sheet, rawData);
+  var loc = locateSubjectSheetRows_(data);
+  if (loc.itemHeaderRowIdx === -1) return null;
 
   var sheetName = sheet.getName();
   var sheetTitle = sheetName;
 
-  var headerRowIdx = -1;
-  for (var r = 0; r < Math.min(5, data.length); r++) {
-    var rowStr = data[r].join(' ');
-    if (rowStr.indexOf('座號') !== -1 || rowStr.indexOf('姓名') !== -1) {
-      headerRowIdx = r;
-      break;
-    }
-  }
-  if (headerRowIdx === -1) return null;
-
-  if (headerRowIdx > 0) {
+  if (loc.itemHeaderRowIdx > 0) {
     var titleCandidates = data[0].filter(function(cell) {
       var s = (cell || '').toString().trim();
-      return s && s !== '📌 學生名單';
+      return s && s !== '📌 學生名單' && s !== '座號' && s !== '姓名';
     });
     if (titleCandidates.length > 0) sheetTitle = titleCandidates[0].toString().trim();
   }
 
-  var itemHeaderRow = data[headerRowIdx];
-  var seatCol = 0;
-  var nameCol = 1;
-  for (var c = 0; c < itemHeaderRow.length; c++) {
-    var hText = (itemHeaderRow[c] || '').toString().trim();
-    if (hText.indexOf('座號') !== -1) seatCol = c;
-    if (hText.indexOf('姓名') !== -1) nameCol = c;
-  }
-
-  var nextRow = (headerRowIdx + 1 < data.length) ? data[headerRowIdx + 1] : null;
-  var hasAssessmentTypeRow = nextRow ? isAssessmentTypeRow_(nextRow, seatCol, nameCol) : false;
-  var typeRow = hasAssessmentTypeRow ? nextRow : null;
-  var dataStartRowIdx = hasAssessmentTypeRow ? headerRowIdx + 2 : headerRowIdx + 1;
+  var itemHeaderRow = data[loc.itemHeaderRowIdx];
+  var seatCol = loc.seatCol;
+  var nameCol = loc.nameCol;
+  var typeRow = (loc.typeRowIdx !== -1 && loc.typeRowIdx < data.length) ? data[loc.typeRowIdx] : null;
+  var dataStartRowIdx = loc.firstStudentRowIdx;
 
   var itemCols = [];
   var sheetPillarColCounts = { workbook: 0, homework: 0, foundation: 0, quiz: 0 };
@@ -793,6 +958,7 @@ function parseDailySubjectSheet(sheet) {
 
   for (var rIdx = dataStartRowIdx; rIdx < data.length; rIdx++) {
     var row = data[rIdx];
+    if (isAssessmentTypeRow_(row, seatCol, nameCol)) continue;
     var seatVal = row[seatCol] !== undefined ? row[seatCol].toString().trim() : '';
     var nameVal = row[nameCol] !== undefined ? row[nameCol].toString().trim() : '';
 
@@ -1166,7 +1332,7 @@ function getStudentDailyPortfolioByToken(token) {
   }
 
   var cache = CacheService.getScriptCache();
-  var cacheKey = 'mpdaily_score_v5_' + cleanToken;
+  var cacheKey = 'mpdaily_score_v6_' + cleanToken;
   var cachedJson = cache.get(cacheKey);
   if (cachedJson) {
     try {
@@ -1332,21 +1498,9 @@ function syncRosterToSubjectSheets(silent) {
     var sh = sheets[idx];
     if (isSystemSheet(sh.getName())) continue;
 
-    ensureAssessmentTypeRow_(sh);
-    var data = sh.getDataRange().getValues();
-    var headerRowIdx = 1;
-    var seatCol = 0;
-    var nameCol = 1;
-    for (var r = 0; r < Math.min(5, data.length); r++) {
-      var rowStr = data[r].join(' ');
-      if (rowStr.indexOf('座號') !== -1 || rowStr.indexOf('姓名') !== -1) {
-        headerRowIdx = r;
-        break;
-      }
-    }
-
-    var hasTypeRow = (headerRowIdx + 1 < data.length) && isAssessmentTypeRow_(data[headerRowIdx + 1], seatCol, nameCol);
-    var startRow = hasTypeRow ? (headerRowIdx + 3) : (headerRowIdx + 2); // 1-indexed 學生資料起始列
+    var data = ensureAssessmentTypeRow_(sh);
+    var loc = locateSubjectSheetRows_(data);
+    var startRow = (loc.firstStudentRowIdx !== -1 ? loc.firstStudentRowIdx : 3) + 1; // 1-indexed 學生資料起始列
     sh.getRange(startRow, 1, rosterList.length, 2).setValues(rosterList).setHorizontalAlignment('center');
     updatedSheets.push(sh.getName());
   }
@@ -1401,39 +1555,11 @@ function syncStudentsFromSheet() {
     return;
   }
 
-  ensureAssessmentTypeRow_(targetSheet);
-  var data = targetSheet.getDataRange().getValues();
-  var headerRowIdx = -1;
-  var seatCol = 0;
-  var nameCol = 1;
-
-  for (var r = 0; r < Math.min(5, data.length); r++) {
-    var rowStr = data[r].join(' ');
-    if (rowStr.indexOf('座號') !== -1 || rowStr.indexOf('姓名') !== -1) {
-      headerRowIdx = r;
-      for (var c = 0; c < data[r].length; c++) {
-        var hText = (data[r][c] || '').toString().trim();
-        if (hText.indexOf('座號') !== -1) seatCol = c;
-        if (hText.indexOf('姓名') !== -1) nameCol = c;
-      }
-      break;
-    }
-  }
-  if (headerRowIdx === -1) headerRowIdx = 1;
-
-  // 檢查是否包含「作業/考試」評量屬性列或雙列標題
-  var dataStartRow = headerRowIdx + 1;
-  if (dataStartRow < data.length) {
-    if (isAssessmentTypeRow_(data[dataStartRow], seatCol, nameCol)) {
-      dataStartRow++;
-    } else {
-      var testSeat = (data[dataStartRow][seatCol] || '').toString().trim();
-      var testName = (data[dataStartRow][nameCol] || '').toString().trim();
-      if ((!testSeat || isNaN(parseInt(testSeat, 10))) && !testName) {
-        dataStartRow++;
-      }
-    }
-  }
+  var data = ensureAssessmentTypeRow_(targetSheet);
+  var loc = locateSubjectSheetRows_(data);
+  var seatCol = loc.seatCol;
+  var nameCol = loc.nameCol;
+  var dataStartRow = loc.firstStudentRowIdx !== -1 ? loc.firstStudentRowIdx : 2;
 
   var sSheet = ss.getSheetByName('學生名冊');
   if (!sSheet) {

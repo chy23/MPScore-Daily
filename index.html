@@ -614,7 +614,10 @@ function testGitHubConnection() {
             });
         }
 
+        let isConnectingCloud = false;
+
         async function connectCloudGradebook() {
+            if (isConnectingCloud) return;
             const inputUrl = (document.getElementById('apiUrlInput').value.trim() || localStorage.getItem('mpdaily_api_url') || '').trim();
             const statusMsg = document.getElementById('apiStatusMsg');
             const badgeSource = document.getElementById('rosterBadgeSource');
@@ -630,6 +633,7 @@ function testGitHubConnection() {
                 return;
             }
 
+            isConnectingCloud = true;
             document.getElementById('apiUrlInput').value = inputUrl;
             statusMsg.textContent = '⏳ 正在從 Google 試算表同步全班各科平時成績與分項平均...';
             statusMsg.className = 'text-[11px] text-amber-700 font-bold';
@@ -637,15 +641,30 @@ function testGitHubConnection() {
 
             try {
                 const sep = inputUrl.includes('?') ? '&' : '?';
-                const res = await fetch(`${inputUrl}${sep}action=getStudentsForPrint&t=${Date.now()}`, { redirect: 'follow' });
-                const text = await res.text();
                 let data = null;
-                try {
-                    data = JSON.parse(text);
-                } catch (parseErr) {
-                    statusMsg.textContent = '⚠️ Apps Script 回傳非 JSON 頁面。請確認：(1) 已在 Apps Script 點選「執行 ➔ setup」完成授權；(2) 部署權限為「所有人 (Anyone)」。';
+                let rawHtmlErr = '';
+
+                for (let attempt = 1; attempt <= 2; attempt++) {
+                    const res = await fetch(`${inputUrl}${sep}action=getStudentsForPrint&t=${Date.now()}`, { redirect: 'follow' });
+                    const text = await res.text();
+                    try {
+                        data = JSON.parse(text);
+                        break;
+                    } catch (parseErr) {
+                        const mErr = text.match(/<div[^>]*class=["']errorMessage["'][^>]*>([\s\S]*?)<\/div>/i);
+                        rawHtmlErr = mErr ? mErr[1].replace(/<[^>]+>/g, '').trim() : '';
+                        if (attempt === 1) {
+                            await new Promise(r => setTimeout(r, 800));
+                        }
+                    }
+                }
+
+                if (!data) {
+                    statusMsg.textContent = rawHtmlErr
+                        ? `⚠️ Apps Script 回應異常（${rawHtmlErr}）。請再點一次「連線試算表並載入全班平時成績」，或於試算表上方點選「🚀 立即更新雲端資料」。`
+                        : '⚠️ Apps Script 回傳非 JSON 頁面。請確認：(1) 已在 Apps Script 點選「執行 ➔ setup」完成授權；(2) 部署權限為「所有人 (Anyone)」。';
                     statusMsg.className = 'text-[11px] text-rose-600 font-bold';
-                    if (badgeSource) badgeSource.textContent = '⚠️ 試算表授權未完成';
+                    if (badgeSource) badgeSource.textContent = '⚠️ 請重試同步';
                     return;
                 }
 
@@ -698,6 +717,8 @@ function testGitHubConnection() {
                 statusMsg.textContent = '⚠️ 網路連線失敗，請確認：(1) 網址結尾為 /exec；(2) 部署權限已設為「所有人 (Anyone)」。';
                 statusMsg.className = 'text-[11px] text-rose-600 font-bold';
                 if (badgeSource) badgeSource.textContent = '⚠️ 連線失敗';
+            } finally {
+                isConnectingCloud = false;
             }
         }
 
