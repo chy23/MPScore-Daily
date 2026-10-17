@@ -31,25 +31,51 @@
 
     <style>
         :root {
-            --bg-cream: #FAF8F5;
-            --border-warm: #E6E1D6;
+            --bg-cream: #F6F9F7;
+            --border-warm: #D5E4EC;
         }
 
         body {
             background-color: var(--bg-cream);
             background-image:
-                radial-gradient(at 10% 10%, rgba(251, 191, 36, 0.12) 0px, transparent 50%),
-                radial-gradient(at 90% 12%, rgba(16, 185, 129, 0.08) 0px, transparent 50%);
+                radial-gradient(at 10% 10%, rgba(186, 230, 253, 0.35) 0px, transparent 50%),
+                radial-gradient(at 90% 15%, rgba(167, 243, 208, 0.32) 0px, transparent 50%),
+                radial-gradient(at 50% 85%, rgba(186, 230, 253, 0.25) 0px, transparent 55%);
             background-attachment: fixed;
-            color: #1c1917;
+            color: #1e293b;
             -webkit-font-smoothing: antialiased;
         }
 
         .warm-card {
-            background: rgba(255, 255, 255, 0.94);
+            background: rgba(244, 249, 253, 0.94);
             backdrop-filter: blur(12px);
-            border: 1px solid rgba(230, 225, 214, 0.95);
-            box-shadow: 0 10px 30px -8px rgba(120, 90, 50, 0.06), 0 2px 8px -2px rgba(120, 90, 50, 0.04);
+            border: 1px solid rgba(195, 220, 238, 0.95);
+            box-shadow: 0 10px 30px -8px rgba(30, 64, 100, 0.06), 0 2px 8px -2px rgba(30, 64, 100, 0.04);
+        }
+
+        /* 米藍色區塊卡片 (Cream-Blue Section Card) */
+        .card-cream-blue {
+            background: linear-gradient(145deg, #EDF5FA 0%, #F5FAFD 100%);
+            border: 1.5px solid #C5DDF0;
+            box-shadow: 0 10px 28px -8px rgba(30, 80, 120, 0.07), 0 2px 6px -1px rgba(30, 80, 120, 0.04);
+        }
+
+        /* 米綠色區塊卡片 (Cream-Green Section Card) */
+        .card-cream-green {
+            background: linear-gradient(145deg, #ECF6F0 0%, #F4FAF6 100%);
+            border: 1.5px solid #BFE3CE;
+            box-shadow: 0 10px 28px -8px rgba(25, 90, 60, 0.07), 0 2px 6px -1px rgba(25, 90, 60, 0.04);
+        }
+
+        /* 內部子卡片：米藍與米綠交替 */
+        .subcard-cream-blue {
+            background-color: #EBF4FA;
+            border: 1px solid #C2DCF0;
+        }
+
+        .subcard-cream-green {
+            background-color: #EAF6EF;
+            border: 1px solid #BCE2CC;
         }
 
         .tabular-nums {
@@ -64,7 +90,7 @@
             margin: 0 auto;
             background: #ffffff;
             box-sizing: border-box;
-            box-shadow: 0 12px 36px rgba(28, 25, 23, 0.12);
+            box-shadow: 0 12px 36px rgba(15, 23, 42, 0.12);
             border-radius: 8px;
             display: flex;
             flex-direction: column;
@@ -81,7 +107,7 @@
         }
 
         .slip-card {
-            border: 1.5px dashed #cbd5e1;
+            border: 1.5px dashed #94a3b8;
             border-radius: 10px;
             padding: 3mm 3.5mm;
             display: flex;
@@ -116,34 +142,34 @@
     </style>
 </head>
 
-<body class="min-h-screen flex flex-col selection:bg-amber-200 selection:text-amber-950">
+<body class="min-h-screen flex flex-col selection:bg-sky-200 selection:text-sky-950">
 
-    <!-- 頂部導覽列 -->
-    <header class="no-print sticky top-0 z-30 bg-[#FAF8F5]/90 backdrop-blur-md border-b border-stone-200/80 px-4 py-3">
+    <!-- 頂部導覽列（米藍與米綠漸層底） -->
+    <header class="no-print sticky top-0 z-30 bg-gradient-to-r from-[#EAF3F9]/95 via-[#F3F8F5]/95 to-[#E9F5EE]/95 backdrop-blur-md border-b border-[#C5DDF0]/80 px-4 py-3">
         <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-md shadow-amber-500/20 font-black text-xl">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-sky-600 to-teal-600 flex items-center justify-center text-white shadow-md shadow-sky-600/20 font-black text-xl">
                     📊
                 </div>
                 <div>
                     <div class="flex items-center gap-2">
-                        <h1 class="font-black text-stone-800 tracking-tight text-base sm:text-lg">MPScore-Daily 教師管理與列印中心</h1>
-                        <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">平時成績專用系統</span>
+                        <h1 class="font-black text-slate-800 tracking-tight text-base sm:text-lg">MPScore-Daily 教師管理與列印中心</h1>
+                        <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-sky-100/90 text-sky-800 border border-sky-200">平時成績專用系統</span>
                     </div>
-                    <p class="text-xs text-stone-500">自動結算習作 ‧ 作業卷 ‧ 語詞 ‧ 測驗卷四大分項平均與 L1~L6 單元走勢</p>
+                    <p class="text-xs text-slate-500">自動結算習作 ‧ 作業卷 ‧ 語詞 ‧ 測驗卷分項平均與平時學習趨勢</p>
                 </div>
             </div>
 
             <!-- 頂部三大模式切換器 -->
-            <div class="flex items-center gap-1.5 bg-white p-1.5 rounded-2xl border border-stone-200/90 shadow-sm">
-                <button onclick="switchMainTab('wizard')" id="tabBtnWizard" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition bg-amber-500 text-white shadow-sm">
+            <div class="flex items-center gap-1.5 bg-white/90 p-1.5 rounded-2xl border border-sky-200/80 shadow-sm">
+                <button onclick="switchMainTab('wizard')" id="tabBtnWizard" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition bg-sky-600 text-white shadow-sm">
                     🪄 1. 試算表平時成績設定精靈
                 </button>
-                <button onclick="switchMainTab('print')" id="tabBtnPrint" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition text-stone-600 hover:text-stone-900">
+                <button onclick="switchMainTab('print')" id="tabBtnPrint" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition text-slate-600 hover:text-slate-900">
                     🖨️ 2. 平時成績總覽與通知卡列印
                 </button>
-                <a href="parent.html?token=DEMO01" target="_blank" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition text-emerald-700 hover:bg-emerald-50 flex items-center gap-1">
-                    <span>📱 預覽家長端平時成績</span>
+                <a href="parent.html" target="_blank" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition text-emerald-700 hover:bg-emerald-50 flex items-center gap-1">
+                    <span>📱 開啟家長端掃描頁</span>
                     <span>↗</span>
                 </a>
             </div>
@@ -158,8 +184,8 @@
         <!-- ========================================================================= -->
         <div id="viewWizard" class="space-y-6">
 
-            <!-- 系統核心價值橫幅：強調平時成績自動統計（免除老師手動拉公式） -->
-            <section class="rounded-3xl bg-gradient-to-br from-amber-500 via-amber-500 to-orange-500 text-white p-6 sm:p-7 shadow-xl shadow-amber-900/10 relative overflow-hidden">
+            <!-- 系統核心價值橫幅：沉穩溫潤的米藍至米綠漸層 -->
+            <section class="rounded-3xl bg-gradient-to-br from-[#2B6CB0] via-[#1D7874] to-[#2F855A] text-white p-6 sm:p-7 shadow-xl shadow-teal-900/10 relative overflow-hidden">
                 <div class="absolute -right-10 -top-10 w-48 h-48 rounded-full bg-white/10 blur-2xl pointer-events-none"></div>
                 <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                     <div class="space-y-2 max-w-2xl">
@@ -167,37 +193,37 @@
                             <span>✨ 專為國中小老師設計的「平時成績簿」升級方案</span>
                         </div>
                         <h2 class="text-xl sm:text-2xl font-black tracking-tight">只要在試算表登記各次分數，系統自動算好所有分項平均與班均！</h2>
-                        <p class="text-xs sm:text-sm text-amber-50/95 leading-relaxed">
-                            您不需要在 Excel / Google 試算表手動寫複雜的 <code class="bg-black/20 px-1.5 py-0.5 rounded font-mono">AVERAGE</code> 公式。系統會根據表頭名稱（如：國習L1、作業卷L1、語詞L1、測驗卷L1），自動幫每位學生算出<strong>「習作平均、作業卷平均、語詞平均、測驗卷平均、各科平時總均、班級平均對比與 L1~L6 單元走勢圖」</strong>！
+                        <p class="text-xs sm:text-sm text-emerald-50/95 leading-relaxed">
+                            您不需要在 Excel / Google 試算表手動寫複雜的 <code class="bg-black/20 px-1.5 py-0.5 rounded font-mono">AVERAGE</code> 公式。系統會根據表頭名稱（如：國習L1、作業卷L1、語詞L1、測驗卷L1），自動幫每位學生判斷<strong>「作業 / 考試」</strong>並算出<strong>「分項平均、各科平時總均、班級平均對比與學習表現走勢圖」</strong>！
                         </p>
                     </div>
                     <div class="flex flex-wrap gap-2.5 shrink-0">
-                        <button onclick="loadDemoToPrintCenter()" class="px-4 py-3 rounded-2xl bg-white text-amber-700 hover:bg-amber-50 font-black text-xs sm:text-sm shadow-lg transition flex items-center gap-2">
-                            <span>🎯</span>
-                            <span>免設定！直接體驗全班平時成績與列印預覽</span>
+                        <button onclick="switchMainTab('print')" class="px-4 py-3 rounded-2xl bg-white text-teal-800 hover:bg-emerald-50 font-black text-xs sm:text-sm shadow-lg transition flex items-center gap-2">
+                            <span>🖨️</span>
+                            <span>前往平時成績總覽與通知小卡列印中心</span>
                         </button>
                     </div>
                 </div>
             </section>
 
-            <!-- 三步驟設定卡片 -->
+            <!-- 三步驟設定卡片（米藍、米綠、米藍相間） -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-                <!-- 步驟 1：產生平時成績範本與名單快貼 -->
-                <div class="warm-card rounded-3xl p-5 sm:p-6 flex flex-col justify-between space-y-4">
+                <!-- 步驟 1：產生平時成績範本與名單快貼（米藍色卡片） -->
+                <div class="card-cream-blue rounded-3xl p-5 sm:p-6 flex flex-col justify-between space-y-4">
                     <div class="space-y-3">
                         <div class="flex items-center justify-between">
-                            <span class="px-2.5 py-1 rounded-xl bg-amber-100 text-amber-800 font-black text-xs">STEP 1</span>
-                            <span class="text-xs font-bold text-stone-400">支援 Excel / 校務系統直接貼上</span>
+                            <span class="px-2.5 py-1 rounded-xl bg-sky-100 text-sky-800 border border-sky-200 font-black text-xs">STEP 1</span>
+                            <span class="text-xs font-bold text-slate-500">支援 Excel / 校務系統直接貼上</span>
                         </div>
-                        <h3 class="font-black text-stone-800 text-lg">準備試算表與各科平時成績表</h3>
-                        <p class="text-xs text-stone-600 leading-relaxed">
-                            開啟任一空白 Google 試算表。系統可一鍵建立「國語平時、數學平時、社會平時」範例表，或您可直接將現有成績單貼入試算表。
+                        <h3 class="font-black text-slate-800 text-lg">準備試算表與各科平時成績表</h3>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            開啟任一空白 Google 試算表。系統可一鍵建立「國語平時、數學平時、社會平時」初始表，或您可直接將現有成績單貼入試算表。
                         </p>
 
-                        <div class="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200/80 space-y-2">
-                            <div class="text-xs font-extrabold text-amber-900">💡 智慧表頭自動分類規則：</div>
-                            <ul class="text-[11px] text-stone-600 space-y-1 leading-relaxed">
+                        <div class="p-3.5 rounded-2xl bg-white/85 border border-sky-200/80 space-y-2">
+                            <div class="text-xs font-extrabold text-sky-900">💡 智慧表頭自動分類規則：</div>
+                            <ul class="text-[11px] text-slate-600 space-y-1 leading-relaxed">
                                 <li>‧ <strong>📘 習作平時</strong>：國習L1、數習L2、習作...</li>
                                 <li>‧ <strong>📝 作業卷平時</strong>：作業卷L1、學習單、甲卷...</li>
                                 <li>‧ <strong>🔤 語詞/基礎</strong>：語詞L1、聽寫、圈詞、計算L1...</li>
@@ -207,68 +233,68 @@
 
                         <!-- 全班名單 / 平時成績 TSV 產生器 -->
                         <div class="space-y-1.5 pt-1">
-                            <label class="block text-xs font-extrabold text-stone-700">📋 班級學生名單快貼工具（選填）：</label>
+                            <label class="block text-xs font-extrabold text-slate-700">📋 班級學生名單快貼工具（選填）：</label>
                             <textarea id="quickRosterInput" rows="3" placeholder="每行一位學生姓名（或直接貼上「座號 姓名」），可產生標準試算表名單格式..."
-                                class="w-full rounded-xl border border-stone-200 p-2.5 text-xs font-mono text-stone-700 bg-stone-50/70 focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+                                class="w-full rounded-xl border border-sky-200 p-2.5 text-xs font-mono text-slate-700 bg-white/90 focus:outline-none focus:ring-2 focus:ring-sky-500"></textarea>
                         </div>
                     </div>
 
-                    <button onclick="copyFormattedRosterTSV()" class="w-full py-2.5 px-4 rounded-xl bg-stone-800 hover:bg-stone-900 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-sm">
+                    <button onclick="copyFormattedRosterTSV()" class="w-full py-2.5 px-4 rounded-xl bg-sky-700 hover:bg-sky-800 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-sm">
                         <span>📋</span>
                         <span id="btnCopyRosterText">複製標準「座號 + 姓名」試算表格式</span>
                     </button>
                 </div>
 
-                <!-- 步驟 2：植入免維護 Loader.gs -->
-                <div class="warm-card rounded-3xl p-5 sm:p-6 flex flex-col justify-between space-y-4">
+                <!-- 步驟 2：植入免維護 Loader.gs（米綠色卡片） -->
+                <div class="card-cream-green rounded-3xl p-5 sm:p-6 flex flex-col justify-between space-y-4">
                     <div class="space-y-3">
                         <div class="flex items-center justify-between">
-                            <span class="px-2.5 py-1 rounded-xl bg-amber-100 text-amber-800 font-black text-xs">STEP 2</span>
-                            <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">免維護 Loader 架構</span>
+                            <span class="px-2.5 py-1 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-200 font-black text-xs">STEP 2</span>
+                            <span class="text-xs font-bold text-emerald-800 bg-white/80 px-2 py-0.5 rounded-full border border-emerald-200">免維護 Loader 架構</span>
                         </div>
-                        <h3 class="font-black text-stone-800 text-lg">貼上 Loader 啟動碼並產生代碼</h3>
-                        <p class="text-xs text-stone-600 leading-relaxed">
+                        <h3 class="font-black text-slate-800 text-lg">貼上 Loader 啟動碼並產生代碼</h3>
+                        <p class="text-xs text-slate-600 leading-relaxed">
                             在試算表上方點選「擴充功能 ➔ Apps Script」，清空原本內容並貼上下方啟動碼，存檔後重新整理試算表即可看到<strong>「⚡ MPScore-Daily 平時成績工具」</strong>選單！
                         </p>
 
-                        <div class="rounded-2xl bg-stone-900 text-stone-200 p-3 font-mono text-[11px] leading-relaxed max-h-40 overflow-y-auto select-all border border-stone-700">
+                        <div class="rounded-2xl bg-slate-900 text-slate-200 p-3 font-mono text-[11px] leading-relaxed max-h-40 overflow-y-auto select-all border border-slate-700">
                             <pre id="loaderCodePreview" class="whitespace-pre-wrap break-all"></pre>
                         </div>
 
-                        <div class="text-[11px] text-stone-500 space-y-1">
-                            <div>1️⃣ 點選試算表選單「🌱 產生範例平時成績資料表」（若尚無成績表）</div>
-                            <div>2️⃣ 點選「🔑 1. 產生或更新學生專屬查詢代碼」自動建立 8 碼安全代碼</div>
+                        <div class="text-[11px] text-slate-600 space-y-1">
+                            <div>1️⃣ 點選試算表選單「🛠️ 建立初始表格」（若尚無成績表）</div>
+                            <div>2️⃣ 點選「🔑 為全班產生家長查詢代碼」自動建立 8 碼安全代碼</div>
                         </div>
                     </div>
 
-                    <button onclick="copyLoaderCode()" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/20">
+                    <button onclick="copyLoaderCode()" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-md shadow-teal-600/20">
                         <span>⚡</span>
                         <span id="btnCopyLoaderText">一鍵複製 Loader.gs 啟動程式碼</span>
                     </button>
                 </div>
 
-                <!-- 步驟 3：連線 Web App API 載入全班平時成績 -->
-                <div class="warm-card rounded-3xl p-5 sm:p-6 flex flex-col justify-between space-y-4">
+                <!-- 步驟 3：連線 Web App API 載入全班平時成績（米藍色卡片） -->
+                <div class="card-cream-blue rounded-3xl p-5 sm:p-6 flex flex-col justify-between space-y-4">
                     <div class="space-y-3">
                         <div class="flex items-center justify-between">
-                            <span class="px-2.5 py-1 rounded-xl bg-amber-100 text-amber-800 font-black text-xs">STEP 3</span>
-                            <span class="text-xs font-bold text-stone-400">部署為網頁應用程式</span>
+                            <span class="px-2.5 py-1 rounded-xl bg-sky-100 text-sky-800 border border-sky-200 font-black text-xs">STEP 3</span>
+                            <span class="text-xs font-bold text-slate-500">部署為網頁應用程式</span>
                         </div>
-                        <h3 class="font-black text-stone-800 text-lg">貼上部署網址，載入全班平時成績</h3>
-                        <p class="text-xs text-stone-600 leading-relaxed">
-                            於 Apps Script 右上角點選「部署 ➔ 新增部署 ➔ 網頁應用程式」（誰可以存取選「所有人」），將取得的 <code class="font-mono text-amber-700">https://script.google.com/.../exec</code> 貼在下方：
+                        <h3 class="font-black text-slate-800 text-lg">貼上部署網址，載入全班平時成績</h3>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            於 Apps Script 右上角點選「部署 ➔ 新增部署 ➔ 網頁應用程式」（誰可以存取選「所有人」），將取得的 <code class="font-mono text-sky-700">https://script.google.com/.../exec</code> 貼在下方：
                         </p>
 
                         <div class="space-y-2 pt-1">
-                            <label class="block text-xs font-extrabold text-stone-700">🔗 試算表 Web App API 網址：</label>
+                            <label class="block text-xs font-extrabold text-slate-700">🔗 試算表 Web App API 網址：</label>
                             <input id="apiUrlInput" type="url" placeholder="https://script.google.com/macros/s/.../exec"
-                                class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-xs font-mono text-stone-800 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500">
-                            <p id="apiStatusMsg" class="text-[11px] text-stone-500">貼上網址後點擊下方按鈕，系統將自動記住網址並同步試算表內的真實學生與科目成績。</p>
+                                class="w-full px-3.5 py-2.5 rounded-xl border border-sky-300 text-xs font-mono text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                            <p id="apiStatusMsg" class="text-[11px] text-slate-500">貼上網址後點擊下方按鈕，系統將自動記住網址並同步試算表內的真實學生與科目成績。</p>
                         </div>
                     </div>
 
                     <div class="space-y-2">
-                        <button onclick="connectCloudGradebook()" class="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-sm">
+                        <button onclick="connectCloudGradebook()" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-700 hover:to-teal-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-sm">
                             <span>☁️</span>
                             <span>連線試算表並載入全班平時成績</span>
                         </button>
@@ -283,15 +309,15 @@
         <!-- ========================================================================= -->
         <div id="viewPrintCenter" class="hidden space-y-6">
 
-            <!-- 頂部班級平時成績摘要統計列 -->
-            <section class="warm-card rounded-3xl p-5 sm:p-6">
-                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-stone-200/80 pb-4">
+            <!-- 頂部班級平時成績摘要統計列（米藍色區塊） -->
+            <section class="card-cream-blue rounded-3xl p-5 sm:p-6">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-sky-200/80 pb-4">
                     <div>
                         <div class="flex items-center gap-2">
-                            <span id="rosterBadgeSource" class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">☁️ 準備連線試算表</span>
-                            <span class="text-xs text-stone-400 font-mono" id="rosterUpdatedTime">尚未同步</span>
+                            <span id="rosterBadgeSource" class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-200">☁️ 準備連線試算表</span>
+                            <span class="text-xs text-slate-500 font-mono" id="rosterUpdatedTime">尚未同步</span>
                         </div>
-                        <h2 class="text-lg sm:text-xl font-black text-stone-800 mt-1">全班各科平時成績總均與四大分項均標一覽</h2>
+                        <h2 class="text-lg sm:text-xl font-black text-slate-800 mt-1">全班各科平時成績總均與分項均標一覽</h2>
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2.5">
@@ -299,82 +325,82 @@
                             <span>🔄</span>
                             <span>重新同步試算表最新成績</span>
                         </button>
-                        <button onclick="openPrintPreviewModal()" class="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black text-xs sm:text-sm shadow-lg shadow-amber-500/20 transition flex items-center gap-2">
+                        <button onclick="openPrintPreviewModal()" class="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-700 hover:to-teal-700 text-white font-black text-xs sm:text-sm shadow-lg shadow-sky-600/20 transition flex items-center gap-2">
                             <span>🖨️</span>
                             <span>預覽與下載 A4 平時成績通知小卡 PDF</span>
                         </button>
                     </div>
                 </div>
 
-                <!-- 雙維度顯示控制面板（家長網頁端顯示項目 + 紙本小卡列印項目） -->
+                <!-- 雙維度顯示控制面板（米綠、米藍相間子卡片） -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-4">
-                    <!-- 維度 A：家長掃碼後網頁顯示模組控制 -->
-                    <div class="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/80 space-y-2.5">
+                    <!-- 維度 A：家長掃碼後網頁顯示模組控制（米綠色子卡片） -->
+                    <div class="p-4 rounded-2xl subcard-cream-green space-y-2.5">
                         <div class="flex items-center justify-between">
-                            <div class="text-xs font-black text-amber-950 flex items-center gap-1.5">
+                            <div class="text-xs font-black text-emerald-950 flex items-center gap-1.5">
                                 <span>📱 家長掃描 QR Code 後「手機網頁」顯示內容設定</span>
                             </div>
-                            <span class="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">即時編入 QR 網址</span>
+                            <span class="text-[10px] font-bold text-emerald-800 bg-emerald-100/90 border border-emerald-200 px-2 py-0.5 rounded-full">即時編入 QR 網址</span>
                         </div>
                         <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-                            <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
-                                <input type="checkbox" id="webOptOverallHero" checked onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
+                            <label class="flex items-center gap-1.5 cursor-pointer text-slate-700 font-bold">
+                                <input type="checkbox" id="webOptOverallHero" checked onchange="handleOptionsChange()" class="rounded text-teal-600 focus:ring-teal-500">
                                 <span>各科平時總均摘要</span>
                             </label>
-                            <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
-                                <input type="checkbox" id="webOptPillars" checked onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
+                            <label class="flex items-center gap-1.5 cursor-pointer text-slate-700 font-bold">
+                                <input type="checkbox" id="webOptPillars" checked onchange="handleOptionsChange()" class="rounded text-teal-600 focus:ring-teal-500">
                                 <span>分項平時平均</span>
                             </label>
-                            <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
-                                <input type="checkbox" id="webOptClassNorm" checked onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
+                            <label class="flex items-center gap-1.5 cursor-pointer text-slate-700 font-bold">
+                                <input type="checkbox" id="webOptClassNorm" checked onchange="handleOptionsChange()" class="rounded text-teal-600 focus:ring-teal-500">
                                 <span>班級平均常模對比</span>
                             </label>
-                            <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
-                                <input type="checkbox" id="webOptTimeline" checked onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
+                            <label class="flex items-center gap-1.5 cursor-pointer text-slate-700 font-bold">
+                                <input type="checkbox" id="webOptTimeline" checked onchange="handleOptionsChange()" class="rounded text-teal-600 focus:ring-teal-500">
                                 <span>平時成績走勢圖</span>
                             </label>
-                            <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
-                                <input type="checkbox" id="webOptMatrix" checked onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
+                            <label class="flex items-center gap-1.5 cursor-pointer text-slate-700 font-bold">
+                                <input type="checkbox" id="webOptMatrix" checked onchange="handleOptionsChange()" class="rounded text-teal-600 focus:ring-teal-500">
                                 <span>各次評量得分明細</span>
                             </label>
-                            <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
-                                <input type="checkbox" id="webOptAdvice" onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
+                            <label class="flex items-center gap-1.5 cursor-pointer text-slate-700 font-bold">
+                                <input type="checkbox" id="webOptAdvice" onchange="handleOptionsChange()" class="rounded text-teal-600 focus:ring-teal-500">
                                 <span>平時成績診斷建議</span>
                             </label>
                         </div>
                     </div>
 
-                    <!-- 維度 B：A4 紙本平時成績通知小卡列印項目控制 -->
-                    <div class="p-4 rounded-2xl bg-stone-50/90 border border-stone-200/90 space-y-2.5">
+                    <!-- 維度 B：A4 紙本平時成績通知小卡列印項目控制（米藍色子卡片） -->
+                    <div class="p-4 rounded-2xl subcard-cream-blue space-y-2.5">
                         <div class="flex items-center justify-between">
-                            <div class="text-xs font-black text-stone-800 flex items-center gap-1.5">
+                            <div class="text-xs font-black text-sky-950 flex items-center gap-1.5">
                                 <span>📄 A4 紙本「平時成績通知小卡」票面顯示項目</span>
                             </div>
-                            <span class="text-[10px] font-bold text-stone-500 bg-stone-200/70 px-2 py-0.5 rounded-full">一頁 10 張裁切小卡</span>
+                            <span class="text-[10px] font-bold text-sky-800 bg-sky-100/90 border border-sky-200 px-2 py-0.5 rounded-full">一頁 10 張裁切小卡</span>
                         </div>
                         <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-                            <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
-                                <input type="checkbox" id="printOptSubjAvg" checked onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
+                            <label class="flex items-center gap-1.5 cursor-pointer text-slate-700 font-bold">
+                                <input type="checkbox" id="printOptSubjAvg" checked onchange="handleOptionsChange()" class="rounded text-sky-600 focus:ring-sky-500">
                                 <span>各科平時總均網格</span>
                             </label>
-                            <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
-                                <input type="checkbox" id="printOptPillars" checked onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
+                            <label class="flex items-center gap-1.5 cursor-pointer text-slate-700 font-bold">
+                                <input type="checkbox" id="printOptPillars" checked onchange="handleOptionsChange()" class="rounded text-sky-600 focus:ring-sky-500">
                                 <span>分項平時平均</span>
                             </label>
-                            <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
-                                <input type="checkbox" id="printOptClassAvg" checked onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
+                            <label class="flex items-center gap-1.5 cursor-pointer text-slate-700 font-bold">
+                                <input type="checkbox" id="printOptClassAvg" checked onchange="handleOptionsChange()" class="rounded text-sky-600 focus:ring-sky-500">
                                 <span>班級平均對比差值</span>
                             </label>
-                            <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
-                                <input type="checkbox" id="printOptSeatClass" checked onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
+                            <label class="flex items-center gap-1.5 cursor-pointer text-slate-700 font-bold">
+                                <input type="checkbox" id="printOptSeatClass" checked onchange="handleOptionsChange()" class="rounded text-sky-600 focus:ring-sky-500">
                                 <span>班級與座號標示</span>
                             </label>
-                            <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
-                                <input type="checkbox" id="printOptTokenText" onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
+                            <label class="flex items-center gap-1.5 cursor-pointer text-slate-700 font-bold">
+                                <input type="checkbox" id="printOptTokenText" onchange="handleOptionsChange()" class="rounded text-sky-600 focus:ring-sky-500">
                                 <span>印出代碼編號(教師核對)</span>
                             </label>
-                            <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-bold">
-                                <input type="checkbox" id="printOptSignBox" checked onchange="handleOptionsChange()" class="rounded text-amber-600 focus:ring-amber-500">
+                            <label class="flex items-center gap-1.5 cursor-pointer text-slate-700 font-bold">
+                                <input type="checkbox" id="printOptSignBox" checked onchange="handleOptionsChange()" class="rounded text-sky-600 focus:ring-sky-500">
                                 <span>底部家長簽章欄</span>
                             </label>
                         </div>
@@ -382,26 +408,26 @@
                 </div>
             </section>
 
-            <!-- 全班平時成績總表 (支援勾選列印、查看各科平時總均、四大分項平均與一鍵開啟家長端) -->
-            <section class="warm-card rounded-3xl p-5 sm:p-6 space-y-4">
+            <!-- 全班平時成績總表（米綠色區塊，表格內米藍與米綠列相間） -->
+            <section class="card-cream-green rounded-3xl p-5 sm:p-6 space-y-4">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <div class="flex items-center gap-3">
-                        <label class="inline-flex items-center gap-2 text-xs font-extrabold text-stone-700 cursor-pointer">
-                            <input type="checkbox" id="selectAllCheckbox" checked onchange="toggleSelectAllStudents(this.checked)" class="w-4 h-4 rounded text-amber-600 focus:ring-amber-500">
+                        <label class="inline-flex items-center gap-2 text-xs font-extrabold text-slate-700 cursor-pointer">
+                            <input type="checkbox" id="selectAllCheckbox" checked onchange="toggleSelectAllStudents(this.checked)" class="w-4 h-4 rounded text-teal-600 focus:ring-teal-500">
                             <span>全選學生</span>
                         </label>
-                        <span id="selectedCountBadge" class="text-xs font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full">已選取 10 位列印</span>
+                        <span id="selectedCountBadge" class="text-xs font-bold text-emerald-800 bg-emerald-100 border border-emerald-200 px-2.5 py-0.5 rounded-full">已選取 0 位列印</span>
                     </div>
 
-                    <div class="text-xs text-stone-500">
-                        💡 點擊右側「查看歷程」可直接開啟該名學生的家長端平時成績分析頁
+                    <div class="text-xs text-slate-600">
+                        💡 點擊右側「查看平時歷程」可直接開啟該名學生的家長端平時成績分析頁
                     </div>
                 </div>
 
-                <div class="overflow-x-auto rounded-2xl border border-stone-200/90">
+                <div class="overflow-x-auto rounded-2xl border border-emerald-200/90 bg-white/95">
                     <table class="w-full text-left border-collapse">
                         <thead id="teacherRosterTableHead">
-                            <tr class="bg-stone-100/90 text-stone-600 text-xs font-extrabold border-b border-stone-200/90">
+                            <tr class="bg-emerald-50/90 text-emerald-950 text-xs font-extrabold border-b border-emerald-200/90">
                                 <th class="py-3 px-3 text-center w-10">列印</th>
                                 <th class="py-3 px-3 whitespace-nowrap">座號 ‧ 姓名</th>
                                 <th class="py-3 px-3 whitespace-nowrap">查詢代碼</th>
@@ -412,7 +438,7 @@
                                 <th class="py-3 px-3 text-right whitespace-nowrap">家長端預覽</th>
                             </tr>
                         </thead>
-                        <tbody id="teacherRosterTableBody" class="divide-y divide-stone-200/70 text-xs sm:text-sm bg-white">
+                        <tbody id="teacherRosterTableBody" class="divide-y divide-emerald-100/80 text-xs sm:text-sm bg-white">
                             <!-- JS 動態渲染全班平時成績列 -->
                         </tbody>
                     </table>
@@ -425,40 +451,40 @@
     <!-- ========================================================================= -->
     <!-- 模態視窗：🖨️ A4 平時成績通知小卡 PDF 預覽與雙版本下載中心 -->
     <!-- ========================================================================= -->
-    <div id="printPreviewModal" class="hidden fixed inset-0 z-50 bg-stone-900/75 backdrop-blur-sm overflow-y-auto p-3 sm:p-6">
+    <div id="printPreviewModal" class="hidden fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-sm overflow-y-auto p-3 sm:p-6">
         <div class="max-w-5xl mx-auto space-y-4">
 
             <!-- 頂部浮動控制列 (列印時自動隱藏) -->
-            <div class="no-print sticky top-2 z-50 bg-white/95 backdrop-blur-md rounded-2xl p-4 border border-stone-200 shadow-xl flex flex-wrap items-center justify-between gap-3">
+            <div class="no-print sticky top-2 z-50 bg-[#F4F9FD]/95 backdrop-blur-md rounded-2xl p-4 border border-sky-200 shadow-xl flex flex-wrap items-center justify-between gap-3">
                 <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center font-black text-lg">🖨️</div>
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-600 to-teal-600 text-white flex items-center justify-center font-black text-lg">🖨️</div>
                     <div>
-                        <h3 class="font-black text-stone-800 text-sm sm:text-base">A4 平時成績通知小卡預覽（雙欄 10 格滿版）</h3>
-                        <p class="text-[11px] text-stone-500">可切換「家長發放版（學生個別裁切小卡）」與「教師留存備查版（全班代碼與平時總均留底）」</p>
+                        <h3 class="font-black text-slate-800 text-sm sm:text-base">A4 平時成績通知小卡預覽（雙欄 10 格滿版）</h3>
+                        <p class="text-[11px] text-slate-500">可切換「家長發放版（學生個別裁切小卡）」與「教師留存備查版（全班代碼與平時總均留底）」</p>
                     </div>
                 </div>
 
                 <!-- 版本切換與下載按鈕組 -->
                 <div class="flex flex-wrap items-center gap-2">
-                    <div class="flex items-center bg-stone-100 p-1 rounded-xl border border-stone-200">
-                        <button id="btnEditionParent" onclick="switchPrintEdition('parent')" class="px-3 py-1.5 rounded-lg text-xs font-extrabold transition bg-amber-500 text-white shadow-sm">
+                    <div class="flex items-center bg-white p-1 rounded-xl border border-sky-200">
+                        <button id="btnEditionParent" onclick="switchPrintEdition('parent')" class="px-3 py-1.5 rounded-lg text-xs font-extrabold transition bg-sky-600 text-white shadow-sm">
                             👨‍👩‍👧 家長發放版小卡
                         </button>
-                        <button id="btnEditionTeacher" onclick="switchPrintEdition('teacher')" class="px-3 py-1.5 rounded-lg text-xs font-extrabold transition text-stone-600 hover:text-stone-900">
+                        <button id="btnEditionTeacher" onclick="switchPrintEdition('teacher')" class="px-3 py-1.5 rounded-lg text-xs font-extrabold transition text-slate-600 hover:text-slate-900">
                             📋 教師留存總表版
                         </button>
                     </div>
 
-                    <button onclick="downloadPdfFile('parent')" class="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-sm transition flex items-center gap-1">
+                    <button onclick="downloadPdfFile('parent')" class="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-sm transition flex items-center gap-1">
                         <span>⬇️ 下載家長版 PDF</span>
                     </button>
                     <button onclick="downloadPdfFile('teacher')" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition flex items-center gap-1">
                         <span>⬇️ 下載教師留存 PDF</span>
                     </button>
-                    <button onclick="window.print()" class="px-3.5 py-2 rounded-xl bg-stone-800 hover:bg-stone-900 text-white font-bold text-xs shadow-sm transition flex items-center gap-1">
+                    <button onclick="window.print()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs shadow-sm transition flex items-center gap-1">
                         <span>🖨️ 直接列印</span>
                     </button>
-                    <button onclick="closePrintPreviewModal()" class="px-3 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs transition">
+                    <button onclick="closePrintPreviewModal()" class="px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold text-xs transition">
                         ✕ 關閉
                     </button>
                 </div>
@@ -568,11 +594,11 @@ function testGitHubConnection() {
             document.getElementById('viewPrintCenter').classList.toggle('hidden', isWizard);
 
             document.getElementById('tabBtnWizard').className = isWizard
-                ? 'px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition bg-amber-500 text-white shadow-sm'
-                : 'px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition text-stone-600 hover:text-stone-900';
+                ? 'px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition bg-sky-600 text-white shadow-sm'
+                : 'px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition text-slate-600 hover:text-slate-900';
             document.getElementById('tabBtnPrint').className = !isWizard
-                ? 'px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition bg-amber-500 text-white shadow-sm'
-                : 'px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition text-stone-600 hover:text-stone-900';
+                ? 'px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition bg-teal-600 text-white shadow-sm'
+                : 'px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition text-slate-600 hover:text-slate-900';
 
             if (!isWizard) {
                 renderTeacherRosterTable();
@@ -636,7 +662,7 @@ function testGitHubConnection() {
             isConnectingCloud = true;
             document.getElementById('apiUrlInput').value = inputUrl;
             statusMsg.textContent = '⏳ 正在從 Google 試算表同步全班各科平時成績與分項平均...';
-            statusMsg.className = 'text-[11px] text-amber-700 font-bold';
+            statusMsg.className = 'text-[11px] text-sky-700 font-bold';
             if (badgeSource) badgeSource.textContent = '⏳ 正在同步雲端試算表...';
 
             try {
@@ -812,7 +838,7 @@ function testGitHubConnection() {
 
         function formatSubjectTableCell(subjObj) {
             if (!subjObj || subjObj.overallAverage === null || subjObj.overallAverage === undefined) {
-                return `<span class="text-stone-300 font-mono">--</span>`;
+                return `<span class="text-slate-300 font-mono">--</span>`;
             }
             const pText = buildExistingPillarSummaryText(subjObj.pillars, ' ‧ ');
             const diff = subjObj.diffFromClassAvg;
@@ -822,10 +848,10 @@ function testGitHubConnection() {
 
             return `
                 <div class="flex items-center justify-center gap-1">
-                    <span class="font-mono font-black text-sm text-stone-800 tabular-nums">${subjObj.overallAverage.toFixed(1)}</span>
+                    <span class="font-mono font-black text-sm text-slate-800 tabular-nums">${subjObj.overallAverage.toFixed(1)}</span>
                     ${diffBadge}
                 </div>
-                ${pText ? `<div class="text-[10px] font-mono text-stone-400 mt-0.5">${pText}</div>` : ''}
+                ${pText ? `<div class="text-[10px] font-mono text-slate-500 mt-0.5">${pText}</div>` : ''}
             `;
         }
 
@@ -838,7 +864,7 @@ function testGitHubConnection() {
 
             if (thead) {
                 thead.innerHTML = `
-                    <tr class="bg-stone-100/90 text-stone-600 text-xs font-extrabold border-b border-stone-200/90">
+                    <tr class="bg-emerald-50/90 text-emerald-950 text-xs font-extrabold border-b border-emerald-200/90">
                         <th class="py-3 px-3 text-center w-10">列印</th>
                         <th class="py-3 px-3 whitespace-nowrap">座號 ‧ 姓名</th>
                         <th class="py-3 px-3 whitespace-nowrap">查詢代碼</th>
@@ -853,10 +879,10 @@ function testGitHubConnection() {
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="${5 + subjectNames.length}" class="py-12 px-4 text-center space-y-3">
-                            <div class="text-sm font-black text-stone-700">尚未載入雲端試算表資料</div>
-                            <div class="text-xs text-stone-500">請於「🛠️ 1. 試算表部署與連線設定」貼上您的 Apps Script 部署網址，或點擊上方「🔄 重新同步試算表最新成績」</div>
+                            <div class="text-sm font-black text-slate-700">尚未載入雲端試算表資料</div>
+                            <div class="text-xs text-slate-500">請於「🪄 1. 試算表平時成績設定精靈」貼上您的 Apps Script 部署網址，或點擊上方「🔄 重新同步試算表最新成績」</div>
                             <div class="pt-1">
-                                <button onclick="switchMainTab('wizard')" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition shadow-sm">
+                                <button onclick="switchMainTab('wizard')" class="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold transition shadow-sm">
                                     前往貼上試算表部署網址
                                 </button>
                             </div>
@@ -879,30 +905,41 @@ function testGitHubConnection() {
                     return `<td class="py-3 px-3 text-center">${formatSubjectTableCell(matched)}</td>`;
                 }).join('');
 
+                const isBlueRow = idx % 2 === 0;
+                const rowBgClass = isBlueRow
+                    ? 'bg-[#F2F8FC] hover:bg-[#E5F1FA]'
+                    : 'bg-[#F1F8F4] hover:bg-[#E3F3EA]';
+                const seatBadgeClass = isBlueRow
+                    ? 'bg-sky-100 text-sky-800 border border-sky-200'
+                    : 'bg-emerald-100 text-emerald-800 border border-emerald-200';
+                const linkBtnClass = isBlueRow
+                    ? 'bg-sky-50 hover:bg-sky-100 text-sky-800 border-sky-200/90'
+                    : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200/90';
+
                 return `
-                    <tr class="hover:bg-amber-50/40 transition">
+                    <tr class="${rowBgClass} transition">
                         <td class="py-3 px-3 text-center">
                             <input type="checkbox" ${st.selected ? 'checked' : ''} onchange="toggleStudentSelection(${idx}, this.checked)"
-                                class="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 cursor-pointer">
+                                class="w-4 h-4 rounded text-teal-600 focus:ring-teal-500 cursor-pointer">
                         </td>
                         <td class="py-3 px-3 whitespace-nowrap">
                             <div class="flex items-center gap-2">
-                                <span class="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 font-mono font-black text-xs flex items-center justify-center">${st.seatNo}</span>
+                                <span class="w-6 h-6 rounded-lg ${seatBadgeClass} font-mono font-black text-xs flex items-center justify-center">${st.seatNo}</span>
                                 <div>
-                                    <div class="font-black text-stone-800 text-sm">${st.name}</div>
-                                    <div class="text-[10px] text-stone-400 font-bold">${st.className || '本班'}</div>
+                                    <div class="font-black text-slate-800 text-sm">${st.name}</div>
+                                    <div class="text-[10px] text-slate-500 font-bold">${st.className || '本班'}</div>
                                 </div>
                             </div>
                         </td>
                         <td class="py-3 px-3 whitespace-nowrap">
-                            <span class="px-2 py-1 rounded-lg bg-stone-100 border border-stone-200 font-mono font-bold text-xs text-stone-700">${st.token}</span>
+                            <span class="px-2 py-1 rounded-lg bg-white border border-slate-200 font-mono font-bold text-xs text-slate-700">${st.token}</span>
                         </td>
                         ${subjectCellsHtml}
                         <td class="py-3 px-3 text-center">
-                            <span class="font-mono font-black text-base text-amber-700 tabular-nums">${overallAvg}</span>
+                            <span class="font-mono font-black text-base text-teal-700 tabular-nums">${overallAvg}</span>
                         </td>
                         <td class="py-3 px-3 text-right whitespace-nowrap">
-                            <a href="${parentUrl}" target="_blank" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200/80 font-bold text-xs transition">
+                            <a href="${parentUrl}" target="_blank" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border font-bold text-xs transition ${linkBtnClass}">
                                 <span>📊 查看平時歷程</span>
                                 <span>↗</span>
                             </a>
@@ -928,11 +965,11 @@ function testGitHubConnection() {
             currentPrintEdition = edition;
             const isParent = edition === 'parent';
             document.getElementById('btnEditionParent').className = isParent
-                ? 'px-3 py-1.5 rounded-lg text-xs font-extrabold transition bg-amber-500 text-white shadow-sm'
-                : 'px-3 py-1.5 rounded-lg text-xs font-extrabold transition text-stone-600 hover:text-stone-900';
+                ? 'px-3 py-1.5 rounded-lg text-xs font-extrabold transition bg-sky-600 text-white shadow-sm'
+                : 'px-3 py-1.5 rounded-lg text-xs font-extrabold transition text-slate-600 hover:text-slate-900';
             document.getElementById('btnEditionTeacher').className = !isParent
                 ? 'px-3 py-1.5 rounded-lg text-xs font-extrabold transition bg-emerald-600 text-white shadow-sm'
-                : 'px-3 py-1.5 rounded-lg text-xs font-extrabold transition text-stone-600 hover:text-stone-900';
+                : 'px-3 py-1.5 rounded-lg text-xs font-extrabold transition text-slate-600 hover:text-slate-900';
             renderA4PrintSheets();
         }
 
@@ -941,7 +978,7 @@ function testGitHubConnection() {
             const selectedStudents = currentRoster.filter(s => s.selected);
 
             if (selectedStudents.length === 0) {
-                container.innerHTML = `<div class="bg-white rounded-2xl p-10 text-center text-stone-500 font-bold">請至少勾選 1 位學生以產生平時成績通知單</div>`;
+                container.innerHTML = `<div class="bg-white rounded-2xl p-10 text-center text-slate-500 font-bold">請至少勾選 1 位學生以產生平時成績通知單</div>`;
                 return;
             }
 
@@ -952,7 +989,7 @@ function testGitHubConnection() {
             }
         }
 
-        // 渲染「家長發放版」A4 雙欄 10 格平時成績通知小卡
+        // 渲染「家長發放版」A4 雙欄 10 格平時成績通知小卡（科目格採用米藍與米綠相間）
         function renderParentSlipsA4(container, students) {
             const optSubjAvg = document.getElementById('printOptSubjAvg').checked;
             const optPillars = document.getElementById('printOptPillars').checked;
@@ -978,18 +1015,21 @@ function testGitHubConnection() {
                     const gridColClass = subjs.length === 1 ? 'grid-cols-1' : (subjs.length === 2 ? 'grid-cols-2' : 'grid-cols-3');
                     const subjGridHtml = optSubjAvg ? `
                         <div class="grid ${gridColClass} gap-1 my-1">
-                            ${subjs.slice(0, 6).map(s => {
+                            ${subjs.slice(0, 6).map((s, sIdx) => {
                                 const diffStr = (optClassAvg && s.diffFromClassAvg !== null && s.diffFromClassAvg !== undefined)
                                     ? `(${s.diffFromClassAvg >= 0 ? '+' : ''}${s.diffFromClassAvg.toFixed(1)})`
                                     : '';
                                 const pText = buildExistingPillarSummaryText(s.pillars, ' ');
                                 const pillarLine = (optPillars && pText)
-                                    ? `<div class="text-[8px] text-stone-500 font-mono leading-tight break-words">${pText}</div>`
+                                    ? `<div class="text-[8px] text-slate-500 font-mono leading-tight break-words">${pText}</div>`
                                     : '';
+                                const boxStyle = sIdx % 2 === 0
+                                    ? 'bg-[#EDF5FA] border-[#C5DDF0] text-sky-900'
+                                    : 'bg-[#ECF6F0] border-[#BFE3CE] text-emerald-900';
                                 return `
-                                    <div class="bg-amber-50/70 border border-amber-200/80 rounded px-1.5 py-1 text-center">
-                                        <div class="text-[9px] font-extrabold text-stone-700 leading-tight break-words">${s.subject}</div>
-                                        <div class="text-xs font-black font-mono text-amber-800 leading-tight">${s.overallAverage !== null ? s.overallAverage.toFixed(1) : '--'} <span class="text-[8px] font-normal text-emerald-700">${diffStr}</span></div>
+                                    <div class="${boxStyle} border rounded px-1.5 py-1 text-center">
+                                        <div class="text-[9px] font-extrabold text-slate-700 leading-tight break-words">${s.subject}</div>
+                                        <div class="text-xs font-black font-mono leading-tight">${s.overallAverage !== null ? s.overallAverage.toFixed(1) : '--'} <span class="text-[8px] font-normal text-emerald-700">${diffStr}</span></div>
                                         ${pillarLine}
                                     </div>
                                 `;
@@ -1000,15 +1040,15 @@ function testGitHubConnection() {
                     return `
                         <div class="slip-card">
                             <!-- 頂部學生資訊列 -->
-                            <div class="flex items-center justify-between border-b border-stone-200 pb-1">
+                            <div class="flex items-center justify-between border-b border-slate-200 pb-1">
                                 <div class="flex items-center gap-1.5">
-                                    <span class="px-1.5 py-0.5 rounded bg-amber-500 text-white font-black text-[9px]">平時成績通知</span>
-                                    ${optSeatClass ? `<span class="text-[10px] font-bold text-stone-600">${st.className || '501班'} ${st.seatNo}號</span>` : ''}
-                                    <span class="text-sm font-black text-stone-900">${st.name}</span>
+                                    <span class="px-1.5 py-0.5 rounded bg-sky-600 text-white font-black text-[9px]">平時成績通知</span>
+                                    ${optSeatClass ? `<span class="text-[10px] font-bold text-slate-600">${st.className || '501班'} ${st.seatNo}號</span>` : ''}
+                                    <span class="text-sm font-black text-slate-900">${st.name}</span>
                                 </div>
                                 <div class="text-right">
-                                    <span class="text-[9px] font-bold text-stone-400">平時總均</span>
-                                    <span class="text-xs font-black font-mono text-amber-700 ml-0.5">${totalAvg}</span>
+                                    <span class="text-[9px] font-bold text-slate-400">平時總均</span>
+                                    <span class="text-xs font-black font-mono text-teal-700 ml-0.5">${totalAvg}</span>
                                 </div>
                             </div>
 
@@ -1016,20 +1056,20 @@ function testGitHubConnection() {
                             <div class="flex items-center justify-between gap-2 my-auto py-1">
                                 <div class="flex-1 min-w-0">
                                     ${subjGridHtml}
-                                    <div class="text-[8.5px] text-stone-500 leading-snug mt-0.5">
+                                    <div class="text-[8.5px] text-slate-500 leading-snug mt-0.5">
                                         📱 手機掃描右側 QR Code 查看<strong>各科平時成績統計、分項平時均標與各項評量表現趨勢</strong>。
                                     </div>
                                 </div>
-                                <div class="shrink-0 flex flex-col items-center justify-center p-1 border border-stone-200 rounded-lg bg-white">
+                                <div class="shrink-0 flex flex-col items-center justify-center p-1 border border-slate-200 rounded-lg bg-white">
                                     <div id="${qrDomId}" data-token="${st.token}" class="qr-target w-[54px] h-[54px] flex items-center justify-center"></div>
-                                    ${optTokenText ? `<div class="text-[8px] font-mono font-bold text-stone-600 mt-0.5">${st.token}</div>` : ''}
+                                    ${optTokenText ? `<div class="text-[8px] font-mono font-bold text-slate-600 mt-0.5">${st.token}</div>` : ''}
                                 </div>
                             </div>
 
                             <!-- 底部家長簽章與導師叮嚀 -->
-                            <div class="flex items-center justify-between border-t border-stone-200 pt-1 text-[8.5px] text-stone-500">
+                            <div class="flex items-center justify-between border-t border-slate-200 pt-1 text-[8.5px] text-slate-500">
                                 <span>📊 定期檢視平時成績，掌握孩子學習趨勢</span>
-                                ${optSignBox ? `<span class="font-bold text-stone-700">家長簽章：_______________</span>` : `<span>MPScore-Daily</span>`}
+                                ${optSignBox ? `<span class="font-bold text-slate-700">家長簽章：_______________</span>` : `<span>MPScore-Daily</span>`}
                             </div>
                         </div>
                     `;
@@ -1037,8 +1077,8 @@ function testGitHubConnection() {
 
                 return `
                     <div class="a4-sheet">
-                        <div class="flex items-center justify-between text-[10px] text-stone-400 pb-1.5 border-b border-stone-200 mb-2">
-                            <span class="font-bold text-stone-600">📊 MPScore-Daily 學生平時成績歷程通知單（家長發放裁切版）</span>
+                        <div class="flex items-center justify-between text-[10px] text-slate-400 pb-1.5 border-b border-slate-200 mb-2">
+                            <span class="font-bold text-slate-600">📊 MPScore-Daily 學生平時成績歷程通知單（家長發放裁切版）</span>
                             <span>第 ${pageIdx + 1} / ${chunks.length} 頁（沿虛線裁切發放）</span>
                         </div>
                         <div class="a4-grid-10">
@@ -1058,7 +1098,7 @@ function testGitHubConnection() {
                         text: url,
                         width: 54,
                         height: 54,
-                        colorDark: "#1c1917",
+                        colorDark: "#1e293b",
                         colorLight: "#ffffff",
                         correctLevel: QRCode.CorrectLevel.M
                     });
@@ -1072,10 +1112,10 @@ function testGitHubConnection() {
             const fmtSubj = s => {
                 if (!s || s.overallAverage === null || s.overallAverage === undefined) return '--';
                 const pText = buildExistingPillarSummaryText(s.pillars, ' ');
-                return `<span class="font-bold text-stone-900">${s.overallAverage.toFixed(1)}</span>${pText ? ` <span class="text-[9px] text-stone-500">(${pText})</span>` : ''}`;
+                return `<span class="font-bold text-slate-900">${s.overallAverage.toFixed(1)}</span>${pText ? ` <span class="text-[9px] text-slate-500">(${pText})</span>` : ''}`;
             };
 
-            const rowsHtml = students.map(st => {
+            const rowsHtml = students.map((st, idx) => {
                 const subjs = st.subjects || [];
                 const validSubjs = subjs.filter(s => s.overallAverage !== null && !isNaN(s.overallAverage));
                 const overallAvg = validSubjs.length
@@ -1087,13 +1127,15 @@ function testGitHubConnection() {
                     return `<td class="py-2 px-2 text-center">${fmtSubj(matched)}</td>`;
                 }).join('');
 
+                const rowBg = idx % 2 === 0 ? 'bg-[#F4F9FD]' : 'bg-[#F3FAF6]';
+
                 return `
-                    <tr class="border-b border-stone-200 text-[11px] font-mono">
-                        <td class="py-2 px-2 font-bold text-stone-800">${st.seatNo}</td>
-                        <td class="py-2 px-2 font-sans font-bold text-stone-900">${st.name}</td>
-                        <td class="py-2 px-2 font-bold text-amber-800">${st.token}</td>
+                    <tr class="${rowBg} border-b border-slate-200 text-[11px] font-mono">
+                        <td class="py-2 px-2 font-bold text-slate-800">${st.seatNo}</td>
+                        <td class="py-2 px-2 font-sans font-bold text-slate-900">${st.name}</td>
+                        <td class="py-2 px-2 font-bold text-sky-800">${st.token}</td>
                         ${subjCells}
-                        <td class="py-2 px-2 text-right font-black text-amber-700">${overallAvg}</td>
+                        <td class="py-2 px-2 text-right font-black text-teal-700">${overallAvg}</td>
                     </tr>
                 `;
             }).join('');
@@ -1101,12 +1143,12 @@ function testGitHubConnection() {
             container.innerHTML = `
                 <div class="a4-sheet">
                     <div class="space-y-4">
-                        <div class="border-b-2 border-stone-800 pb-3 flex items-end justify-between">
+                        <div class="border-b-2 border-slate-800 pb-3 flex items-end justify-between">
                             <div>
-                                <div class="text-xs font-bold text-amber-700">MPScore-Daily 教師留存備查檔案</div>
-                                <h2 class="text-xl font-black text-stone-900 mt-0.5">全班各科平時成績總平均與查詢代碼對照總表</h2>
+                                <div class="text-xs font-bold text-teal-700">MPScore-Daily 教師留存備查檔案</div>
+                                <h2 class="text-xl font-black text-slate-900 mt-0.5">全班各科平時成績總平均與查詢代碼對照總表</h2>
                             </div>
-                            <div class="text-right text-xs text-stone-500 font-mono">
+                            <div class="text-right text-xs text-slate-500 font-mono">
                                 <div>列印日期：${new Date().toISOString().slice(0, 10)}</div>
                                 <div>學生人數：共 ${students.length} 人</div>
                             </div>
@@ -1114,7 +1156,7 @@ function testGitHubConnection() {
 
                         <table class="w-full text-left border-collapse">
                             <thead>
-                                <tr class="bg-stone-100 border-b border-stone-300 text-[11px] font-extrabold text-stone-700">
+                                <tr class="bg-sky-50 border-b border-sky-200 text-[11px] font-extrabold text-slate-700">
                                     <th class="py-2 px-2">座號</th>
                                     <th class="py-2 px-2">姓名</th>
                                     <th class="py-2 px-2">專屬代碼</th>
@@ -1128,7 +1170,7 @@ function testGitHubConnection() {
                         </table>
                     </div>
 
-                    <div class="border-t border-stone-200 pt-2 flex items-center justify-between text-[10px] text-stone-400">
+                    <div class="border-t border-slate-200 pt-2 flex items-center justify-between text-[10px] text-slate-400">
                         <span>本表供導師與科任教師留存備查，家長若遺失小卡可直接依「專屬代碼」查詢平時成績</span>
                         <span>MPScore-Daily 平時成績管理系統</span>
                     </div>
