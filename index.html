@@ -434,26 +434,26 @@
                         </div>
                     </div>
 
-                    <!-- 維度 B：A4 紙本平時成績通知小卡列印項目控制（米藍色子卡片） -->
+                    <!-- 維度 B：A4 紙本平時成績通知小卡列印項目控制（米藍色子卡片，小卡不印出分數，專注於引導家長登入與隨時查看） -->
                     <div class="p-4 rounded-2xl subcard-cream-blue space-y-2.5">
                         <div class="flex items-center justify-between gap-2 flex-wrap">
                             <div class="text-xs font-black text-sky-950 flex items-center gap-1.5">
-                                <span>📄 A4 紙本「平時成績通知小卡」票面顯示項目</span>
+                                <span>📄 A4 紙本「平時成績通知小卡」票面顯示設定（不印出成績）</span>
                             </div>
-                            <span class="text-xs font-bold text-sky-800 bg-sky-100/90 border border-sky-200 px-2 py-0.5 rounded-full">一頁 10 張裁切小卡</span>
+                            <span class="text-xs font-bold text-sky-800 bg-sky-100/90 border border-sky-200 px-2 py-0.5 rounded-full">引導家長掃碼隨時查看</span>
                         </div>
                         <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-xs">
                             <label class="flex items-center gap-2 min-h-[36px] px-2 py-1 rounded-xl hover:bg-white/60 cursor-pointer text-slate-700 font-bold">
                                 <input type="checkbox" id="printOptSubjAvg" checked onchange="handleOptionsChange()" class="w-4 h-4 rounded text-sky-600 focus:ring-sky-500">
-                                <span>各科平時總均網格</span>
+                                <span>掃碼登入步驟教學</span>
                             </label>
                             <label class="flex items-center gap-2 min-h-[36px] px-2 py-1 rounded-xl hover:bg-white/60 cursor-pointer text-slate-700 font-bold">
                                 <input type="checkbox" id="printOptPillars" checked onchange="handleOptionsChange()" class="w-4 h-4 rounded text-sky-600 focus:ring-sky-500">
-                                <span>分項平時平均</span>
+                                <span>拍照留存隨時查看提醒</span>
                             </label>
                             <label class="flex items-center gap-2 min-h-[36px] px-2 py-1 rounded-xl hover:bg-white/60 cursor-pointer text-slate-700 font-bold">
                                 <input type="checkbox" id="printOptClassAvg" checked onchange="handleOptionsChange()" class="w-4 h-4 rounded text-sky-600 focus:ring-sky-500">
-                                <span>班級平均對比差值</span>
+                                <span>連動科目名稱(無分數)</span>
                             </label>
                             <label class="flex items-center gap-2 min-h-[36px] px-2 py-1 rounded-xl hover:bg-white/60 cursor-pointer text-slate-700 font-bold">
                                 <input type="checkbox" id="printOptSeatClass" checked onchange="handleOptionsChange()" class="w-4 h-4 rounded text-sky-600 focus:ring-sky-500">
@@ -523,8 +523,8 @@
                 <div class="flex items-center gap-3">
                     <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-600 to-teal-600 text-white flex items-center justify-center font-black text-lg">🖨️</div>
                     <div>
-                        <h3 class="font-black text-slate-800 text-sm sm:text-base">A4 平時成績通知小卡預覽（雙欄 10 格滿版）</h3>
-                        <p class="text-xs text-slate-600">可切換「家長發放版（學生個別裁切小卡）」與「教師留存備查版（全班代碼與平時總均留底）」</p>
+                        <h3 class="font-black text-slate-800 text-sm sm:text-base">A4 平時成績通知小卡預覽（不印出分數 ‧ 引導家長掃碼隨時查看）</h3>
+                        <p class="text-xs text-slate-600">紙本小卡僅提供專屬 QR Code 與登入操作說明，保障學生個資並讓家長於學期中隨時掃碼查看最新成績</p>
                     </div>
                 </div>
 
@@ -535,7 +535,7 @@
                             👨‍👩‍👧 家長發放版小卡
                         </button>
                         <button id="btnEditionTeacher" onclick="switchPrintEdition('teacher')" class="min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-extrabold transition text-slate-600 hover:text-slate-900">
-                            📋 教師留存總表版
+                            📋 教師留存代碼核對表
                         </button>
                     </div>
 
@@ -1074,11 +1074,11 @@ function testGitHubConnection() {
             }
         }
 
-        // 渲染「家長發放版」A4 雙欄 10 格平時成績通知小卡（科目格採用米藍與米綠相間）
+        // 渲染「家長發放版」A4 雙欄 10 格平時成績通知小卡（不呈現任何成績分數，專注指導家長如何登入及隨時查看）
         function renderParentSlipsA4(container, students) {
-            const optSubjAvg = document.getElementById('printOptSubjAvg').checked;
-            const optPillars = document.getElementById('printOptPillars').checked;
-            const optClassAvg = document.getElementById('printOptClassAvg').checked;
+            const optLoginSteps = document.getElementById('printOptSubjAvg').checked;
+            const optAnytimeTip = document.getElementById('printOptPillars').checked;
+            const optSubjectNames = document.getElementById('printOptClassAvg').checked;
             const optSeatClass = document.getElementById('printOptSeatClass').checked;
             const optTokenText = document.getElementById('printOptTokenText').checked;
             const optSignBox = document.getElementById('printOptSignBox').checked;
@@ -1092,69 +1092,71 @@ function testGitHubConnection() {
                 const cardsHtml = pageStudents.map((st, cardIdx) => {
                     const qrDomId = `qr_${pageIdx}_${cardIdx}`;
                     const subjs = st.subjects || [];
-                    const validSubjs = subjs.filter(s => s.overallAverage !== null && !isNaN(s.overallAverage));
-                    const totalAvg = validSubjs.length
-                        ? (validSubjs.reduce((a, b) => a + b.overallAverage, 0) / validSubjs.length).toFixed(1)
-                        : '--';
+                    const subjectNamesList = subjs.map(s => `${getSubjectIcon(s.subject)} ${s.subject}`).join(' ‧ ');
 
-                    const gridColClass = subjs.length === 1 ? 'grid-cols-1' : (subjs.length === 2 ? 'grid-cols-2' : 'grid-cols-3');
-                    const subjGridHtml = optSubjAvg ? `
-                        <div class="grid ${gridColClass} gap-1 my-1">
-                            ${subjs.slice(0, 6).map((s, sIdx) => {
-                                const diffStr = (optClassAvg && s.diffFromClassAvg !== null && s.diffFromClassAvg !== undefined)
-                                    ? `(${s.diffFromClassAvg >= 0 ? '+' : ''}${s.diffFromClassAvg.toFixed(1)})`
-                                    : '';
-                                const pText = buildExistingPillarSummaryText(s.pillars, ' ');
-                                const pillarLine = (optPillars && pText)
-                                    ? `<div class="text-[8px] text-slate-500 font-mono leading-tight break-words">${pText}</div>`
-                                    : '';
-                                const boxStyle = sIdx % 2 === 0
-                                    ? 'bg-[#EDF5FA] border-[#C5DDF0] text-sky-900'
-                                    : 'bg-[#ECF6F0] border-[#BFE3CE] text-emerald-900';
-                                return `
-                                    <div class="${boxStyle} border rounded px-1.5 py-1 text-center">
-                                        <div class="text-[9px] font-extrabold text-slate-700 leading-tight break-words">${s.subject}</div>
-                                        <div class="text-xs font-black font-mono leading-tight">${s.overallAverage !== null ? s.overallAverage.toFixed(1) : '--'} <span class="text-[8px] font-normal text-emerald-700">${diffStr}</span></div>
-                                        ${pillarLine}
-                                    </div>
-                                `;
-                            }).join('')}
+                    const subjectTagHtml = (optSubjectNames && subjectNamesList) ? `
+                        <div class="text-[8.5px] font-bold text-slate-700 bg-slate-50 border border-slate-200/90 rounded px-1.5 py-0.5 truncate">
+                            📚 同步科目：${subjectNamesList}
+                        </div>
+                    ` : '';
+
+                    const loginStepBoxHtml = optLoginSteps ? `
+                        <div class="bg-[#EDF5FA] border border-[#C5DDF0] rounded-md px-2 py-1 space-y-0.5">
+                            <div class="text-[9px] font-black text-sky-900">1️⃣ 如何登入查看（免輸入帳號密碼）</div>
+                            <div class="text-[8px] text-slate-700 leading-snug">
+                                請開啟<strong>手機相機</strong>或 <strong>LINE 掃描器</strong>對準右側專屬 QR Code，即可直接登入查看孩子的平時學習表現與分項趨勢。
+                            </div>
+                        </div>
+                    ` : '';
+
+                    const anytimeTipBoxHtml = optAnytimeTip ? `
+                        <div class="bg-[#ECF6F0] border border-[#BFE3CE] rounded-md px-2 py-1 space-y-0.5">
+                            <div class="text-[9px] font-black text-emerald-900">2️⃣ 如何全學期隨時查看最新平時成績</div>
+                            <div class="text-[8px] text-slate-700 leading-snug">
+                                請將本卡<strong>貼於聯絡簿</strong>或<strong>拍照存於手機相簿</strong>（可於網頁點選「從相簿選取 QR 照片」登入），老師更新分數後隨時掃碼即可查看！
+                            </div>
+                        </div>
+                    ` : '';
+
+                    const fallbackGuideHtml = (!optLoginSteps && !optAnytimeTip) ? `
+                        <div class="bg-[#EDF5FA] border border-[#C5DDF0] rounded-md px-2 py-1.5 text-[8.5px] text-slate-700 leading-snug">
+                            📱 請使用手機相機掃描右側專屬 QR Code 登入，並建議拍照留存於手機相簿，全學期皆可隨時查看最新平時表現。
                         </div>
                     ` : '';
 
                     return `
                         <div class="slip-card">
-                            <!-- 頂部學生資訊列 -->
+                            <!-- 頂部學生資訊列（不含任何成績分數） -->
                             <div class="flex items-center justify-between border-b border-slate-200 pb-1">
-                                <div class="flex items-center gap-1.5">
-                                    <span class="px-1.5 py-0.5 rounded bg-sky-600 text-white font-black text-[9px]">平時成績通知</span>
-                                    ${optSeatClass ? `<span class="text-[10px] font-bold text-slate-600">${st.className || '501班'} ${st.seatNo}號</span>` : ''}
-                                    <span class="text-sm font-black text-slate-900">${st.name}</span>
+                                <div class="flex items-center gap-1.5 min-w-0">
+                                    <span class="px-1.5 py-0.5 rounded bg-sky-600 text-white font-black text-[9px] shrink-0">平時成績查詢小卡</span>
+                                    ${optSeatClass ? `<span class="text-[10px] font-bold text-slate-600 shrink-0">${st.className || '本班'} ${st.seatNo}號</span>` : ''}
+                                    <span class="text-sm font-black text-slate-900 truncate">${st.name}</span>
                                 </div>
-                                <div class="text-right">
-                                    <span class="text-[9px] font-bold text-slate-400">平時總均</span>
-                                    <span class="text-xs font-black font-mono text-teal-700 ml-0.5">${totalAvg}</span>
+                                <div class="text-right shrink-0">
+                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[8px] font-extrabold">☁️ 雲端即時更新 ‧ 全學期通用</span>
                                 </div>
                             </div>
 
-                            <!-- 中段：左側各科平時成績摘要 + 右側專屬 QR Code -->
+                            <!-- 中段：左側家長登入與隨時查看指南 + 右側專屬 QR Code -->
                             <div class="flex items-center justify-between gap-2 my-auto py-1">
-                                <div class="flex-1 min-w-0">
-                                    ${subjGridHtml}
-                                    <div class="text-[8.5px] text-slate-500 leading-snug mt-0.5">
-                                        📱 手機掃描右側 QR Code 查看<strong>各科平時成績統計、分項平時均標與各項評量表現趨勢</strong>。
-                                    </div>
+                                <div class="flex-1 min-w-0 space-y-1">
+                                    ${subjectTagHtml}
+                                    ${loginStepBoxHtml}
+                                    ${anytimeTipBoxHtml}
+                                    ${fallbackGuideHtml}
                                 </div>
-                                <div class="shrink-0 flex flex-col items-center justify-center p-1 border border-slate-200 rounded-lg bg-white">
-                                    <div id="${qrDomId}" data-token="${st.token}" class="qr-target w-[54px] h-[54px] flex items-center justify-center"></div>
-                                    ${optTokenText ? `<div class="text-[8px] font-mono font-bold text-slate-600 mt-0.5">${st.token}</div>` : ''}
+                                <div class="shrink-0 flex flex-col items-center justify-center p-1.5 border border-sky-200 rounded-lg bg-white shadow-sm">
+                                    <div id="${qrDomId}" data-token="${st.token}" class="qr-target w-[58px] h-[58px] flex items-center justify-center"></div>
+                                    <div class="text-[7.5px] font-extrabold text-sky-800 mt-1">📱 掃碼立即登入</div>
+                                    ${optTokenText ? `<div class="text-[7.5px] font-mono font-bold text-slate-500 leading-none mt-0.5">${st.token}</div>` : ''}
                                 </div>
                             </div>
 
-                            <!-- 底部家長簽章與導師叮嚀 -->
-                            <div class="flex items-center justify-between border-t border-slate-200 pt-1 text-[8.5px] text-slate-500">
-                                <span>📊 定期檢視平時成績，掌握孩子學習趨勢</span>
-                                ${optSignBox ? `<span class="font-bold text-slate-700">家長簽章：_______________</span>` : `<span>MPScore-Daily</span>`}
+                            <!-- 底部保存提醒與家長簽章 -->
+                            <div class="flex items-center justify-between border-t border-slate-200 pt-1 text-[8px] text-slate-600">
+                                <span>💡 本卡不印出分數以保護隱私，請拍照留存隨時查看最新成績</span>
+                                ${optSignBox ? `<span class="font-bold text-slate-800 shrink-0">家長簽章：_______________</span>` : `<span class="font-mono text-slate-400">MPScore-Daily</span>`}
                             </div>
                         </div>
                     `;
@@ -1162,9 +1164,9 @@ function testGitHubConnection() {
 
                 return `
                     <div class="a4-sheet">
-                        <div class="flex items-center justify-between text-[10px] text-slate-400 pb-1.5 border-b border-slate-200 mb-2">
-                            <span class="font-bold text-slate-600">📊 MPScore-Daily 學生平時成績歷程通知單（家長發放裁切版）</span>
-                            <span>第 ${pageIdx + 1} / ${chunks.length} 頁（沿虛線裁切發放）</span>
+                        <div class="flex items-center justify-between text-[10px] text-slate-500 pb-1.5 border-b border-slate-200 mb-2">
+                            <span class="font-bold text-slate-700">📊 MPScore-Daily 學生平時成績雲端查詢通行小卡（家長登入指引版 ‧ 票面不顯示成績）</span>
+                            <span>第 ${pageIdx + 1} / ${chunks.length} 頁（請沿虛線裁切發放）</span>
                         </div>
                         <div class="a4-grid-10">
                             ${cardsHtml}
@@ -1181,8 +1183,8 @@ function testGitHubConnection() {
                     const url = buildParentPortalUrl(token);
                     new QRCode(el, {
                         text: url,
-                        width: 54,
-                        height: 54,
+                        width: 58,
+                        height: 58,
                         colorDark: "#1e293b",
                         colorLight: "#ffffff",
                         correctLevel: QRCode.CorrectLevel.M
@@ -1191,36 +1193,24 @@ function testGitHubConnection() {
             }, 30);
         }
 
-        // 渲染「教師留存備查版」A4 全班平時成績與代碼總表
+        // 渲染「教師留存代碼核對表」A4（不呈現成績，供教師核對學生專屬查詢代碼與小卡發放簽回狀態）
         function renderTeacherArchiveA4(container, students) {
             const subjectNames = getActiveSubjectNames(students);
-            const fmtSubj = s => {
-                if (!s || s.overallAverage === null || s.overallAverage === undefined) return '--';
-                const pText = buildExistingPillarSummaryText(s.pillars, ' ');
-                return `<span class="font-bold text-slate-900">${s.overallAverage.toFixed(1)}</span>${pText ? ` <span class="text-[9px] text-slate-500">(${pText})</span>` : ''}`;
-            };
+            const subjectSummary = subjectNames.length > 0
+                ? subjectNames.map(s => `${getSubjectIcon(s)} ${s}`).join('、')
+                : '各科平時成績';
 
             const rowsHtml = students.map((st, idx) => {
-                const subjs = st.subjects || [];
-                const validSubjs = subjs.filter(s => s.overallAverage !== null && !isNaN(s.overallAverage));
-                const overallAvg = validSubjs.length
-                    ? (validSubjs.reduce((a, b) => a + b.overallAverage, 0) / validSubjs.length).toFixed(1)
-                    : '--';
-
-                const subjCells = subjectNames.map(sName => {
-                    const matched = subjs.find(s => s.subject === sName);
-                    return `<td class="py-2 px-2 text-center">${fmtSubj(matched)}</td>`;
-                }).join('');
-
                 const rowBg = idx % 2 === 0 ? 'bg-[#F4F9FD]' : 'bg-[#F3FAF6]';
 
                 return `
                     <tr class="${rowBg} border-b border-slate-200 text-[11px] font-mono">
-                        <td class="py-2 px-2 font-bold text-slate-800">${st.seatNo}</td>
-                        <td class="py-2 px-2 font-sans font-bold text-slate-900">${st.name}</td>
-                        <td class="py-2 px-2 font-bold text-sky-800">${st.token}</td>
-                        ${subjCells}
-                        <td class="py-2 px-2 text-right font-black text-teal-700">${overallAvg}</td>
+                        <td class="py-2 px-2.5 font-bold text-slate-800">${st.seatNo}</td>
+                        <td class="py-2 px-2.5 font-sans font-bold text-slate-900">${st.className || '本班'}</td>
+                        <td class="py-2 px-2.5 font-sans font-bold text-slate-900">${st.name}</td>
+                        <td class="py-2 px-2.5 font-bold text-sky-800">${st.token}</td>
+                        <td class="py-2 px-2.5 font-sans text-slate-600">${subjectSummary}</td>
+                        <td class="py-2 px-2.5 font-sans text-right text-slate-700">□ 已發放小卡　□ 家長已簽回</td>
                     </tr>
                 `;
             }).join('');
@@ -1230,10 +1220,10 @@ function testGitHubConnection() {
                     <div class="space-y-4">
                         <div class="border-b-2 border-slate-800 pb-3 flex items-end justify-between">
                             <div>
-                                <div class="text-xs font-bold text-teal-700">MPScore-Daily 教師留存備查檔案</div>
-                                <h2 class="text-xl font-black text-slate-900 mt-0.5">全班各科平時成績總平均與查詢代碼對照總表</h2>
+                                <div class="text-xs font-bold text-teal-700">MPScore-Daily 教師留存備查檔案（不含成績分數）</div>
+                                <h2 class="text-xl font-black text-slate-900 mt-0.5">全班家長查詢專屬代碼與通知小卡發放核對表</h2>
                             </div>
-                            <div class="text-right text-xs text-slate-500 font-mono">
+                            <div class="text-right text-xs text-slate-600 font-mono">
                                 <div>列印日期：${new Date().toISOString().slice(0, 10)}</div>
                                 <div>學生人數：共 ${students.length} 人</div>
                             </div>
@@ -1242,11 +1232,12 @@ function testGitHubConnection() {
                         <table class="w-full text-left border-collapse">
                             <thead>
                                 <tr class="bg-sky-50 border-b border-sky-200 text-[11px] font-extrabold text-slate-700">
-                                    <th class="py-2 px-2">座號</th>
-                                    <th class="py-2 px-2">姓名</th>
-                                    <th class="py-2 px-2">專屬代碼</th>
-                                    ${subjectNames.map(sName => `<th class="py-2 px-2 text-center">${sName}</th>`).join('')}
-                                    <th class="py-2 px-2 text-right">各科總均</th>
+                                    <th class="py-2 px-2.5">座號</th>
+                                    <th class="py-2 px-2.5">班級</th>
+                                    <th class="py-2 px-2.5">姓名</th>
+                                    <th class="py-2 px-2.5">家長查詢專屬代碼</th>
+                                    <th class="py-2 px-2.5">本學期連動科目</th>
+                                    <th class="py-2 px-2.5 text-right">小卡發放與家長簽回核對</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1255,8 +1246,8 @@ function testGitHubConnection() {
                         </table>
                     </div>
 
-                    <div class="border-t border-slate-200 pt-2 flex items-center justify-between text-[10px] text-slate-400">
-                        <span>本表供導師與科任教師留存備查，家長若遺失小卡可直接依「專屬代碼」查詢平時成績</span>
+                    <div class="border-t border-slate-200 pt-2 flex items-center justify-between text-[10px] text-slate-500">
+                        <span>本表供導師留存核對小卡發放情形；家長若遺失通知小卡，教師可依此表提供「專屬代碼」或重新補印小卡</span>
                         <span>MPScore-Daily 平時成績管理系統</span>
                     </div>
                 </div>
@@ -1270,8 +1261,8 @@ function testGitHubConnection() {
             setTimeout(() => {
                 const target = document.getElementById('a4PreviewContainer');
                 const filename = edition === 'teacher'
-                    ? `MPScore-Daily_教師留存平時成績總表_${new Date().toISOString().slice(0, 10)}.pdf`
-                    : `MPScore-Daily_家長版平時成績通知小卡_${new Date().toISOString().slice(0, 10)}.pdf`;
+                    ? `MPScore-Daily_教師留存查詢代碼核對表_${new Date().toISOString().slice(0, 10)}.pdf`
+                    : `MPScore-Daily_家長版平時成績查詢小卡_${new Date().toISOString().slice(0, 10)}.pdf`;
 
                 html2pdf().set({
                     margin: 0,
