@@ -50,56 +50,87 @@
                 radial-gradient(at 85% 88%, rgba(186, 230, 253, 0.50) 0px, transparent 50%);
             background-attachment: fixed;
             color: #1e293b;
+            font-optical-sizing: auto;
             -webkit-font-smoothing: antialiased;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Apple Typography: Optical tracking & leading by scale */
+        h1, .display-score {
+            letter-spacing: -0.025em;
+            line-height: 1.15;
+        }
+
+        h2, h3 {
+            letter-spacing: -0.015em;
+            line-height: 1.3;
+        }
+
+        .text-xs {
+            letter-spacing: 0.01em;
         }
 
         .tabular-nums {
             font-variant-numeric: tabular-nums;
         }
 
+        /* Apple Liquid Glass Material — Reserved exclusively for floating navigation chrome */
+        .apple-glass-nav {
+            background: rgba(242, 248, 246, 0.78);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid rgba(153, 214, 200, 0.65);
+        }
+
+        /* Content-layer standard materials (no stacked backdrop-filter in content layer per HIG) */
         .warm-card {
-            background: linear-gradient(145deg, rgba(240, 247, 251, 0.95) 0%, rgba(252, 254, 253, 0.96) 50%, rgba(238, 247, 242, 0.95) 100%);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(194, 220, 214, 0.95);
+            background: linear-gradient(145deg, #F0F7FB 0%, #FCFDFD 50%, #EEF7F2 100%);
+            border: 1px solid #C2DCD6;
             box-shadow: 0 10px 30px -8px rgba(14, 116, 144, 0.06), 0 2px 8px -2px rgba(5, 150, 105, 0.04);
         }
 
         .card-cream-blue {
             background: linear-gradient(145deg, #EDF5FA 0%, #F9FCFE 55%, #E5F0F8 100%);
-            backdrop-filter: blur(12px);
             border: 1.5px solid #C2DCEB;
             box-shadow: 0 10px 28px -8px rgba(2, 132, 199, 0.08), 0 2px 8px -2px rgba(2, 132, 199, 0.04);
         }
 
         .card-cream-green {
             background: linear-gradient(145deg, #ECF6F0 0%, #F9FDFA 55%, #E3F2EA 100%);
-            backdrop-filter: blur(12px);
             border: 1.5px solid #BBDED0;
             box-shadow: 0 10px 28px -8px rgba(5, 150, 105, 0.08), 0 2px 8px -2px rgba(5, 150, 105, 0.04);
         }
 
         .subcard-cream-blue {
             background: linear-gradient(135deg, #EBF4FA 0%, #F7FBFE 100%);
-            border: 1px solid #C0DBEC;
+            border: 1px solid #B8D6EA;
         }
 
         .subcard-cream-green {
             background: linear-gradient(135deg, #EAF6EF 0%, #F7FCF9 100%);
-            border: 1px solid #B9DFCC;
+            border: 1px solid #B2DBC7;
         }
 
         .subject-pill-active-blue {
             background: linear-gradient(135deg, #E0F0FA 0%, #F0F8FD 100%) !important;
             border-color: #0284c7 !important;
-            box-shadow: 0 10px 24px -6px rgba(2, 132, 199, 0.20), 0 0 0 2px rgba(14, 165, 233, 0.32);
-            transform: translateY(-2px);
+            box-shadow: 0 10px 24px -6px rgba(2, 132, 199, 0.18), 0 0 0 2px rgba(14, 165, 233, 0.35);
         }
 
         .subject-pill-active-green {
             background: linear-gradient(135deg, #DEF3E8 0%, #EFFAF4 100%) !important;
             border-color: #059669 !important;
-            box-shadow: 0 10px 24px -6px rgba(5, 150, 105, 0.20), 0 0 0 2px rgba(16, 185, 129, 0.32);
-            transform: translateY(-2px);
+            box-shadow: 0 10px 24px -6px rgba(5, 150, 105, 0.18), 0 0 0 2px rgba(16, 185, 129, 0.35);
+        }
+
+        /* Apple Fluid Design §1 & §4: Instant pointer-down response with critically damped spring feel */
+        button, a[ role="button" ], .interactive-press {
+            transition: transform 120ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+            touch-action: manipulation;
+        }
+
+        button:active, a[ role="button" ]:active, .interactive-press:active {
+            transform: scale(0.97);
         }
 
         .custom-scrollbar::-webkit-scrollbar {
@@ -120,7 +151,7 @@
         @keyframes fadeUp {
             from {
                 opacity: 0;
-                transform: translateY(12px);
+                transform: translateY(10px);
             }
             to {
                 opacity: 1;
@@ -129,15 +160,56 @@
         }
 
         .animate-fade-up {
-            animation: fadeUp 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+            animation: fadeUp 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+
+        /* Apple HIG Accessibility: Reduced Motion, Reduced Transparency & Increased Contrast */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 120ms !important;
+                scroll-behavior: auto !important;
+            }
+            .animate-fade-up {
+                animation: none !important;
+                transform: none !important;
+                opacity: 1 !important;
+            }
+            button:active, .interactive-press:active {
+                transform: none !important;
+            }
+        }
+
+        @media (prefers-reduced-transparency: reduce) {
+            .apple-glass-nav {
+                background: #EEF6F3 !important;
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+            }
+            #heroStatsBox {
+                background: rgba(18, 78, 78, 0.95) !important;
+                backdrop-filter: none !important;
+            }
+        }
+
+        @media (prefers-contrast: more) {
+            .card-cream-blue, .subcard-cream-blue {
+                border-color: #0284c7 !important;
+                border-width: 2px !important;
+            }
+            .card-cream-green, .subcard-cream-green {
+                border-color: #059669 !important;
+                border-width: 2px !important;
+            }
         }
     </style>
 </head>
 
 <body class="min-h-screen flex flex-col selection:bg-sky-200 selection:text-sky-950">
 
-    <!-- 頂部導覽列 -->
-    <header class="sticky top-0 z-30 bg-[#F2F8F6]/90 backdrop-blur-md border-b border-teal-200/70 px-4 py-3">
+    <!-- 頂部導覽列（Apple Liquid Glass 浮動半透明導覽層） -->
+    <header class="sticky top-0 z-30 apple-glass-nav px-4 py-3">
         <div class="max-w-4xl mx-auto flex items-center justify-between gap-2">
             <div class="flex items-center gap-2.5">
                 <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-600 to-emerald-600 flex items-center justify-center text-white shadow-sm shadow-teal-600/20 font-black text-lg">
@@ -146,14 +218,14 @@
                 <div>
                     <div class="flex items-center gap-2">
                         <span class="font-black text-slate-800 tracking-tight text-sm sm:text-base">MPScore-Daily</span>
-                        <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky-100/90 text-sky-800 border border-sky-200/90">平時成績歷程手札</span>
+                        <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-900 border border-sky-300/90">平時成績歷程手札</span>
                     </div>
-                    <p class="text-[11px] text-slate-500 hidden sm:block">各科平時成績統計 ‧ 四大分項平時均標 ‧ 掌握孩子學習趨勢</p>
+                    <p class="text-xs text-slate-600 hidden sm:block">各科平時成績統計 ‧ 四大分項平時均標 ‧ 掌握孩子學習趨勢</p>
                 </div>
             </div>
 
             <div class="flex items-center gap-2">
-                <button id="btnResetToken" onclick="toggleQrScannerBanner()" class="text-xs font-bold text-teal-800 hover:text-teal-950 bg-emerald-50/90 hover:bg-emerald-100/90 border border-emerald-300/90 rounded-xl px-3 py-1.5 transition flex items-center gap-1.5 shadow-sm">
+                <button id="btnResetToken" onclick="toggleQrScannerBanner()" class="min-h-[40px] text-xs font-bold text-teal-900 hover:text-teal-950 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-xl px-3.5 py-2 transition flex items-center gap-1.5 shadow-sm">
                     <span>📷</span>
                     <span>掃描 QR Code</span>
                 </button>
@@ -167,22 +239,22 @@
         <!-- 專屬 QR Code 掃描驗證面板（不提供手動輸入姓名與代碼，僅限掃描或上傳 QR Code） -->
         <section id="qrScannerBanner" class="hidden card-cream-blue rounded-3xl p-5 sm:p-6 border-2 border-sky-300/80 animate-fade-up space-y-4">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div class="space-y-1">
-                    <div class="inline-flex items-center gap-1.5 text-xs font-extrabold text-sky-800 bg-sky-100/90 px-2.5 py-1 rounded-full border border-sky-200">
+                <div class="space-y-1.5">
+                    <div class="inline-flex items-center gap-1.5 text-xs font-extrabold text-sky-900 bg-sky-100 px-2.5 py-1 rounded-full border border-sky-300/80">
                         <span>🛡️</span> 隱私安全保護 ‧ 僅限專屬 QR Code 查閱
                     </div>
                     <h2 class="text-lg font-black text-slate-800">請掃描「平時成績通知小卡」上的專屬 QR Code</h2>
-                    <p class="text-xs text-slate-500">為保護學生個人成績隱私，本系統不開放手動輸入姓名或代碼。請直接開啟相機對準通知單上的 QR Code，或從手機相簿選取小卡照片/截圖。</p>
+                    <p class="text-xs text-slate-600 leading-relaxed">為保護學生個人成績隱私，本系統不開放手動輸入姓名或代碼。請直接開啟相機對準通知單上的 QR Code，或從手機相簿選取小卡照片/截圖。</p>
                 </div>
 
-                <div class="flex flex-wrap items-center gap-2 shrink-0">
+                <div class="flex flex-wrap items-center gap-2.5 shrink-0">
                     <button type="button" onclick="startCameraQrScan()"
-                        class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-emerald-600 hover:from-sky-700 hover:to-emerald-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-teal-600/20 flex items-center gap-1.5 transition">
+                        class="min-h-[44px] px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-emerald-600 hover:from-sky-700 hover:to-emerald-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-teal-600/20 flex items-center gap-1.5 transition">
                         <span>📷</span>
                         <span>開啟相機掃描</span>
                     </button>
                     <button type="button" onclick="triggerQrImageUpload()"
-                        class="px-4 py-2.5 rounded-xl bg-white hover:bg-emerald-50 text-slate-700 border border-emerald-300 font-bold text-xs sm:text-sm shadow-sm flex items-center gap-1.5 transition">
+                        class="min-h-[44px] px-4 py-2.5 rounded-xl bg-white hover:bg-emerald-50 text-slate-800 border border-emerald-300 font-bold text-xs sm:text-sm shadow-sm flex items-center gap-1.5 transition">
                         <span>🖼️</span>
                         <span>從相簿選取 QR 照片</span>
                     </button>
@@ -202,36 +274,36 @@
                         <div class="absolute -bottom-0.5 -left-0.5 w-5 h-5 border-b-4 border-l-4 border-emerald-400 rounded-bl-lg"></div>
                         <div class="absolute -bottom-0.5 -right-0.5 w-5 h-5 border-b-4 border-r-4 border-sky-400 rounded-br-lg"></div>
                     </div>
-                    <span class="mt-3 px-3 py-1 rounded-full bg-black/65 text-sky-100 text-[11px] font-bold">請將小卡上的 QR Code 對準框內</span>
+                    <span class="mt-3 px-3 py-1 rounded-full bg-black/75 text-sky-50 text-xs font-bold">請將小卡上的 QR Code 對準框內</span>
                 </div>
                 <button type="button" onclick="stopCameraQrScan()"
-                    class="absolute top-3 right-3 px-3 py-1.5 rounded-xl bg-black/70 hover:bg-black text-white text-xs font-bold transition">
+                    class="min-h-[40px] absolute top-3 right-3 px-3.5 py-2 rounded-xl bg-black/75 hover:bg-black text-white text-xs font-bold transition">
                     ✕ 關閉鏡頭
                 </button>
             </div>
 
             <!-- 掃描狀態提示訊息 -->
-            <div id="qrScanStatusMsg" class="hidden text-xs font-bold text-center py-2 px-3 rounded-xl bg-sky-50 text-sky-800 border border-sky-200"></div>
+            <div id="qrScanStatusMsg" role="status" aria-live="polite" class="hidden text-xs font-bold text-center py-2.5 px-3.5 rounded-xl bg-sky-50 text-sky-900 border border-sky-200"></div>
         </section>
 
         <!-- 載入中狀態 -->
-        <section id="loadingSection" class="hidden card-cream-green rounded-3xl p-10 text-center space-y-3">
+        <section id="loadingSection" role="status" aria-live="polite" class="hidden card-cream-green rounded-3xl p-10 text-center space-y-3">
             <div class="w-12 h-12 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center mx-auto animate-spin text-2xl">
                 ⏳
             </div>
-            <p class="font-bold text-slate-700 text-base">正在彙整各科平時成績與班級常模資料...</p>
-            <p class="text-xs text-slate-500">正在同步最新作業與考試各項平時分數</p>
+            <p class="font-bold text-slate-800 text-base">正在彙整各科平時成績與班級常模資料...</p>
+            <p class="text-xs text-slate-600">正在同步最新作業與考試各項平時分數</p>
         </section>
 
         <!-- 錯誤提示狀態 -->
-        <section id="errorSection" class="hidden card-cream-blue rounded-3xl p-8 text-center border-2 border-rose-200 space-y-3">
+        <section id="errorSection" role="alert" class="hidden card-cream-blue rounded-3xl p-8 text-center border-2 border-rose-200 space-y-3">
             <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto text-2xl">
                 ⚠️
             </div>
             <h3 id="errorTitle" class="font-black text-slate-800 text-lg">無法讀取此 QR Code 的平時成績</h3>
-            <p id="errorDesc" class="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">請重新掃描老師發放之「平時成績通知小卡」上的專屬 QR Code，或確認小卡是否為最新發放版本。</p>
+            <p id="errorDesc" class="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">請重新掃描老師發放之「平時成績通知小卡」上的專屬 QR Code，或確認小卡是否為最新發放版本。</p>
             <div class="pt-2 flex flex-wrap justify-center gap-2">
-                <button onclick="openQrScannerAndStartCamera()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-emerald-600 text-white text-xs font-bold shadow-sm hover:from-sky-700 hover:to-emerald-700 transition flex items-center gap-1.5">
+                <button onclick="openQrScannerAndStartCamera()" class="min-h-[44px] px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-emerald-600 text-white text-xs font-bold shadow-sm hover:from-sky-700 hover:to-emerald-700 transition flex items-center gap-1.5">
                     <span>📷</span>
                     <span>重新掃描 QR Code</span>
                 </button>
@@ -249,48 +321,48 @@
 
                 <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
                     <div class="space-y-2">
-                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm text-xs font-bold tracking-wide">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/20 text-xs font-bold tracking-wide">
                             <span id="heroClassSeat">--</span>
-                            <span class="opacity-60">|</span>
+                            <span class="opacity-70">|</span>
                             <span id="heroUpdatedAt">平時成績統計報表</span>
                         </div>
                         <div class="flex items-baseline gap-3 flex-wrap">
-                            <h1 id="heroStudentName" class="text-2xl sm:text-3xl font-black tracking-tight">--</h1>
-                            <span class="text-sm font-bold text-sky-100">平時評量歷程與各科均標分析</span>
+                            <h1 id="heroStudentName" class="text-2xl sm:text-3xl font-black tracking-tight display-score">--</h1>
+                            <span class="text-sm font-bold text-sky-50">平時評量歷程與各科均標分析</span>
                         </div>
-                        <p id="heroSubtext" class="text-xs sm:text-sm text-emerald-50/95 leading-relaxed max-w-xl">
+                        <p id="heroSubtext" class="text-xs sm:text-sm text-emerald-50 leading-relaxed max-w-xl">
                             彙整本學期平時學習各項表現，協助家長掌握平時學習穩定度與各單元程度。
                         </p>
                     </div>
 
-                    <!-- 右側總覽核心指標卡 -->
-                    <div id="heroStatsBox" class="grid grid-cols-3 gap-2.5 sm:gap-3 bg-white/15 backdrop-blur-md p-3.5 rounded-2xl border border-white/25 shrink-0">
+                    <!-- 右側總覽核心指標卡（字級符合 11pt+ 下限） -->
+                    <div id="heroStatsBox" class="grid grid-cols-3 gap-2.5 sm:gap-3 bg-black/20 p-3.5 rounded-2xl border border-white/25 shrink-0">
                         <div class="text-center px-2">
-                            <div class="text-[11px] font-bold text-sky-100">各科平時總均</div>
-                            <div id="heroOverallAvg" class="text-xl sm:text-2xl font-black font-mono tabular-nums mt-0.5">--</div>
-                            <div id="heroOverallBadge" class="text-[10px] font-bold text-emerald-100/95 mt-0.5">--</div>
+                            <div class="text-xs font-bold text-sky-100">各科平時總均</div>
+                            <div id="heroOverallAvg" class="text-xl sm:text-2xl font-black font-mono tabular-nums display-score mt-0.5">--</div>
+                            <div id="heroOverallBadge" class="text-xs font-bold text-emerald-100 mt-0.5">--</div>
                         </div>
                         <div class="text-center px-2 border-x border-white/20">
-                            <div class="text-[11px] font-bold text-emerald-100">與班均對比</div>
-                            <div id="heroDiffClass" class="text-xl sm:text-2xl font-black font-mono tabular-nums mt-0.5">--</div>
-                            <div id="heroClassAvgLabel" class="text-[10px] font-bold text-sky-100/95 mt-0.5">--</div>
+                            <div class="text-xs font-bold text-emerald-100">與班均對比</div>
+                            <div id="heroDiffClass" class="text-xl sm:text-2xl font-black font-mono tabular-nums display-score mt-0.5">--</div>
+                            <div id="heroClassAvgLabel" class="text-xs font-bold text-sky-100 mt-0.5">--</div>
                         </div>
                         <div class="text-center px-2">
-                            <div class="text-[11px] font-bold text-sky-100">優勢平時科目</div>
+                            <div class="text-xs font-bold text-sky-100">優勢平時科目</div>
                             <div id="heroBestSubject" class="text-xs sm:text-sm font-black mt-1 leading-snug break-words">--</div>
-                            <div id="heroBestSubjectScore" class="text-[10px] font-bold font-mono text-emerald-100/95 mt-0.5">--</div>
+                            <div id="heroBestSubjectScore" class="text-xs font-bold font-mono text-emerald-100 mt-0.5">--</div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <!-- 2. 科目切換橫向膠囊列 (Subject Switcher：米藍、米綠相間) -->
+            <!-- 2. 科目切換橫向膠囊列 (Subject Switcher：米藍、米綠相間，使用行動裝置友善「點選」用語) -->
             <section class="space-y-2.5">
                 <div class="flex items-center justify-between px-1">
-                    <h2 class="text-xs font-extrabold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
-                        <span>📚</span> 選擇科目查看平時成績明細（點擊切換科目）
+                    <h2 class="text-xs font-extrabold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                        <span>📚</span> 選擇科目查看平時成績明細（點選切換科目）
                     </h2>
-                    <span id="subjectCountTag" class="text-xs font-bold text-teal-700">共 -- 科平時成績</span>
+                    <span id="subjectCountTag" class="text-xs font-bold text-teal-800">共 -- 科平時成績</span>
                 </div>
                 <div id="subjectTabsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <!-- JS 動態渲染各科平時總均卡片（米藍、米綠相間） -->
@@ -299,7 +371,7 @@
 
             <!-- 3. 模組一（米藍色區塊）：平時評量分項平均剖析（僅顯示試算表有登記的分項） -->
             <section id="sectionPillars" class="card-cream-blue rounded-3xl p-5 sm:p-6 space-y-4">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-sky-200/80 pb-3.5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-sky-200/90 pb-3.5">
                     <div>
                         <div class="flex items-center gap-2">
                             <span class="text-lg">📊</span>
@@ -307,12 +379,12 @@
                                 <span id="pillarSubjectTitle">--</span> — 平時評量分項平均
                             </h3>
                         </div>
-                        <p id="pillarSubjectDesc" class="text-xs text-slate-500 mt-0.5">依評量性質自動歸納，對比班級該分項平均分數</p>
+                        <p id="pillarSubjectDesc" class="text-xs text-slate-600 mt-0.5">依評量性質自動歸納，對比班級該分項平均分數</p>
                     </div>
-                    <div id="subjectSummaryPill" class="inline-flex items-center gap-2 bg-[#E8F4FA] border border-sky-300/80 px-3 py-1.5 rounded-xl self-start sm:self-auto">
-                        <span class="text-xs font-bold text-slate-600">本科平時總平均：</span>
-                        <span id="currentSubjAvg" class="text-base font-black font-mono text-sky-700 tabular-nums">--</span>
-                        <span id="currentSubjClassAvg" class="text-[11px] font-bold text-slate-500 font-mono">(--)</span>
+                    <div id="subjectSummaryPill" class="inline-flex items-center gap-2 bg-[#E8F4FA] border border-sky-300 px-3.5 py-2 rounded-xl self-start sm:self-auto">
+                        <span class="text-xs font-bold text-slate-700">本科平時總平均：</span>
+                        <span id="currentSubjAvg" class="text-base font-black font-mono text-sky-800 tabular-nums">--</span>
+                        <span id="currentSubjClassAvg" class="text-xs font-bold text-slate-600 font-mono">(--)</span>
                     </div>
                 </div>
 
@@ -324,7 +396,7 @@
 
             <!-- 4. 模組二（米綠色區塊）：各項平時成績表現走勢與班均對比圖 -->
             <section id="sectionTimeline" class="card-cream-green rounded-3xl p-5 sm:p-6 space-y-4">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-200/80 pb-3.5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-200/90 pb-3.5">
                     <div>
                         <div class="flex items-center gap-2">
                             <span class="text-lg">📈</span>
@@ -332,16 +404,16 @@
                                 平時成績表現走勢與班級平均對比
                             </h3>
                         </div>
-                        <p class="text-xs text-slate-500 mt-0.5">實線為「學生個人得分」，虛線為「全班該項平均」，一眼掌握每次作業與考試的穩定度</p>
+                        <p class="text-xs text-slate-600 mt-0.5">實線為「學生個人得分」，虛線為「全班該項平均」，一眼掌握每次作業與考試的穩定度</p>
                     </div>
 
                     <!-- 走勢圖指標切換按鈕（JS 依試算表實際存在的類別動態產生） -->
-                    <div id="chartMetricTabs" class="flex flex-wrap items-center gap-1.5 bg-[#E3F2EA] p-1 rounded-xl border border-emerald-200/80">
+                    <div id="chartMetricTabs" class="flex flex-wrap items-center gap-2 bg-[#E3F2EA] p-1.5 rounded-xl border border-emerald-200/90">
                     </div>
                 </div>
 
                 <!-- Chart.js 畫布容器 -->
-                <div class="relative h-64 sm:h-72 w-full pt-2 bg-white/65 rounded-2xl p-3 border border-emerald-100/80">
+                <div class="relative h-64 sm:h-72 w-full pt-2 bg-white/85 rounded-2xl p-3 border border-emerald-200/80">
                     <canvas id="unitTrendChart"></canvas>
                 </div>
 
@@ -353,7 +425,7 @@
 
             <!-- 5. 模組三（米藍色區塊）：各次平時成績得分明細（每個項目旁直接顯示「作業」或「考試」） -->
             <section id="sectionScoreMatrix" class="card-cream-blue rounded-3xl p-5 sm:p-6 space-y-4">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-sky-200/80 pb-3.5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-sky-200/90 pb-3.5">
                     <div>
                         <div class="flex items-center gap-2">
                             <span class="text-lg">📋</span>
@@ -361,22 +433,22 @@
                                 各次平時成績得分明細
                             </h3>
                         </div>
-                        <p class="text-xs text-slate-500 mt-0.5">完整列出試算表登記的每一項平時成績，並於項目旁標註「📝 作業」或「🎯 考試」及班均比較</p>
+                        <p class="text-xs text-slate-600 mt-0.5">完整列出試算表登記的每一項平時成績，並於項目旁標註「📝 作業」或「🎯 考試」及班均比較</p>
                     </div>
 
-                    <!-- 檢視模式切換：卡片明細 vs 列表總表 -->
-                    <div class="flex items-center gap-1.5 bg-[#E3EFF7] p-1 rounded-xl border border-sky-200/80 self-start sm:self-auto">
-                        <button id="btnViewCards" onclick="switchScoreViewMode('cards')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white text-sky-900 shadow-sm">
+                    <!-- 檢視模式切換：卡片明細 vs 列表總表（觸控高度 >= 36px） -->
+                    <div class="flex items-center gap-1.5 bg-[#E3EFF7] p-1.5 rounded-xl border border-sky-200/90 self-start sm:self-auto">
+                        <button id="btnViewCards" onclick="switchScoreViewMode('cards')" class="min-h-[36px] px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-white text-sky-900 shadow-sm">
                             🗂️ 卡片明細
                         </button>
-                        <button id="btnViewMatrix" onclick="switchScoreViewMode('matrix')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900">
+                        <button id="btnViewMatrix" onclick="switchScoreViewMode('matrix')" class="min-h-[36px] px-3.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-700 hover:text-slate-900">
                             📋 列表總表
                         </button>
                     </div>
                 </div>
 
                 <!-- 動態分類篩選列（僅顯示本科試算表實際存在的作業/考試與類別） -->
-                <div id="itemCategoryFilterBar" class="flex flex-wrap items-center gap-1.5">
+                <div id="itemCategoryFilterBar" class="flex flex-wrap items-center gap-2">
                     <!-- JS 動態渲染分項篩選膠囊 -->
                 </div>
 
@@ -391,7 +463,7 @@
                 <div id="matrixTableView" class="hidden overflow-x-auto custom-scrollbar rounded-2xl border border-sky-200/90">
                     <table class="w-full text-left border-collapse">
                         <thead>
-                            <tr class="bg-[#E3EFF7] text-slate-700 text-xs font-extrabold border-b border-sky-200/90">
+                            <tr class="bg-[#E3EFF7] text-slate-800 text-xs font-extrabold border-b border-sky-200/90">
                                 <th class="py-3 px-4 whitespace-nowrap">平時評量項目（作業 / 考試）</th>
                                 <th class="py-3 px-3 text-center whitespace-nowrap">分項類別</th>
                                 <th class="py-3 px-3 text-center whitespace-nowrap">個人得分</th>
@@ -415,9 +487,9 @@
                     <div class="space-y-1.5 flex-1">
                         <div class="flex items-center justify-between flex-wrap gap-2">
                             <h3 class="font-black text-slate-800 text-base">平時成績落點診斷與複習建議</h3>
-                            <span class="text-[11px] font-bold text-emerald-800 bg-emerald-100/80 px-2.5 py-0.5 rounded-full">系統依平時分項均標自動分析</span>
+                            <span class="text-xs font-bold text-emerald-900 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-200">系統依平時分項均標自動分析</span>
                         </div>
-                        <p id="teacherAdviceText" class="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
+                        <p id="teacherAdviceText" class="text-xs sm:text-sm text-slate-800 leading-relaxed font-medium">
                             <!-- JS 填入診斷建議 -->
                         </p>
                     </div>
@@ -993,9 +1065,9 @@
         function formatAssessmentTypeBadge(typeStr) {
             const t = String(typeStr || '作業').trim();
             if (t === '考試' || t === '測驗') {
-                return `<span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-sky-100/90 text-sky-800 border border-sky-300/90 shrink-0">🎯 考試</span>`;
+                return `<span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-extrabold bg-sky-100/90 text-sky-800 border border-sky-300/90 shrink-0">🎯 考試</span>`;
             }
-            return `<span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-100/90 text-emerald-800 border border-emerald-300/90 shrink-0">📝 作業</span>`;
+            return `<span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-extrabold bg-emerald-100/90 text-emerald-800 border border-emerald-300/90 shrink-0">📝 作業</span>`;
         }
 
         function getPillarDisplayShortName(pKey, fallbackLabel) {
@@ -1016,15 +1088,16 @@
             return '📊';
         }
 
+        // Apple HIG Accessibility: 同時提供「方向符號 ▲/▼/＝」與色彩，不單靠紅綠顏色傳達高低落差
         function formatDiffTag(diff) {
             if (!displayFlags.showClassNorm || diff === null || diff === undefined || isNaN(diff)) return '';
             if (diff > 0) {
-                return `<span class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-bold font-mono bg-emerald-50 text-emerald-700 border border-emerald-200/80">+${diff.toFixed(1)}</span>`;
+                return `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-xs font-bold font-mono bg-emerald-50 text-emerald-700 border border-emerald-200/80" title="高於班級平均 ${diff.toFixed(1)} 分"><span aria-hidden="true">▲</span>+${diff.toFixed(1)}</span>`;
             }
             if (diff < 0) {
-                return `<span class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-bold font-mono bg-rose-50 text-rose-700 border border-rose-200/80">${diff.toFixed(1)}</span>`;
+                return `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-xs font-bold font-mono bg-rose-50 text-rose-700 border border-rose-200/80" title="低於班級平均 ${Math.abs(diff).toFixed(1)} 分"><span aria-hidden="true">▼</span>${diff.toFixed(1)}</span>`;
             }
-            return `<span class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-bold font-mono bg-slate-100 text-slate-600">持平</span>`;
+            return `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-xs font-bold font-mono bg-slate-100 text-slate-600" title="與班級平均持平"><span aria-hidden="true">＝</span>持平</span>`;
         }
 
         // 個資保護去識別化姓名：三個字中間變圈圈（如：王○明），兩個字第二個字變圈圈（如：王○）
@@ -1070,7 +1143,8 @@
                 document.getElementById('heroOverallBadge').textContent = getScoreBadgeInfo(totalAvg).label;
 
                 if (displayFlags.showClassNorm) {
-                    document.getElementById('heroDiffClass').textContent = (totalDiff >= 0 ? '+' : '') + totalDiff.toFixed(1);
+                    const diffSymbol = totalDiff > 0 ? '▲ +' : (totalDiff < 0 ? '▼ ' : '＝ ');
+                    document.getElementById('heroDiffClass').textContent = diffSymbol + totalDiff.toFixed(1);
                     document.getElementById('heroClassAvgLabel').textContent = `班均 ${totalClassAvg.toFixed(1)} 分`;
                 } else {
                     document.getElementById('heroDiffClass').textContent = `${validSubjs.length} 科`;
@@ -1146,15 +1220,15 @@
                                 <span class="text-xl shrink-0">${icon}</span>
                                 <span class="font-black text-slate-800 text-base sm:text-lg leading-snug break-words">${subj.subject}</span>
                             </div>
-                            <div class="flex items-center gap-2 flex-wrap text-xs text-slate-500 font-mono">
-                                <span class="text-[11px] font-sans font-bold px-2 py-0.5 rounded-full border whitespace-nowrap shrink-0 ${badgeInfo.badgeClass}">${badgeInfo.label}</span>
+                            <div class="flex items-center gap-2 flex-wrap text-xs text-slate-600 font-mono">
+                                <span class="text-xs font-sans font-bold px-2 py-0.5 rounded-full border whitespace-nowrap shrink-0 ${badgeInfo.badgeClass}">${badgeInfo.label}</span>
                                 <span class="whitespace-nowrap">${classAvgText}</span>
                                 ${diffHtml}
                             </div>
                         </div>
                         <div class="text-right shrink-0 pl-2">
-                            <div class="text-[10px] font-bold text-slate-400 whitespace-nowrap">平時總均</div>
-                            <div class="text-2xl font-black font-mono tabular-nums ${scoreColorClass}">${avgText}</div>
+                            <div class="text-xs font-bold text-slate-600 whitespace-nowrap">平時總均</div>
+                            <div class="text-2xl font-black font-mono tabular-nums display-score ${scoreColorClass}">${avgText}</div>
                         </div>
                     </button>
                 `;
@@ -1252,18 +1326,18 @@
                                     <h4 class="font-extrabold text-slate-800 text-sm">${p.label}</h4>
                                     ${typeBadgeHtml}
                                 </div>
-                                <span class="block text-[11px] text-slate-500 font-medium">採計 ${p.count} 次平時分數（${rangeStr}）</span>
+                                <span class="block text-xs text-slate-600 font-medium">採計 ${p.count} 次平時分數（${rangeStr}）</span>
                             </div>
-                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${badgeInfo.badgeClass}">${badgeInfo.label}</span>
+                            <span class="text-xs font-bold px-2 py-0.5 rounded-full border shrink-0 ${badgeInfo.badgeClass}">${badgeInfo.label}</span>
                         </div>
 
                         <div class="flex items-baseline justify-between pt-1">
                             <div>
-                                <span class="text-2xl sm:text-3xl font-black font-mono tabular-nums text-slate-900">${avgStr}</span>
-                                <span class="text-xs font-bold text-slate-400 ml-0.5">分</span>
+                                <span class="text-2xl sm:text-3xl font-black font-mono tabular-nums display-score text-slate-900">${avgStr}</span>
+                                <span class="text-xs font-bold text-slate-600 ml-0.5">分</span>
                             </div>
                             <div class="text-right space-y-0.5">
-                                <div class="text-xs font-mono text-slate-500">${classStr}</div>
+                                <div class="text-xs font-mono text-slate-600">${classStr}</div>
                                 <div>${diffBadge}</div>
                             </div>
                         </div>
@@ -1277,11 +1351,11 @@
                                         class="absolute -top-[3px] -translate-x-1/2 z-10 flex flex-col items-center pointer-events-auto"
                                         style="left: ${classMarkerLeft}%">
                                         <span class="w-4 h-4 rounded-full bg-emerald-500 border-2 border-white ring-1 ring-emerald-700 shadow-md block"></span>
-                                        <span class="text-[8px] leading-none text-emerald-700 font-black mt-0.5 select-none">▲</span>
+                                        <span class="text-[9px] leading-none text-emerald-700 font-black mt-0.5 select-none" aria-hidden="true">▲</span>
                                     </div>
                                 ` : ''}
                             </div>
-                            <div class="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[11px] font-mono pt-0.5">
+                            <div class="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs font-mono pt-0.5">
                                 <span class="inline-flex items-center gap-1.5 text-sky-800 font-bold">
                                     <span class="w-3.5 h-2 rounded-sm bg-gradient-to-r ${barGradient} border border-sky-600/30 inline-block shrink-0"></span>
                                     <span>長方形為${studentName}成績 (${avgStr}分)</span>
@@ -1337,7 +1411,7 @@
                 const isSelected = t.key === currentChartMetric;
                 return `
                     <button onclick="switchChartMetric('${t.key}')" data-metric="${t.key}"
-                        class="chart-tab-btn px-2.5 py-1 rounded-lg text-xs font-bold transition ${isSelected ? 'bg-teal-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}">
+                        class="chart-tab-btn min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-bold transition ${isSelected ? 'bg-teal-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}">
                         ${t.label}
                     </button>
                 `;
@@ -1349,8 +1423,8 @@
             document.querySelectorAll('.chart-tab-btn').forEach(btn => {
                 const isSelected = btn.getAttribute('data-metric') === metricKey;
                 btn.className = isSelected
-                    ? 'chart-tab-btn px-2.5 py-1 rounded-lg text-xs font-bold transition bg-teal-600 text-white shadow-sm'
-                    : 'chart-tab-btn px-2.5 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900';
+                    ? 'chart-tab-btn min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-bold transition bg-teal-600 text-white shadow-sm'
+                    : 'chart-tab-btn min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900';
             });
             const subj = currentPortfolio.student.subjects[currentSubjectIdx];
             if (subj) renderUnitTrendChart(subj);
@@ -1393,6 +1467,8 @@
             if (unitChartInstance) {
                 unitChartInstance.destroy();
             }
+
+            const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
             const datasets = [
                 {
@@ -1437,6 +1513,7 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    animation: prefersReducedMotion ? false : { duration: 420, easing: 'easeOutQuart' },
                     interaction: {
                         mode: 'index',
                         intersect: false
@@ -1482,8 +1559,8 @@
                                 drawBorder: false
                             },
                             ticks: {
-                                font: { family: '"JetBrains Mono", monospace', size: 11, weight: '600' },
-                                color: '#64748b',
+                                font: { family: '"JetBrains Mono", monospace', size: 12, weight: '600' },
+                                color: '#475569',
                                 callback: v => v + '分'
                             }
                         },
@@ -1492,7 +1569,7 @@
                                 display: false
                             },
                             ticks: {
-                                font: { family: '"JetBrains Mono", "Noto Sans TC", sans-serif', size: 11, weight: '700' },
+                                font: { family: '"JetBrains Mono", "Noto Sans TC", sans-serif', size: 12, weight: '700' },
                                 color: '#334155'
                             }
                         }
@@ -1524,11 +1601,11 @@
                     <div class="flex items-center gap-2.5 min-w-0">
                         <span class="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-700 flex items-center justify-center font-black text-base shrink-0">🌟</span>
                         <div class="min-w-0">
-                            <div class="text-[11px] font-bold text-emerald-800">本科最高分表現項目</div>
+                            <div class="text-xs font-bold text-emerald-800">本科最高分表現項目</div>
                             <div class="text-xs sm:text-sm font-black text-slate-800 flex items-center gap-1.5 flex-wrap">
                                 <span>${bestItem.name}</span>
                                 ${formatAssessmentTypeBadge(bestItem.assessmentType)}
-                                <span class="text-xs font-normal text-slate-500">${bestDiff}</span>
+                                <span class="text-xs font-normal text-slate-600">${bestDiff}</span>
                             </div>
                         </div>
                     </div>
@@ -1539,11 +1616,11 @@
                     <div class="flex items-center gap-2.5 min-w-0">
                         <span class="w-8 h-8 rounded-xl bg-sky-500/15 text-sky-700 flex items-center justify-center font-black text-base shrink-0">🔍</span>
                         <div class="min-w-0">
-                            <div class="text-[11px] font-bold text-sky-800">建議優先複習加強項目</div>
+                            <div class="text-xs font-bold text-sky-800">建議優先複習加強項目</div>
                             <div class="text-xs sm:text-sm font-black text-slate-800 flex items-center gap-1.5 flex-wrap">
                                 <span>${weakestItem.name}</span>
                                 ${formatAssessmentTypeBadge(weakestItem.assessmentType)}
-                                <span class="text-xs font-normal text-slate-500">${weakDiff}</span>
+                                <span class="text-xs font-normal text-slate-600">${weakDiff}</span>
                             </div>
                         </div>
                     </div>
@@ -1559,11 +1636,11 @@
             document.getElementById('cardsDetailView').classList.toggle('hidden', isMatrix);
 
             document.getElementById('btnViewCards').className = !isMatrix
-                ? 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white text-sky-800 shadow-sm'
-                : 'px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900';
+                ? 'min-h-[36px] px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-white text-sky-800 shadow-sm'
+                : 'min-h-[36px] px-3.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900';
             document.getElementById('btnViewMatrix').className = isMatrix
-                ? 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white text-sky-800 shadow-sm'
-                : 'px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900';
+                ? 'min-h-[36px] px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-white text-sky-800 shadow-sm'
+                : 'min-h-[36px] px-3.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900';
         }
 
         function getFilteredSubjectItems(subj) {
@@ -1579,19 +1656,19 @@
             const tbody = document.getElementById('unitMatrixTableBody');
             const filtered = getFilteredSubjectItems(subj);
             if (filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-400">尚無平時成績資料</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-600">尚無平時成績資料</td></tr>`;
                 return;
             }
 
             tbody.innerHTML = filtered.map((item, idx) => {
                 const hasScore = item.score !== null && item.score !== undefined && !isNaN(item.score);
                 const scoreColor = !hasScore
-                    ? 'text-slate-300 font-normal'
+                    ? 'text-slate-400 font-normal'
                     : (item.score >= 90 ? 'text-emerald-700 font-black' : (item.score < 80 ? 'text-rose-600 font-black' : 'text-sky-800 font-bold'));
                 const classAvgStr = (displayFlags.showClassNorm && item.classAvg !== null && !isNaN(item.classAvg))
                     ? `${item.classAvg.toFixed(1)} 分`
                     : '--';
-                const diffHtml = hasScore ? formatDiffTag(item.diffFromClass) : '<span class="text-slate-300">--</span>';
+                const diffHtml = hasScore ? formatDiffTag(item.diffFromClass) : '<span class="text-slate-400">--</span>';
                 const typeBadge = formatAssessmentTypeBadge(item.assessmentType);
                 const rowBg = idx % 2 === 0 ? 'bg-[#F2F8FC] hover:bg-[#E5F1FA]' : 'bg-[#F1F8F4] hover:bg-[#E3F3EA]';
 
@@ -1612,7 +1689,7 @@
                         <td class="py-3 px-3 text-center whitespace-nowrap">
                             <span class="font-mono text-base tabular-nums ${scoreColor}">${hasScore ? item.score + ' 分' : '--'}</span>
                         </td>
-                        <td class="py-3 px-3 text-center font-mono text-xs text-slate-500 whitespace-nowrap">
+                        <td class="py-3 px-3 text-center font-mono text-xs text-slate-600 whitespace-nowrap">
                             ${classAvgStr}
                         </td>
                         <td class="py-3 px-4 text-right whitespace-nowrap">
@@ -1671,7 +1748,7 @@
                     : 'bg-teal-600 text-white border-teal-600 shadow-sm';
                 return `
                     <button onclick="filterItemCategory('${c.key}')"
-                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition border ${active ? activeBtnStyle : 'bg-white/90 text-slate-600 border-sky-200/80 hover:border-sky-400'}">
+                        class="min-h-[38px] px-3.5 py-2 rounded-xl text-xs font-bold transition border ${active ? activeBtnStyle : 'bg-white/90 text-slate-600 border-sky-200/80 hover:border-sky-400'}">
                         ${c.label}
                     </button>
                 `;
@@ -1680,7 +1757,7 @@
             const filtered = getFilteredSubjectItems(subj);
 
             if (filtered.length === 0) {
-                grid.innerHTML = `<div class="col-span-full py-8 text-center text-slate-400 text-xs">此分類下尚無平時成績紀錄</div>`;
+                grid.innerHTML = `<div class="col-span-full py-8 text-center text-slate-600 text-xs">此分類下尚無平時成績紀錄</div>`;
                 return;
             }
 
@@ -1704,14 +1781,14 @@
                                 <span class="font-extrabold text-slate-800 text-sm break-words">${item.name}</span>
                                 ${typeBadgeHtml}
                             </div>
-                            <div class="flex items-center gap-2 text-[11px] text-slate-500 font-mono">
+                            <div class="flex items-center gap-2 text-xs text-slate-600 font-mono">
                                 <span>${classNormText}</span>
                                 ${diffHtml}
                             </div>
                         </div>
                         <div class="text-right shrink-0">
-                            <div class="text-xl font-black font-mono tabular-nums text-slate-900">${hasScore ? item.score : '--'}<span class="text-xs font-bold text-slate-400 ml-0.5">分</span></div>
-                            <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${badgeInfo.badgeClass}">${badgeInfo.label}</span>
+                            <div class="text-xl font-black font-mono tabular-nums text-slate-900">${hasScore ? item.score : '--'}<span class="text-xs font-bold text-slate-600 ml-0.5">分</span></div>
+                            <span class="inline-block text-xs font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${badgeInfo.badgeClass}">${badgeInfo.label}</span>
                         </div>
                     </div>
                 `;
