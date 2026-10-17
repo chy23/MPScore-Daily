@@ -1027,19 +1027,36 @@
             return `<span class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-bold font-mono bg-slate-100 text-slate-600">持平</span>`;
         }
 
+        // 個資保護去識別化姓名：三個字中間變圈圈（如：王○明），兩個字第二個字變圈圈（如：王○）
+        function maskStudentName(rawName) {
+            const str = String(rawName || '').trim();
+            if (!str) return '學生';
+            const chars = Array.from(str);
+            if (chars.length === 1) return chars[0];
+            if (chars.length === 2) return `${chars[0]}○`;
+            if (chars.length === 3) return `${chars[0]}○${chars[2]}`;
+            return `${chars[0]}${'○'.repeat(chars.length - 2)}${chars[chars.length - 1]}`;
+        }
+
         function renderPortfolio(payload) {
             currentPortfolio = payload;
             const st = payload.student;
+            const rawOriginalName = String(st.rawName || st.name || '').trim();
+            const maskedName = maskStudentName(rawOriginalName);
+            st.name = maskedName;
+            if (st.teacherAdvice && rawOriginalName && rawOriginalName.length >= 2) {
+                st.teacherAdvice = String(st.teacherAdvice).split(rawOriginalName).join(maskedName);
+            }
             const subjects = st.subjects || [];
 
             document.getElementById('loadingSection').classList.add('hidden');
             document.getElementById('errorSection').classList.add('hidden');
             document.getElementById('portfolioContainer').classList.remove('hidden');
 
-            // 1. 渲染 Hero 區塊
+            // 1. 渲染 Hero 區塊（家長端顯示去識別化姓名）
             document.getElementById('heroClassSeat').textContent = `${st.className || '本班'} ‧ ${st.seatNo}號`;
             document.getElementById('heroUpdatedAt').textContent = `資料更新：${payload.updatedAt || '最新學期平時成績'}`;
-            document.getElementById('heroStudentName').textContent = st.name;
+            document.getElementById('heroStudentName').textContent = maskedName;
 
             // 計算跨科平時總均與最佳科目
             const validSubjs = subjects.filter(s => s.overallAverage !== null && !isNaN(s.overallAverage));
@@ -1975,16 +1992,24 @@
                 };
             });
 
+            const rawName = String(st.name || '').trim();
+            const maskedName = maskStudentName(rawName);
+            let combinedAdvice = st.teacherAdvice || adviceList.join(' ');
+            if (combinedAdvice && rawName && rawName.length >= 2) {
+                combinedAdvice = String(combinedAdvice).split(rawName).join(maskedName);
+            }
+
             return {
                 status: 'success',
                 updatedAt: (data.updatedAt || '最新學期平時成績').replace('T', ' ').slice(0, 16),
                 student: {
                     seatNo: st.seatNo || st.seatNumber || '',
-                    name: st.name || '',
+                    rawName: rawName,
+                    name: maskedName,
                     className: st.className || '本班',
                     token: st.token || '',
                     subjects: normalizedSubjects,
-                    teacherAdvice: st.teacherAdvice || adviceList.join(' ')
+                    teacherAdvice: combinedAdvice
                 }
             };
         }
