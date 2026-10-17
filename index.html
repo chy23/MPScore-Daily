@@ -444,16 +444,16 @@
                         </div>
                         <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-xs">
                             <label class="flex items-center gap-2 min-h-[36px] px-2 py-1 rounded-xl hover:bg-white/60 cursor-pointer text-slate-700 font-bold">
+                                <input type="checkbox" id="printOptClassAvg" checked onchange="handleOptionsChange()" class="w-4 h-4 rounded text-sky-600 focus:ring-sky-500">
+                                <span>頂部主旨標語列</span>
+                            </label>
+                            <label class="flex items-center gap-2 min-h-[36px] px-2 py-1 rounded-xl hover:bg-white/60 cursor-pointer text-slate-700 font-bold">
                                 <input type="checkbox" id="printOptSubjAvg" checked onchange="handleOptionsChange()" class="w-4 h-4 rounded text-sky-600 focus:ring-sky-500">
-                                <span>掃碼登入步驟教學</span>
+                                <span>區塊 1：登入步驟</span>
                             </label>
                             <label class="flex items-center gap-2 min-h-[36px] px-2 py-1 rounded-xl hover:bg-white/60 cursor-pointer text-slate-700 font-bold">
                                 <input type="checkbox" id="printOptPillars" checked onchange="handleOptionsChange()" class="w-4 h-4 rounded text-sky-600 focus:ring-sky-500">
-                                <span>拍照留存隨時查看提醒</span>
-                            </label>
-                            <label class="flex items-center gap-2 min-h-[36px] px-2 py-1 rounded-xl hover:bg-white/60 cursor-pointer text-slate-700 font-bold">
-                                <input type="checkbox" id="printOptClassAvg" checked onchange="handleOptionsChange()" class="w-4 h-4 rounded text-sky-600 focus:ring-sky-500">
-                                <span>連動科目名稱(無分數)</span>
+                                <span>區塊 2：隨時查看提醒</span>
                             </label>
                             <label class="flex items-center gap-2 min-h-[36px] px-2 py-1 rounded-xl hover:bg-white/60 cursor-pointer text-slate-700 font-bold">
                                 <input type="checkbox" id="printOptSeatClass" checked onchange="handleOptionsChange()" class="w-4 h-4 rounded text-sky-600 focus:ring-sky-500">
@@ -463,6 +463,79 @@
                                 <input type="checkbox" id="printOptTokenText" onchange="handleOptionsChange()" class="w-4 h-4 rounded text-sky-600 focus:ring-sky-500">
                                 <span>印出代碼編號(教師核對)</span>
                             </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 通知小卡各區塊文字描述自訂面板（保留教師修改欄位） -->
+                <div class="mt-4 p-4 rounded-2xl bg-white/90 border border-sky-200/90 space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-black text-slate-800">✏️ 通知小卡各區塊文字自訂（教師可直接修改各區塊標題與說明文字，預覽與下載 PDF 即時同步）</span>
+                        </div>
+                        <button type="button" onclick="resetSlipCustomTexts()" class="min-h-[32px] px-3 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition">
+                            ↺ 恢復預設文字
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                        <div>
+                            <label class="block font-extrabold text-slate-700 mb-1">🏷️ 左上角小卡標籤</label>
+                            <input type="text" data-slip-field="badge" oninput="updateSlipCustomField('badge', this.value)"
+                                class="w-full px-3 py-1.5 rounded-xl border border-sky-200 bg-[#F5FAFD] text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-sky-500">
+                        </div>
+                        <div>
+                            <label class="block font-extrabold text-slate-700 mb-1">🎯 頂部主旨標語列</label>
+                            <input type="text" data-slip-field="subtitle" oninput="updateSlipCustomField('subtitle', this.value)"
+                                class="w-full px-3 py-1.5 rounded-xl border border-sky-200 bg-[#F5FAFD] text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-sky-500">
+                        </div>
+                        <div>
+                            <label class="block font-extrabold text-slate-700 mb-1">☁️ 右上角狀態標語</label>
+                            <input type="text" data-slip-field="topTag" oninput="updateSlipCustomField('topTag', this.value)"
+                                class="w-full px-3 py-1.5 rounded-xl border border-emerald-200 bg-[#F4FAF6] text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                        <!-- 區塊 1 自訂 -->
+                        <div class="p-3 rounded-xl subcard-cream-blue space-y-2">
+                            <div>
+                                <label class="block font-extrabold text-sky-900 mb-1">1️⃣ 區塊一標題（米藍框）</label>
+                                <input type="text" data-slip-field="step1Title" oninput="updateSlipCustomField('step1Title', this.value)"
+                                    class="w-full px-3 py-1.5 rounded-lg border border-sky-200 bg-white text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-sky-500">
+                            </div>
+                            <div>
+                                <label class="block font-extrabold text-sky-900 mb-1">區塊一文字描述</label>
+                                <textarea rows="2" data-slip-field="step1Body" oninput="updateSlipCustomField('step1Body', this.value)"
+                                    class="w-full px-3 py-1.5 rounded-lg border border-sky-200 bg-white text-slate-700 leading-relaxed focus:outline-none focus:ring-2 focus:ring-sky-500"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- 區塊 2 自訂 -->
+                        <div class="p-3 rounded-xl subcard-cream-green space-y-2">
+                            <div>
+                                <label class="block font-extrabold text-emerald-900 mb-1">2️⃣ 區塊二標題（米綠框）</label>
+                                <input type="text" data-slip-field="step2Title" oninput="updateSlipCustomField('step2Title', this.value)"
+                                    class="w-full px-3 py-1.5 rounded-lg border border-emerald-200 bg-white text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block font-extrabold text-emerald-900 mb-1">區塊二文字描述</label>
+                                <textarea rows="2" data-slip-field="step2Body" oninput="updateSlipCustomField('step2Body', this.value)"
+                                    class="w-full px-3 py-1.5 rounded-lg border border-emerald-200 bg-white text-slate-700 leading-relaxed focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                        <div class="md:col-span-2">
+                            <label class="block font-extrabold text-slate-700 mb-1">💡 底部叮嚀文字描述</label>
+                            <input type="text" data-slip-field="footer" oninput="updateSlipCustomField('footer', this.value)"
+                                class="w-full px-3 py-1.5 rounded-xl border border-sky-200 bg-[#F5FAFD] text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                        </div>
+                        <div>
+                            <label class="block font-extrabold text-slate-700 mb-1">📱 QR Code 下方提示字</label>
+                            <input type="text" data-slip-field="qrCaption" oninput="updateSlipCustomField('qrCaption', this.value)"
+                                class="w-full px-3 py-1.5 rounded-xl border border-sky-200 bg-[#F5FAFD] text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-sky-500">
                         </div>
                     </div>
                 </div>
@@ -515,38 +588,99 @@
         <div class="max-w-5xl mx-auto space-y-4">
 
             <!-- 頂部浮動控制列 (列印時自動隱藏) -->
-            <div class="no-print sticky top-2 z-50 apple-glass-nav rounded-2xl p-4 border border-sky-200 shadow-xl flex flex-wrap items-center justify-between gap-3">
-                <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-600 to-teal-600 text-white flex items-center justify-center font-black text-lg">🖨️</div>
-                    <div>
-                        <h3 class="font-black text-slate-800 text-sm sm:text-base">A4 平時成績通知小卡預覽（不印出分數 ‧ 引導家長掃碼隨時查看）</h3>
-                        <p class="text-xs text-slate-600">紙本小卡僅提供專屬 QR Code 與登入操作說明，保障學生個資並讓家長於學期中隨時掃碼查看最新成績</p>
+            <div class="no-print sticky top-2 z-50 apple-glass-nav rounded-2xl p-4 border border-sky-200 shadow-xl space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-600 to-teal-600 text-white flex items-center justify-center font-black text-lg">🖨️</div>
+                        <div>
+                            <h3 class="font-black text-slate-800 text-sm sm:text-base">A4 平時成績通知小卡預覽（不印出分數 ‧ 引導家長掃碼隨時查看）</h3>
+                            <p class="text-xs text-slate-600">可點選下方「✏️ 修改小卡文字」直接調整各區塊標題與說明文字，修改後下方預覽即時更新</p>
+                        </div>
+                    </div>
+
+                    <!-- 版本切換與下載按鈕組 -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button type="button" onclick="toggleModalTextEditor()" class="min-h-[38px] px-3 py-2 rounded-xl bg-white hover:bg-sky-50 text-sky-800 border border-sky-300 font-extrabold text-xs shadow-sm transition flex items-center gap-1">
+                            <span>✏️ 修改小卡文字</span>
+                        </button>
+
+                        <div class="flex items-center bg-white p-1 rounded-xl border border-sky-200">
+                            <button id="btnEditionParent" onclick="switchPrintEdition('parent')" class="min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-extrabold transition bg-sky-600 text-white shadow-sm">
+                                👨‍👩‍👧 家長發放版小卡
+                            </button>
+                            <button id="btnEditionTeacher" onclick="switchPrintEdition('teacher')" class="min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-extrabold transition text-slate-600 hover:text-slate-900">
+                                📋 教師留存代碼核對表
+                            </button>
+                        </div>
+
+                        <button onclick="downloadPdfFile('parent')" class="min-h-[38px] px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-sm transition flex items-center gap-1">
+                            <span>⬇️ 下載家長版 PDF</span>
+                        </button>
+                        <button onclick="downloadPdfFile('teacher')" class="min-h-[38px] px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition flex items-center gap-1">
+                            <span>⬇️ 下載教師留存 PDF</span>
+                        </button>
+                        <button onclick="window.print()" class="min-h-[38px] px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs shadow-sm transition flex items-center gap-1">
+                            <span>🖨️ 直接列印</span>
+                        </button>
+                        <button onclick="closePrintPreviewModal()" class="min-h-[38px] px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold text-xs transition">
+                            ✕ 關閉
+                        </button>
                     </div>
                 </div>
 
-                <!-- 版本切換與下載按鈕組 -->
-                <div class="flex flex-wrap items-center gap-2">
-                    <div class="flex items-center bg-white p-1 rounded-xl border border-sky-200">
-                        <button id="btnEditionParent" onclick="switchPrintEdition('parent')" class="min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-extrabold transition bg-sky-600 text-white shadow-sm">
-                            👨‍👩‍👧 家長發放版小卡
-                        </button>
-                        <button id="btnEditionTeacher" onclick="switchPrintEdition('teacher')" class="min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-extrabold transition text-slate-600 hover:text-slate-900">
-                            📋 教師留存代碼核對表
+                <!-- 預覽視窗內嵌的小卡文字即時編輯器 -->
+                <div id="modalSlipTextEditor" class="hidden pt-3 border-t border-sky-200/80 space-y-2.5 text-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="font-black text-slate-800">✏️ 即時修改小卡各區塊文字描述（輸入後下方 A4 預覽立即同步變更）</span>
+                        <button type="button" onclick="resetSlipCustomTexts()" class="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold">
+                            ↺ 恢復預設文字
                         </button>
                     </div>
-
-                    <button onclick="downloadPdfFile('parent')" class="min-h-[38px] px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-sm transition flex items-center gap-1">
-                        <span>⬇️ 下載家長版 PDF</span>
-                    </button>
-                    <button onclick="downloadPdfFile('teacher')" class="min-h-[38px] px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition flex items-center gap-1">
-                        <span>⬇️ 下載教師留存 PDF</span>
-                    </button>
-                    <button onclick="window.print()" class="min-h-[38px] px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs shadow-sm transition flex items-center gap-1">
-                        <span>🖨️ 直接列印</span>
-                    </button>
-                    <button onclick="closePrintPreviewModal()" class="min-h-[38px] px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold text-xs transition">
-                        ✕ 關閉
-                    </button>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-0.5">🏷️ 左上角小卡標籤</label>
+                            <input type="text" data-slip-field="badge" oninput="updateSlipCustomField('badge', this.value)"
+                                class="w-full px-2.5 py-1.5 rounded-lg border border-sky-200 bg-white text-slate-800 font-bold">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-0.5">🎯 頂部主旨標語列</label>
+                            <input type="text" data-slip-field="subtitle" oninput="updateSlipCustomField('subtitle', this.value)"
+                                class="w-full px-2.5 py-1.5 rounded-lg border border-sky-200 bg-white text-slate-800 font-bold">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-0.5">☁️ 右上角狀態標語</label>
+                            <input type="text" data-slip-field="topTag" oninput="updateSlipCustomField('topTag', this.value)"
+                                class="w-full px-2.5 py-1.5 rounded-lg border border-emerald-200 bg-white text-slate-800 font-bold">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div class="p-2.5 rounded-xl bg-[#EDF5FA] border border-[#C5DDF0] space-y-1.5">
+                            <label class="block font-bold text-sky-900">1️⃣ 區塊一標題與說明（米藍框）</label>
+                            <input type="text" data-slip-field="step1Title" oninput="updateSlipCustomField('step1Title', this.value)"
+                                class="w-full px-2.5 py-1 rounded-lg border border-sky-200 bg-white text-slate-800 font-bold">
+                            <textarea rows="2" data-slip-field="step1Body" oninput="updateSlipCustomField('step1Body', this.value)"
+                                class="w-full px-2.5 py-1 rounded-lg border border-sky-200 bg-white text-slate-700"></textarea>
+                        </div>
+                        <div class="p-2.5 rounded-xl bg-[#ECF6F0] border border-[#BFE3CE] space-y-1.5">
+                            <label class="block font-bold text-emerald-900">2️⃣ 區塊二標題與說明（米綠框）</label>
+                            <input type="text" data-slip-field="step2Title" oninput="updateSlipCustomField('step2Title', this.value)"
+                                class="w-full px-2.5 py-1 rounded-lg border border-emerald-200 bg-white text-slate-800 font-bold">
+                            <textarea rows="2" data-slip-field="step2Body" oninput="updateSlipCustomField('step2Body', this.value)"
+                                class="w-full px-2.5 py-1 rounded-lg border border-emerald-200 bg-white text-slate-700"></textarea>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                        <div class="sm:col-span-2">
+                            <label class="block font-bold text-slate-700 mb-0.5">💡 底部叮嚀文字描述</label>
+                            <input type="text" data-slip-field="footer" oninput="updateSlipCustomField('footer', this.value)"
+                                class="w-full px-2.5 py-1.5 rounded-lg border border-sky-200 bg-white text-slate-800">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-0.5">📱 QR Code 下方提示字</label>
+                            <input type="text" data-slip-field="qrCaption" oninput="updateSlipCustomField('qrCaption', this.value)"
+                                class="w-full px-2.5 py-1.5 rounded-lg border border-sky-200 bg-white text-slate-800 font-bold">
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1031,9 +1165,88 @@ function testGitHubConnection() {
         }
 
         // =========================================================================
-        // 5. A4 平時成績通知小卡預覽與 PDF 雙版本匯出引擎
+        // 5. A4 平時成績通知小卡文字自訂狀態、預覽與 PDF 雙版本匯出引擎
         // =========================================================================
+        const DEFAULT_SLIP_TEXTS = {
+            badge: '平時成績查詢小卡',
+            topTag: '☁️ 雲端即時更新 ‧ 全學期通用',
+            subtitle: '追蹤孩子在班上平時成績',
+            step1Title: '1️⃣ 如何登入查看（免輸入帳號密碼）',
+            step1Body: '請開啟手機相機或 LINE 掃描器對準右側專屬 QR Code，即可直接登入查看孩子的平時學習表現與分項趨勢。',
+            step2Title: '2️⃣ 如何全學期隨時查看最新平時成績',
+            step2Body: '請將本卡貼於聯絡簿或拍照存於手機相簿（可於網頁點選「從相簿選取 QR 照片」登入），老師更新分數後隨時掃碼即可查看！',
+            qrCaption: '📱 掃碼立即登入',
+            footer: '💡 本卡不印出分數以保護隱私，請貼於聯絡簿或拍照留存，隨時掃碼查看最新成績'
+        };
+
+        let slipCustomTexts = { ...DEFAULT_SLIP_TEXTS };
+
+        function escapeSlipHtml(str) {
+            return String(str ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/\n/g, '<br>');
+        }
+
+        function loadSlipCustomTexts() {
+            try {
+                const raw = localStorage.getItem('mpdaily_slip_custom_texts');
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (parsed && typeof parsed === 'object') {
+                        slipCustomTexts = { ...DEFAULT_SLIP_TEXTS, ...parsed };
+                    }
+                }
+            } catch (e) {
+                slipCustomTexts = { ...DEFAULT_SLIP_TEXTS };
+            }
+            syncSlipTextInputs();
+        }
+
+        function syncSlipTextInputs(skipElement = null) {
+            document.querySelectorAll('[data-slip-field]').forEach(el => {
+                if (el === skipElement) return;
+                const key = el.getAttribute('data-slip-field');
+                if (key && slipCustomTexts[key] !== undefined) {
+                    el.value = slipCustomTexts[key];
+                }
+            });
+        }
+
+        function updateSlipCustomField(fieldKey, value) {
+            if (!(fieldKey in slipCustomTexts)) return;
+            slipCustomTexts[fieldKey] = value;
+            try {
+                localStorage.setItem('mpdaily_slip_custom_texts', JSON.stringify(slipCustomTexts));
+            } catch (e) {}
+            syncSlipTextInputs(document.activeElement);
+            if (!document.getElementById('printPreviewModal').classList.contains('hidden')) {
+                renderA4PrintSheets();
+            }
+        }
+
+        function resetSlipCustomTexts() {
+            slipCustomTexts = { ...DEFAULT_SLIP_TEXTS };
+            try {
+                localStorage.removeItem('mpdaily_slip_custom_texts');
+            } catch (e) {}
+            syncSlipTextInputs();
+            if (!document.getElementById('printPreviewModal').classList.contains('hidden')) {
+                renderA4PrintSheets();
+            }
+        }
+
+        function toggleModalTextEditor() {
+            const editor = document.getElementById('modalSlipTextEditor');
+            if (editor) {
+                editor.classList.toggle('hidden');
+            }
+        }
+
         function openPrintPreviewModal() {
+            syncSlipTextInputs();
             document.getElementById('printPreviewModal').classList.remove('hidden');
             renderA4PrintSheets();
         }
@@ -1070,13 +1283,23 @@ function testGitHubConnection() {
             }
         }
 
-        // 渲染「家長發放版」A4 雙欄 10 格平時成績通知小卡（不呈現任何成績分數，專注指導家長如何登入及隨時查看）
+        // 渲染「家長發放版」A4 雙欄 10 格平時成績通知小卡（不呈現任何成績分數，所有區塊文字支援教師自訂修改）
         function renderParentSlipsA4(container, students) {
             const optLoginSteps = document.getElementById('printOptSubjAvg').checked;
             const optAnytimeTip = document.getElementById('printOptPillars').checked;
-            const optSubjectNames = document.getElementById('printOptClassAvg').checked;
+            const optSubtitle = document.getElementById('printOptClassAvg').checked;
             const optSeatClass = document.getElementById('printOptSeatClass').checked;
             const optTokenText = document.getElementById('printOptTokenText').checked;
+
+            const badgeHtml = escapeSlipHtml(slipCustomTexts.badge);
+            const topTagHtml = escapeSlipHtml(slipCustomTexts.topTag);
+            const subtitleHtml = escapeSlipHtml(slipCustomTexts.subtitle);
+            const step1TitleHtml = escapeSlipHtml(slipCustomTexts.step1Title);
+            const step1BodyHtml = escapeSlipHtml(slipCustomTexts.step1Body);
+            const step2TitleHtml = escapeSlipHtml(slipCustomTexts.step2Title);
+            const step2BodyHtml = escapeSlipHtml(slipCustomTexts.step2Body);
+            const qrCaptionHtml = escapeSlipHtml(slipCustomTexts.qrCaption);
+            const footerHtml = escapeSlipHtml(slipCustomTexts.footer);
 
             const chunks = [];
             for (let i = 0; i < students.length; i += 10) {
@@ -1086,30 +1309,24 @@ function testGitHubConnection() {
             container.innerHTML = chunks.map((pageStudents, pageIdx) => {
                 const cardsHtml = pageStudents.map((st, cardIdx) => {
                     const qrDomId = `qr_${pageIdx}_${cardIdx}`;
-                    const subjs = st.subjects || [];
-                    const subjectNamesList = subjs.map(s => `${getSubjectIcon(s.subject)} ${s.subject}`).join(' ‧ ');
 
-                    const subjectTagHtml = (optSubjectNames && subjectNamesList) ? `
-                        <div class="text-[8.5px] font-bold text-slate-700 bg-slate-50 border border-slate-200/90 rounded px-1.5 py-0.5 truncate">
-                            📚 同步科目：${subjectNamesList}
+                    const subtitleBarHtml = (optSubtitle && subtitleHtml) ? `
+                        <div class="text-[8.5px] font-bold text-slate-700 bg-slate-50 border border-slate-200/90 rounded px-2 py-0.5 truncate">
+                            ${subtitleHtml}
                         </div>
                     ` : '';
 
-                    const loginStepBoxHtml = optLoginSteps ? `
+                    const loginStepBoxHtml = (optLoginSteps && (step1TitleHtml || step1BodyHtml)) ? `
                         <div class="bg-[#EDF5FA] border border-[#C5DDF0] rounded-md px-2 py-1 space-y-0.5">
-                            <div class="text-[9px] font-black text-sky-900">1️⃣ 如何登入查看（免輸入帳號密碼）</div>
-                            <div class="text-[8px] text-slate-700 leading-snug">
-                                請開啟<strong>手機相機</strong>或 <strong>LINE 掃描器</strong>對準右側專屬 QR Code，即可直接登入查看孩子的平時學習表現與分項趨勢。
-                            </div>
+                            ${step1TitleHtml ? `<div class="text-[9px] font-black text-sky-900">${step1TitleHtml}</div>` : ''}
+                            ${step1BodyHtml ? `<div class="text-[8px] text-slate-700 leading-snug">${step1BodyHtml}</div>` : ''}
                         </div>
                     ` : '';
 
-                    const anytimeTipBoxHtml = optAnytimeTip ? `
+                    const anytimeTipBoxHtml = (optAnytimeTip && (step2TitleHtml || step2BodyHtml)) ? `
                         <div class="bg-[#ECF6F0] border border-[#BFE3CE] rounded-md px-2 py-1 space-y-0.5">
-                            <div class="text-[9px] font-black text-emerald-900">2️⃣ 如何全學期隨時查看最新平時成績</div>
-                            <div class="text-[8px] text-slate-700 leading-snug">
-                                請將本卡<strong>貼於聯絡簿</strong>或<strong>拍照存於手機相簿</strong>（可於網頁點選「從相簿選取 QR 照片」登入），老師更新分數後隨時掃碼即可查看！
-                            </div>
+                            ${step2TitleHtml ? `<div class="text-[9px] font-black text-emerald-900">${step2TitleHtml}</div>` : ''}
+                            ${step2BodyHtml ? `<div class="text-[8px] text-slate-700 leading-snug">${step2BodyHtml}</div>` : ''}
                         </div>
                     ` : '';
 
@@ -1124,34 +1341,35 @@ function testGitHubConnection() {
                             <!-- 頂部學生資訊列（不含任何成績分數） -->
                             <div class="flex items-center justify-between border-b border-slate-200 pb-1">
                                 <div class="flex items-center gap-1.5 min-w-0">
-                                    <span class="px-1.5 py-0.5 rounded bg-sky-600 text-white font-black text-[9px] shrink-0">平時成績查詢小卡</span>
+                                    ${badgeHtml ? `<span class="px-1.5 py-0.5 rounded bg-sky-600 text-white font-black text-[9px] shrink-0">${badgeHtml}</span>` : ''}
                                     ${optSeatClass ? `<span class="text-[10px] font-bold text-slate-600 shrink-0">${st.className || '本班'} ${st.seatNo}號</span>` : ''}
                                     <span class="text-sm font-black text-slate-900 truncate">${st.name}</span>
                                 </div>
+                                ${topTagHtml ? `
                                 <div class="text-right shrink-0">
-                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[8px] font-extrabold">☁️ 雲端即時更新 ‧ 全學期通用</span>
+                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[8px] font-extrabold">${topTagHtml}</span>
                                 </div>
+                                ` : ''}
                             </div>
 
                             <!-- 中段：左側家長登入與隨時查看指南 + 右側專屬 QR Code -->
                             <div class="flex items-center justify-between gap-2 my-auto py-1">
                                 <div class="flex-1 min-w-0 space-y-1">
-                                    ${subjectTagHtml}
+                                    ${subtitleBarHtml}
                                     ${loginStepBoxHtml}
                                     ${anytimeTipBoxHtml}
                                     ${fallbackGuideHtml}
                                 </div>
                                 <div class="shrink-0 flex flex-col items-center justify-center p-1.5 border border-sky-200 rounded-lg bg-white shadow-sm">
                                     <div id="${qrDomId}" data-token="${st.token}" class="qr-target w-[58px] h-[58px] flex items-center justify-center"></div>
-                                    <div class="text-[7.5px] font-extrabold text-sky-800 mt-1">📱 掃碼立即登入</div>
+                                    ${qrCaptionHtml ? `<div class="text-[7.5px] font-extrabold text-sky-800 mt-1">${qrCaptionHtml}</div>` : ''}
                                     ${optTokenText ? `<div class="text-[7.5px] font-mono font-bold text-slate-500 leading-none mt-0.5">${st.token}</div>` : ''}
                                 </div>
                             </div>
 
-                            <!-- 底部保存提醒（不含家長簽名欄） -->
+                            <!-- 底部保存提醒（全寬單行呈現，支援教師自訂修改） -->
                             <div class="flex items-center justify-between border-t border-slate-200 pt-1 text-[8px] text-slate-600">
-                                <span>💡 本卡不印出分數以保護隱私，請貼於聯絡簿或拍照留存，隨時掃碼查看最新成績</span>
-                                <span class="font-mono text-slate-400 shrink-0">MPScore-Daily</span>
+                                <span>${footerHtml}</span>
                             </div>
                         </div>
                     `;
@@ -1269,9 +1487,10 @@ function testGitHubConnection() {
             }, 250);
         }
 
-        // 初始化：若瀏覽器已儲存試算表 API 網址，自動立即連線載入真實班級資料
+        // 初始化：載入教師自訂小卡文字與雲端試算表連線
         window.addEventListener('DOMContentLoaded', () => {
             document.getElementById('loaderCodePreview').textContent = LOADER_GS_SOURCE;
+            loadSlipCustomTexts();
             const savedUrl = (localStorage.getItem('mpdaily_api_url') || ((typeof CONFIG !== 'undefined' && CONFIG.API_URL) ? CONFIG.API_URL : '')).trim();
             if (savedUrl) {
                 document.getElementById('apiUrlInput').value = savedUrl;
