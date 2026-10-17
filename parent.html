@@ -1215,14 +1215,12 @@
                 const pType = p.assessmentType || (p.key === 'quiz' ? '考試' : '作業');
                 const typeBadgeHtml = formatAssessmentTypeBadge(pType);
 
-                // 米綠、米藍相間子卡片
+                // 米綠、米藍相間子卡片（進度條統一使用柔和天藍漸層，讓「班均綠點 ●」在米綠與米藍卡上皆清晰醒目不撞色）
                 const isGreenCard = idx % 2 === 0;
                 const subCardStyle = isGreenCard
                     ? 'subcard-cream-green hover:border-emerald-400/90'
                     : 'subcard-cream-blue hover:border-sky-400/90';
-                const barGradient = isGreenCard
-                    ? 'from-emerald-400 to-teal-600'
-                    : 'from-sky-400 to-sky-600';
+                const barGradient = 'from-sky-400 to-sky-500';
 
                 return `
                     <div class="p-4 rounded-2xl ${subCardStyle} flex flex-col justify-between space-y-3 transition">
@@ -1249,17 +1247,27 @@
                             </div>
                         </div>
 
-                        <!-- 分數視覺量尺（含班均標記點） -->
-                        <div class="space-y-1.5 pt-1">
-                            <div class="relative h-2 w-full rounded-full bg-white/90 border border-slate-200/80 overflow-visible">
+                        <!-- 分數視覺量尺（含立體圓形班均綠點與對應指針） -->
+                        <div class="space-y-2 pt-1.5">
+                            <div class="relative h-2.5 w-full rounded-full bg-white/95 border border-slate-200/90 overflow-visible">
                                 <div class="h-full rounded-full bg-gradient-to-r ${barGradient} transition-all duration-500" style="width: ${barWidth}%"></div>
                                 ${classMarkerLeft !== null ? `
-                                    <div title="班級該分項平均 ${p.classAverage} 分" class="absolute -top-1 w-1.5 h-4 rounded-full bg-emerald-700 border border-white shadow" style="left: ${classMarkerLeft}%"></div>
+                                    <div title="班級該分項平均 ${p.classAverage.toFixed(1)} 分"
+                                        class="absolute -top-[3px] -translate-x-1/2 z-10 flex flex-col items-center pointer-events-auto"
+                                        style="left: ${classMarkerLeft}%">
+                                        <span class="w-4 h-4 rounded-full bg-emerald-500 border-2 border-white ring-1 ring-emerald-700 shadow-md block"></span>
+                                        <span class="text-[8px] leading-none text-emerald-700 font-black mt-0.5 select-none">▲</span>
+                                    </div>
                                 ` : ''}
                             </div>
-                            <div class="flex items-center justify-between text-[11px] font-mono text-slate-500">
+                            <div class="flex items-center justify-between text-[11px] font-mono text-slate-500 pt-0.5">
                                 <span>${rangeStr}</span>
-                                ${classMarkerLeft !== null ? `<span class="text-emerald-700 font-bold">▲ 綠點為班均</span>` : ''}
+                                ${classMarkerLeft !== null ? `
+                                    <span class="inline-flex items-center gap-1 text-emerald-800 font-bold">
+                                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white ring-1 ring-emerald-700 inline-block shrink-0"></span>
+                                        <span>綠點為班均 (${p.classAverage.toFixed(1)}分)</span>
+                                    </span>
+                                ` : ''}
                             </div>
                         </div>
                     </div>
