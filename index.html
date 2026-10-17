@@ -463,10 +463,6 @@
                                 <input type="checkbox" id="printOptTokenText" onchange="handleOptionsChange()" class="w-4 h-4 rounded text-sky-600 focus:ring-sky-500">
                                 <span>印出代碼編號(教師核對)</span>
                             </label>
-                            <label class="flex items-center gap-2 min-h-[36px] px-2 py-1 rounded-xl hover:bg-white/60 cursor-pointer text-slate-700 font-bold">
-                                <input type="checkbox" id="printOptSignBox" checked onchange="handleOptionsChange()" class="w-4 h-4 rounded text-sky-600 focus:ring-sky-500">
-                                <span>底部家長簽章欄</span>
-                            </label>
                         </div>
                     </div>
                 </div>
@@ -1081,7 +1077,6 @@ function testGitHubConnection() {
             const optSubjectNames = document.getElementById('printOptClassAvg').checked;
             const optSeatClass = document.getElementById('printOptSeatClass').checked;
             const optTokenText = document.getElementById('printOptTokenText').checked;
-            const optSignBox = document.getElementById('printOptSignBox').checked;
 
             const chunks = [];
             for (let i = 0; i < students.length; i += 10) {
@@ -1153,10 +1148,10 @@ function testGitHubConnection() {
                                 </div>
                             </div>
 
-                            <!-- 底部保存提醒與家長簽章 -->
+                            <!-- 底部保存提醒（不含家長簽名欄） -->
                             <div class="flex items-center justify-between border-t border-slate-200 pt-1 text-[8px] text-slate-600">
-                                <span>💡 本卡不印出分數以保護隱私，請拍照留存隨時查看最新成績</span>
-                                ${optSignBox ? `<span class="font-bold text-slate-800 shrink-0">家長簽章：_______________</span>` : `<span class="font-mono text-slate-400">MPScore-Daily</span>`}
+                                <span>💡 本卡不印出分數以保護隱私，請貼於聯絡簿或拍照留存，隨時掃碼查看最新成績</span>
+                                <span class="font-mono text-slate-400 shrink-0">MPScore-Daily</span>
                             </div>
                         </div>
                     `;
@@ -1193,7 +1188,7 @@ function testGitHubConnection() {
             }, 30);
         }
 
-        // 渲染「教師留存代碼核對表」A4（不呈現成績，供教師核對學生專屬查詢代碼與小卡發放簽回狀態）
+        // 渲染「教師留存代碼核對表」A4（不呈現成績，供教師核對學生專屬查詢代碼與小卡發放狀態）
         function renderTeacherArchiveA4(container, students) {
             const subjectNames = getActiveSubjectNames(students);
             const subjectSummary = subjectNames.length > 0
@@ -1210,7 +1205,7 @@ function testGitHubConnection() {
                         <td class="py-2 px-2.5 font-sans font-bold text-slate-900">${st.name}</td>
                         <td class="py-2 px-2.5 font-bold text-sky-800">${st.token}</td>
                         <td class="py-2 px-2.5 font-sans text-slate-600">${subjectSummary}</td>
-                        <td class="py-2 px-2.5 font-sans text-right text-slate-700">□ 已發放小卡　□ 家長已簽回</td>
+                        <td class="py-2 px-2.5 font-sans text-right text-slate-700">□ 已發放小卡</td>
                     </tr>
                 `;
             }).join('');
@@ -1237,7 +1232,7 @@ function testGitHubConnection() {
                                     <th class="py-2 px-2.5">姓名</th>
                                     <th class="py-2 px-2.5">家長查詢專屬代碼</th>
                                     <th class="py-2 px-2.5">本學期連動科目</th>
-                                    <th class="py-2 px-2.5 text-right">小卡發放與家長簽回核對</th>
+                                    <th class="py-2 px-2.5 text-right">小卡發放核對</th>
                                 </tr>
                             </thead>
                             <tbody>
