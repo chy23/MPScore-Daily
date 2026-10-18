@@ -211,7 +211,6 @@
             background: #ffffff;
             box-sizing: border-box;
             position: relative;
-            overflow: hidden;
             min-height: 0;
             height: 100%;
             page-break-inside: avoid !important;
@@ -225,20 +224,20 @@
         }
 
         .a4-grid-6 .slip-card {
-            --card-pad-v: 3.2mm;
-            --card-pad-h: 4.2mm;
+            --card-pad-v: 2.8mm;
+            --card-pad-h: 3.8mm;
             border-radius: 12px;
         }
 
         .a4-grid-8 .slip-card {
-            --card-pad-v: 2.2mm;
-            --card-pad-h: 3mm;
+            --card-pad-v: 1.5mm;
+            --card-pad-h: 2.5mm;
             border-radius: 10px;
         }
 
         .a4-grid-10 .slip-card {
-            --card-pad-v: 1.4mm;
-            --card-pad-h: 2.2mm;
+            --card-pad-v: 1.2mm;
+            --card-pad-h: 2mm;
             border-radius: 8px;
         }
 
@@ -344,13 +343,18 @@
                 </div>
             </div>
 
-            <!-- 頂部三大模式切換器 -->
-            <div class="flex items-center gap-1.5 bg-white/90 p-1.5 rounded-2xl border border-sky-200/80 shadow-sm">
+            <!-- 頂部三大模式切換器與更新紀錄 -->
+            <div class="flex items-center gap-1.5 bg-white/90 p-1.5 rounded-2xl border border-sky-200/80 shadow-sm flex-wrap">
                 <button onclick="switchMainTab('wizard')" id="tabBtnWizard" class="min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition bg-sky-600 text-white shadow-sm">
                     🪄 1. 試算表平時成績設定精靈
                 </button>
                 <button onclick="switchMainTab('print')" id="tabBtnPrint" class="min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition text-slate-600 hover:text-slate-900">
                     🖨️ 2. 平時成績總覽與通知卡列印
+                </button>
+                <button onclick="openTeacherChangelogModal()" class="min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/90 flex items-center gap-1.5 shadow-2xs active:scale-95 cursor-pointer" title="查看 MPScore-Daily 系統更新紀錄">
+                    <span>📋</span>
+                    <span>系統更新紀錄</span>
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 </button>
                 <a href="parent.html" target="_blank" class="min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition text-emerald-700 hover:bg-emerald-50 flex items-center gap-1">
                     <span>📱 開啟家長端掃描頁</span>
@@ -786,6 +790,10 @@
 
                     <!-- 版本切換與下載按鈕組 -->
                     <div class="flex flex-wrap items-center gap-2">
+                        <button type="button" onclick="openTeacherChangelogModal()" class="min-h-[38px] px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-extrabold text-xs shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+                            <span>📋 系統更新紀錄</span>
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        </button>
                         <button type="button" onclick="toggleModalTextEditor()" class="min-h-[38px] px-3 py-2 rounded-xl bg-white hover:bg-sky-50 text-sky-800 border border-sky-300 font-extrabold text-xs shadow-sm transition flex items-center gap-1">
                             <span>✏️ 修改小卡文字</span>
                         </button>
@@ -958,6 +966,134 @@
             <!-- A4 畫布渲染容器 -->
             <div id="a4PreviewContainer" class="space-y-6 pb-12 overflow-x-auto">
                 <!-- JS 動態生成 A4 頁面 -->
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- 📋 教師端詳細系統更新紀錄 Modal (Apple HIG Bottom Sheet 工藝標準) -->
+    <!-- ========================================================================= -->
+    <div id="teacherChangelogModal" class="hidden fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-md overflow-y-auto flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6 transition-all">
+        <div class="bg-white rounded-t-[32px] sm:rounded-3xl shadow-2xl max-w-3xl w-full border border-slate-200 overflow-hidden sm:my-6 flex flex-col max-h-[92vh] sm:max-h-[90vh]">
+            
+            <!-- iOS Mobile Grabber Handle (行動端導引把手) -->
+            <div class="w-10 h-1.5 bg-white/40 rounded-full mx-auto mt-2.5 -mb-2 sm:hidden z-10"></div>
+
+            <!-- Modal 頂部標題列 -->
+            <div class="p-5 md:p-6 bg-gradient-to-r from-sky-700 via-teal-700 to-slate-900 text-white flex items-center justify-between border-b border-slate-800 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center font-black text-xl shadow-md">
+                        📋
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-base md:text-lg font-black tracking-tight text-white">MPScore-Daily 系統詳細更新紀錄</h3>
+                            <span class="text-[10px] bg-emerald-500 text-white font-black px-2 py-0.5 rounded-full">v2.5.0 最新版</span>
+                        </div>
+                        <p class="text-xs text-sky-100 mt-0.5">平時成績無痛結算 ‧ 親師雲端即時溝通 ‧ 國中小專用智慧平台</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeTeacherChangelogModal()" aria-label="關閉" class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 text-white flex items-center justify-center font-bold text-base transition active:scale-95 cursor-pointer shrink-0">
+                    ✕
+                </button>
+            </div>
+
+            <!-- 更新日誌內容滾動區 -->
+            <div class="p-5 md:p-8 overflow-y-auto space-y-6 text-xs text-slate-700 bg-slate-50/50 leading-relaxed">
+                
+                <!-- v2.5.0 最新版里程碑 -->
+                <div class="bg-white p-5 rounded-3xl border border-sky-300 shadow-sm space-y-4 relative overflow-hidden ring-2 ring-sky-400/20">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-black bg-sky-600 text-white px-2.5 py-1 rounded-xl shadow-xs">v2.5.0 最新版</span>
+                            <span class="text-sm font-black text-slate-900">🖨️ A4 通知小卡排版全尺寸自適應無截斷修復 & 系統更新紀錄窗格上線</span>
+                        </div>
+                        <span class="text-[11px] text-slate-400 font-mono font-bold">2026-10-18</span>
+                    </div>
+
+                    <div class="space-y-3.5">
+                        <div class="p-3.5 bg-sky-50/80 rounded-2xl border border-sky-200/80 text-[11px] text-sky-950 font-bold space-y-1.5">
+                            <div>🎯 <b>本次核心排版與功能改造</b>：</div>
+                            <ul class="list-disc list-inside font-normal text-slate-700 pl-1 space-y-1">
+                                <li><b>徹底解決文字頂端被截斷問題</b>：移除中段彈性位移（<code class="text-rose-600 font-mono">my-auto</code>），改為頂底雙向錨定確定佈局，小卡頂部學生姓名標籤與主旨欄位絕對不被向上頂出容器外而截斷。</li>
+                                <li><b>精準校正 8 格（2×4 隨身版）幾何尺寸</b>：QR Code 尺寸調校為 46px，說明文字採緊湊行距（8px），卡片內距收斂為 1.5mm，4 列卡片總高度（約 210mm）充裕容納於 A4（297mm）紙張，杜絕文字擠壓。</li>
+                                <li><b>上線「系統詳細更新紀錄」窗格</b>：導覽列與列印預覽視窗均配置醒目快捷按鈕，隨時可一鍵開啟檢視完整更新歷程與版本里程碑。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- v2.4.0 版本里程碑 -->
+                <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 relative overflow-hidden">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-black bg-slate-100 text-slate-700 px-2.5 py-1 rounded-xl">v2.4.0</span>
+                            <span class="text-sm font-black text-slate-900">導入 MPScore 202610 經典四階自適應排版方案</span>
+                        </div>
+                        <span class="text-[11px] text-slate-400 font-mono font-bold">2026-10-18</span>
+                    </div>
+
+                    <div class="space-y-2 text-slate-600">
+                        <p><b>🌟 預設每頁 4 格（2×2 經典推薦大字版）</b>：以 A6 黃金比例（105×148mm）呈現，字體大器、QR Code 達 78px，家長手機相機隨照隨開，閱讀體驗最舒適。</p>
+                        <p><b>🎴 四階動態自適應排版（4 / 6 / 8 / 10 格）</b>：依每頁數量自適應切換字級、內距與 QR Code 尺寸，兼顧大字清晰與極致省紙雙重需求。</p>
+                    </div>
+                </div>
+
+                <!-- v2.3.0 版本里程碑 -->
+                <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 relative overflow-hidden">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-black bg-slate-100 text-slate-700 px-2.5 py-1 rounded-xl">v2.3.0</span>
+                            <span class="text-sm font-black text-slate-900">🖨️ 雙版本 PDF 逐頁獨立精準匯出與實體邊界量測防護</span>
+                        </div>
+                        <span class="text-[11px] text-slate-400 font-mono font-bold">2026-10-18</span>
+                    </div>
+
+                    <div class="space-y-2 text-slate-600">
+                        <p><b>📄 逐頁獨立 Canvas 匯出技術</b>：徹底淘汰舊版單一大畫布跨頁切片，改以 <code class="text-slate-800 font-mono">html2canvas + jsPDF</code> 逐頁單獨渲染，杜絕小卡被腰斬與第 1 頁空白頁現象。</p>
+                        <p><b>📏 物理座標溢出即時偵測演算法</b>：使用 <code class="text-slate-800 font-mono">getBoundingClientRect</code> 實體比對小卡下緣是否超出 297mm，提供「⚡ 一鍵自動適配單頁」精準縮放。</p>
+                    </div>
+                </div>
+
+                <!-- v2.2.0 版本里程碑 -->
+                <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 relative overflow-hidden">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-black bg-slate-100 text-slate-700 px-2.5 py-1 rounded-xl">v2.2.0</span>
+                            <span class="text-sm font-black text-slate-900">📱 隱私去識別化保護 × 家長登入指引通行證轉型</span>
+                        </div>
+                        <span class="text-[11px] text-slate-400 font-mono font-bold">2026-10-18</span>
+                    </div>
+
+                    <div class="space-y-2 text-slate-600">
+                        <p><b>🔒 票面不印具體分數</b>：紙本通知卡全面轉為引導家長掃碼登入之通行證，落實學童成績隱私保護。</p>
+                        <p><b>✏️ 各區塊文字全面自訂</b>：標籤、標語、登入步驟、隨時查看指引與底部叮嚀，教師皆可直接修改並即時預覽。</p>
+                    </div>
+                </div>
+
+                <!-- v2.1.0 版本里程碑 -->
+                <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 relative overflow-hidden">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-black bg-slate-100 text-slate-700 px-2.5 py-1 rounded-xl">v2.1.0</span>
+                            <span class="text-sm font-black text-slate-900">🪄 Google 試算表免維護 Loader.gs 引導核心上線</span>
+                        </div>
+                        <span class="text-[11px] text-slate-400 font-mono font-bold">2026-10-17</span>
+                    </div>
+
+                    <div class="space-y-2 text-slate-600">
+                        <p><b>☁️ 雲端熱更新</b>：教師僅需在試算表部署一次極簡啟動代碼，未來 GitHub 有任何演算法或功能更新，試算表自動同步，免去重複手動貼代碼的繁瑣步驟。</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Modal 底部關閉按鈕列 -->
+            <div class="p-4 bg-white border-t border-slate-200 flex justify-end shrink-0">
+                <button type="button" onclick="closeTeacherChangelogModal()" class="px-5 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-900 text-white font-extrabold text-xs shadow-md transition active:scale-95 cursor-pointer">
+                    關閉更新紀錄
+                </button>
             </div>
 
         </div>
@@ -1543,6 +1679,22 @@ function testGitHubConnection() {
             document.getElementById('printPreviewModal').classList.add('hidden');
         }
 
+        function openTeacherChangelogModal() {
+            const modal = document.getElementById('teacherChangelogModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function closeTeacherChangelogModal() {
+            const modal = document.getElementById('teacherChangelogModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+        }
+
         function switchPrintEdition(edition) {
             currentPrintEdition = edition;
             const isParent = edition === 'parent';
@@ -1797,8 +1949,8 @@ function testGitHubConnection() {
             const is6Grid = perPage === 6;
             const is8Grid = perPage === 8;
 
-            const baseQr = is4Grid ? 80 : (is6Grid ? 64 : (is8Grid ? 52 : 42));
-            const qrSize = Math.max(38, Math.min(92, Math.round(baseQr * (scale / 100))));
+            const baseQr = is4Grid ? 78 : (is6Grid ? 60 : (is8Grid ? 46 : 38));
+            const qrSize = Math.max(36, Math.min(90, Math.round(baseQr * (scale / 100))));
 
             const nameFont = is4Grid
                 ? 'text-base sm:text-lg font-black'
@@ -1818,19 +1970,19 @@ function testGitHubConnection() {
 
             const subtitleFont = is4Grid
                 ? 'text-xs font-bold px-2.5 py-1 leading-normal'
-                : (is6Grid ? 'text-[10.5px] font-bold px-2 py-0.5 leading-snug' : (is8Grid ? 'text-[9px] font-bold px-1.5 py-0.5 leading-tight' : 'text-[8px] font-bold px-1.5 py-0.5 leading-tight'));
+                : (is6Grid ? 'text-[10.5px] font-bold px-2 py-0.5 leading-snug' : (is8Grid ? 'text-[8.5px] font-bold px-1.5 py-0.5 leading-tight' : 'text-[7.5px] font-bold px-1.5 py-0.5 leading-tight'));
 
             const stepTitleFont = is4Grid
                 ? 'text-xs sm:text-sm font-black'
-                : (is6Grid ? 'text-[11px] font-black' : (is8Grid ? 'text-[9.5px] font-black' : 'text-[8.5px] font-black'));
+                : (is6Grid ? 'text-[11px] font-black' : (is8Grid ? 'text-[8.5px] font-black' : 'text-[8px] font-black'));
 
             const stepBodyFont = is4Grid
                 ? 'text-xs text-slate-700 leading-relaxed'
-                : (is6Grid ? 'text-[10px] text-slate-700 leading-snug' : (is8Grid ? 'text-[8.5px] text-slate-700 leading-tight' : 'text-[7.5px] text-slate-700 leading-tight'));
+                : (is6Grid ? 'text-[10px] text-slate-700 leading-snug' : (is8Grid ? 'text-[8px] text-slate-700 leading-tight' : 'text-[7px] text-slate-700 leading-tight'));
 
             const stepBoxPad = is4Grid
                 ? 'p-2.5 space-y-1 rounded-xl'
-                : (is6Grid ? 'p-2 space-y-0.5 rounded-lg' : (is8Grid ? 'px-2 py-1 space-y-0.5 rounded-md' : 'px-1.5 py-0.5 space-y-0.5 rounded'));
+                : (is6Grid ? 'p-2 space-y-0.5 rounded-lg' : (is8Grid ? 'px-1.5 py-0.5 space-y-0.5 rounded-md' : 'px-1 py-0.5 space-y-0.5 rounded'));
 
             const qrBoxPad = is4Grid
                 ? 'p-2 rounded-xl'
@@ -1844,12 +1996,13 @@ function testGitHubConnection() {
                 ? 'text-[10px] font-mono font-bold text-slate-600 mt-0.5'
                 : (is6Grid ? 'text-[8.5px] font-mono font-bold text-slate-600 mt-0.5' : (is8Grid ? 'text-[7.5px] font-mono font-bold text-slate-500 mt-0.5' : 'text-[7px] font-mono font-bold text-slate-500 mt-0.5'));
 
-            const middleGap = is4Grid ? 'gap-3.5 my-auto flex-1' : (is6Grid ? 'gap-2.5 my-auto flex-1' : (is8Grid ? 'gap-2 my-auto flex-1' : 'gap-1.5 my-auto flex-1'));
+            // 關鍵修復：絕不使用 my-auto，改用確定邊距流式佈局，徹底根絕小卡頂部標題文字遭到向上頂出切斷的問題
+            const middleGap = is4Grid ? 'gap-3 my-1 flex-1 min-h-0' : (is6Grid ? 'gap-2.5 my-0.5 flex-1 min-h-0' : (is8Grid ? 'gap-1.5 my-0.5 flex-1 min-h-0' : 'gap-1 my-0.5 flex-1 min-h-0'));
             const middleBoxGap = is4Grid ? 'space-y-1.5' : (is6Grid ? 'space-y-1' : 'space-y-0.5');
 
             const footerFont = is4Grid
                 ? 'text-[11px] text-slate-600 pt-2 border-t border-slate-200 leading-tight'
-                : (is6Grid ? 'text-[10px] text-slate-600 pt-1.5 border-t border-slate-200 leading-tight' : (is8Grid ? 'text-[8.5px] text-slate-600 pt-1 border-t border-slate-200 leading-tight' : 'text-[7.5px] text-slate-600 pt-0.5 border-t border-slate-200 leading-tight'));
+                : (is6Grid ? 'text-[10px] text-slate-600 pt-1.5 border-t border-slate-200 leading-tight' : (is8Grid ? 'text-[8px] text-slate-600 pt-0.5 border-t border-slate-200 leading-tight' : 'text-[7px] text-slate-600 pt-0.5 border-t border-slate-200 leading-tight'));
 
             const headerBorderClass = is4Grid ? 'border-b border-slate-200 pb-1.5' : (is6Grid ? 'border-b border-slate-200 pb-1' : 'border-b border-slate-200 pb-0.5');
 
