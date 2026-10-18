@@ -128,9 +128,8 @@
 
         .a4-sheet {
             width: 210mm;
-            height: 296mm;
-            max-height: 296mm;
-            padding: calc(4mm * var(--slip-scale, 1)) calc(6.5mm * var(--slip-scale, 1));
+            min-height: 297mm;
+            padding: calc(4.5mm * var(--slip-scale, 1)) calc(6.5mm * var(--slip-scale, 1));
             margin: 0 auto;
             background: #ffffff;
             box-sizing: border-box;
@@ -144,7 +143,6 @@
             page-break-inside: avoid !important;
             break-inside: avoid !important;
             position: relative;
-            overflow: hidden;
             transition: outline 0.2s ease, box-shadow 0.2s ease;
         }
 
@@ -247,10 +245,7 @@
                 size: A4 portrait;
                 margin: 0;
             }
-            html, body {
-                width: 210mm !important;
-                margin: 0 !important;
-                padding: 0 !important;
+            body {
                 background: #ffffff !important;
             }
             .no-print {
@@ -266,22 +261,20 @@
             #a4PreviewContainer {
                 padding: 0 !important;
                 margin: 0 !important;
-                gap: 0 !important;
                 display: block !important;
             }
             .a4-sheet {
                 box-shadow: none !important;
                 border-radius: 0 !important;
-                margin: 0 !important;
+                margin: 0 auto !important;
                 width: 210mm !important;
-                height: 296mm !important;
-                max-height: 296mm !important;
+                min-height: 297mm !important;
+                height: 297mm !important;
                 outline: none !important;
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
                 page-break-after: always !important;
                 break-after: page !important;
-                overflow: hidden !important;
                 box-sizing: border-box !important;
             }
             .slip-card {
@@ -1925,27 +1918,24 @@ function testGitHubConnection() {
                     ? `MPScore-Daily_教師留存查詢代碼核對表_${new Date().toISOString().slice(0, 10)}.pdf`
                     : `MPScore-Daily_家長版平時成績查詢小卡_${new Date().toISOString().slice(0, 10)}.pdf`;
 
-                // 匯出 PDF 前暫時移除溢出警告邊框與預覽間距，確保每頁 A4 獨立滿版輸出
+                // 匯出 PDF 前暫時移除溢出警告邊框，避免污染輸出之 PDF 文件
                 const overflowingSheets = document.querySelectorAll('.a4-sheet-overflow');
                 overflowingSheets.forEach(s => s.classList.remove('a4-sheet-overflow'));
 
-                const originalContainerClass = target.className;
-                target.className = 'w-[210mm] mx-auto p-0 m-0'; // 移除 space-y-6 與 pb-12，避免干擾 PDF 分頁計算
+                // 確保容器歸零水平捲動位置，避免行動端或縮放時截圖偏位
+                if (target) target.scrollLeft = 0;
 
                 const opt = {
                     margin: 0,
                     filename: filename,
                     image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, useCORS: true, scrollY: 0, windowWidth: 1024 },
-                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                    pagebreak: { mode: ['css', 'legacy'], after: '.a4-sheet', avoid: '.a4-sheet' }
+                    html2canvas: { scale: 2, useCORS: true },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                 };
 
                 html2pdf().set(opt).from(target).save().then(() => {
-                    target.className = originalContainerClass;
                     overflowingSheets.forEach(s => s.classList.add('a4-sheet-overflow'));
                 }).catch(() => {
-                    target.className = originalContainerClass;
                     overflowingSheets.forEach(s => s.classList.add('a4-sheet-overflow'));
                 });
             }, 250);
