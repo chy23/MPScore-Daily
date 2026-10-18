@@ -1397,6 +1397,9 @@
                     <button type="button" onclick="downloadAccessLogsCsv()" class="min-h-[34px] px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition flex items-center gap-1 cursor-pointer">
                         <span>📥 匯出 CSV</span>
                     </button>
+                    <button type="button" onclick="clearAllAccessLogsFromCloud()" class="min-h-[34px] px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs transition flex items-center gap-1 cursor-pointer" title="清空全班家長閱覽日誌並將名冊次數全數歸零">
+                        <span>🗑️ 清空全班紀錄</span>
+                    </button>
                 </div>
             </div>
 
@@ -1491,13 +1494,16 @@
 
             <!-- Modal Footer -->
             <div class="p-4 bg-white border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 shrink-0">
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2">
                     <button type="button" id="studentModalCopyBtn" onclick="copySingleStudentLog()" class="min-h-[34px] px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs shadow-2xs transition flex items-center gap-1 cursor-pointer">
                         <span>📋 複製此生紀錄</span>
                     </button>
                     <a id="studentModalOpenLink" href="#" target="_blank" class="min-h-[34px] px-3.5 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 font-bold text-xs transition flex items-center gap-1">
                         <span>📊 開啟家長端 ↗</span>
                     </a>
+                    <button type="button" onclick="clearSingleStudentLogFromCloud()" class="min-h-[34px] px-3.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs transition flex items-center gap-1 cursor-pointer" title="清除此生閱覽紀錄並次數歸零">
+                        <span>🗑️ 清除此生紀錄</span>
+                    </button>
                 </div>
                 <button type="button" onclick="closeStudentViewHistoryModal()" class="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-extrabold text-xs shadow-md transition active:scale-95 cursor-pointer">
                     關閉
@@ -2123,6 +2129,38 @@ function testGitHubConnection() {
             URL.revokeObjectURL(url);
         }
 
+        async function clearAllAccessLogsFromCloud() {
+            const apiUrl = (localStorage.getItem('mpdaily_api_url') || (document.getElementById('apiUrlInput') ? document.getElementById('apiUrlInput').value.trim() : '')).trim();
+            if (!apiUrl) {
+                alert('⚠️ 請先連線 Google 試算表！');
+                return;
+            }
+            if (!confirm('⚠️ 確定要將【全班家長閱覽次數全部歸零】並清空日誌嗎？\n\n此動作將清空 Google 試算表【家長閱覽紀錄】分頁，並將【學生名冊】中所有學生的累積次數重置為 0、最後閱覽時間清空。\n\n適合在測試結束後、正式將小卡發給家長前使用！')) {
+                return;
+            }
+            try {
+                const sep = apiUrl.includes('?') ? '&' : '?';
+                const res = await fetch(`${apiUrl}${sep}action=clearAccessLogs&scope=all&t=${Date.now()}`, { redirect: 'follow' });
+                const data = await res.json();
+                if (data && (data.status === 'success' || data.success === true)) {
+                    currentAccessLogs = [];
+                    currentRoster.forEach(st => {
+                        st.lastViewedAt = '';
+                        st.viewCount = 0;
+                        st.recentViews = [];
+                    });
+                    updateRosterViewStats();
+                    renderAccessLogsTable();
+                    renderTeacherRosterTable();
+                    alert('✅ 全班家長閱覽紀錄已清空，次數與最後時間已全數歸零！');
+                } else {
+                    alert('⚠️ 清除失敗：' + (data ? data.message : '未知錯誤'));
+                }
+            } catch (err) {
+                alert('⚠️ 連線失敗：' + err.message);
+            }
+        }
+
         function getRelativeTimeStr(timeStr) {
             if (!timeStr) return '';
             try {
@@ -2278,6 +2316,40 @@ function testGitHubConnection() {
             }).catch(() => {
                 prompt('請手動複製紀錄：', text);
             });
+        }
+
+        async function clearSingleStudentLogFromCloud() {
+            if (!currentViewingStudent) return;
+            const st = currentViewingStudent;
+            const apiUrl = (localStorage.getItem('mpdaily_api_url') || (document.getElementById('apiUrlInput') ? document.getElementById('apiUrlInput').value.trim() : '')).trim();
+            if (!apiUrl) {
+                alert('⚠️ 請先連線 Google 試算表！');
+                return;
+            }
+            if (!confirm(`⚠️ 確定要將【${st.seatNo}號 ${st.name}】的家長閱覽紀錄清除嗎？\n\n此學生的累積次數將歸零，最後瀏覽時間與歷程也將清空。`)) {
+                return;
+            }
+            try {
+                const sep = apiUrl.includes('?') ? '&' : '?';
+                const res = await fetch(`${apiUrl}${sep}action=clearAccessLogs&scope=single&token=${encodeURIComponent(st.token)}&t=${Date.now()}`, { redirect: 'follow' });
+                const data = await res.json();
+                if (data && (data.status === 'success' || data.success === true)) {
+                    st.lastViewedAt = '';
+                    st.viewCount = 0;
+                    st.recentViews = [];
+                    currentViewingStudentHistory = [];
+                    currentAccessLogs = currentAccessLogs.filter(log => (log.token || '').toUpperCase() !== st.token.toUpperCase());
+                    
+                    renderStudentViewHistoryContent(st, []);
+                    updateRosterViewStats();
+                    renderTeacherRosterTable();
+                    alert(`✅ 已清空 ${st.name} 的家長閱覽紀錄，次數已全數歸零！`);
+                } else {
+                    alert('⚠️ 清除失敗：' + (data ? data.message : '未知錯誤'));
+                }
+            } catch (err) {
+                alert('⚠️ 連線失敗：' + err.message);
+            }
         }
 
         function renderTeacherRosterTable() {

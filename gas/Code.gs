@@ -21,6 +21,7 @@ function onOpen() {
     .addItem('🔑 為全班產生「家長查詢代碼」', 'generateTokensForStudents')
     .addSeparator()
     .addItem('📱 查看【家長閱覽紀錄】日誌分頁', 'openAccessLogsSheet')
+    .addItem('🗑️ 清空全班【家長閱覽紀錄】與次數歸零', 'clearAllAccessLogsMenu')
     .addItem('📊 查看全班各科平時總均與分項平均統計', 'previewClassStatistics')
     .addItem('📐 自動整理欄寬與表格排版', 'autoFormatAndResizeAllSheets')
     .addItem('🚀 立即更新雲端資料（改完分數點此）', 'clearSystemCache')
@@ -38,6 +39,69 @@ function openAccessLogsSheet() {
   } else {
     SpreadsheetApp.getUi().alert('提示', '目前尚無家長閱覽紀錄。當有家長掃碼查看時，系統將自動建立【家長閱覽紀錄】分頁！', SpreadsheetApp.getUi().ButtonSet.OK);
   }
+}
+
+/**
+ * 清空家長閱覽紀錄與次數重置（選單呼叫）
+ */
+function clearAllAccessLogsMenu() {
+  var ui = SpreadsheetApp.getUi();
+  var res = ui.alert('確認清空家長閱覽紀錄', '確定要將全班家長閱覽次數歸零，並清空【家長閱覽紀錄】分頁嗎？\n\n（此動作適合在測試完畢後、正式發送小卡給家長前執行，將學生名冊閱覽次數與時間全數歸零）', ui.ButtonSet.YES_NO);
+  if (res === ui.Button.YES) {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    clearAccessLogs_(ss, 'all');
+    clearSystemCache();
+    ui.alert('成功', '✅ 全班家長閱覽紀錄已清空，學生名冊累積次數與最後時間已全數歸零！', ui.ButtonSet.OK);
+  }
+}
+
+/**
+ * 清空家長閱覽紀錄與次數重置核心函式
+ * @param {Spreadsheet} ss 
+ * @param {string} scope 'all' | 'single'
+ * @param {string} targetToken (optional, used when scope === 'single')
+ */
+function clearAccessLogs_(ss, scope, targetToken) {
+  var sSheet = ss.getSheetByName('學生名冊');
+  var logSheet = ss.getSheetByName('家長閱覽紀錄');
+  var cache = CacheService.getScriptCache();
+  var tokToClear = (targetToken || '').toString().trim().toUpperCase();
+
+  // 1. 清空/重置【學生名冊】之 F 欄（最後閱覽時間）與 G 欄（累積閱覽次數）
+  if (sSheet && sSheet.getLastRow() > 1) {
+    var sData = sSheet.getDataRange().getValues();
+    var lastCol = sSheet.getLastColumn();
+    for (var r = 1; r < sData.length; r++) {
+      var rowTok = (sData[r][3] || '').toString().trim().toUpperCase();
+      if (scope === 'all' || (scope === 'single' && rowTok === tokToClear)) {
+        if (lastCol >= 6) sSheet.getRange(r + 1, 6).setValue('');
+        if (lastCol >= 7) sSheet.getRange(r + 1, 7).setValue(0);
+        if (rowTok) {
+          try {
+            cache.remove('mpdaily_visit_debounce_' + rowTok);
+          } catch (ignore) {}
+        }
+      }
+    }
+  }
+
+  // 2. 清空【家長閱覽紀錄】專屬日誌
+  if (logSheet && logSheet.getLastRow() > 1) {
+    if (scope === 'all' || !tokToClear) {
+      var numRows = logSheet.getLastRow() - 1;
+      logSheet.deleteRows(2, numRows);
+    } else {
+      var logData = logSheet.getDataRange().getValues();
+      for (var i = logData.length - 1; i >= 1; i--) {
+        var rowTok = (logData[i][4] || '').toString().trim().toUpperCase();
+        if (rowTok === tokToClear) {
+          logSheet.deleteRow(i + 1);
+        }
+      }
+    }
+  }
+
+  return { success: true };
 }
 
 /**
@@ -476,6 +540,18 @@ function doGet(e) {
         success: true,
         token: studentToken,
         recentViews: historyMap[studentToken] || []
+      };
+    } else if (action === 'clearAccessLogs') {
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      var scope = (params.scope || 'all').toString().trim();
+      var studentToken = (params.token || '').toString().trim().toUpperCase();
+      clearAccessLogs_(ss, scope, studentToken);
+      output = {
+        status: 'success',
+        success: true,
+        message: scope === 'all' ? '全班閱覽紀錄已清空歸零' : '該生閱覽紀錄已清除',
+        scope: scope,
+        token: studentToken
       };
     } else if (action === 'appendDailyScores') {
       var body = params.payload || (e && e.postData && e.postData.contents ? e.postData.contents : '');
@@ -2070,6 +2146,8 @@ var MPScoreDailyEngine = {
   previewClassStatistics: previewClassStatistics,
   autoFormatAndResizeAllSheets: autoFormatAndResizeAllSheets,
   openAccessLogsSheet: openAccessLogsSheet,
+  clearAllAccessLogsMenu: clearAllAccessLogsMenu,
+  clearAccessLogs: clearAccessLogs_,
   getRecentAccessLogs: getRecentAccessLogs_,
   getStudentAccessHistoryMap: getStudentAccessHistoryMap_,
   clearSystemCache: clearSystemCache,
