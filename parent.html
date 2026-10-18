@@ -1654,7 +1654,11 @@
 
             try {
                 const sep = apiUrl.includes('?') ? '&' : '?';
-                const res = await fetch(`${apiUrl}${sep}token=${encodeURIComponent(cleanToken)}&t=${Date.now()}`, { redirect: 'follow' });
+                const device = /iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'iPhone / iOS' :
+                               /Android/i.test(navigator.userAgent) ? 'Android 手機' :
+                               /Macintosh/i.test(navigator.userAgent) ? 'Mac 電腦' :
+                               /Windows/i.test(navigator.userAgent) ? 'Windows 電腦' : '行動裝置';
+                const res = await fetch(`${apiUrl}${sep}token=${encodeURIComponent(cleanToken)}&device=${encodeURIComponent(device)}&t=${Date.now()}`, { redirect: 'follow' });
                 const data = await res.json();
                 if (data && (data.status === 'success' || data.success === true) && data.student) {
                     renderPortfolio(normalizeCloudPayload(data));

@@ -44,6 +44,7 @@ function onOpen() {
     .addItem('📥 從目前成績分頁匯入名單至「學生名冊」', 'syncStudentsFromSheet')
     .addItem('🔑 為全班產生「家長查詢代碼」', 'generateTokensForStudents')
     .addSeparator()
+    .addItem('📱 查看【家長閱覽紀錄】日誌分頁', 'openAccessLogsSheet')
     .addItem('📊 查看全班各科平時總均與分項平均統計', 'previewClassStatistics')
     .addItem('📐 自動整理欄寬與表格排版', 'autoFormatAndResizeAllSheets')
     .addItem('🚀 立即更新雲端資料（改完分數點此）', 'clearSystemCache')
@@ -58,6 +59,7 @@ function createNewSubjectSheetFromRoster() { getEngine().createNewSubjectSheetFr
 function syncRosterToSubjectSheets() { getEngine().syncRosterToSubjectSheets(false); }
 function syncStudentsFromSheet() { getEngine().syncStudentsFromSheet(); }
 function generateTokensForStudents() { getEngine().generateTokensForStudents(); }
+function openAccessLogsSheet() { getEngine().openAccessLogsSheet(); }
 function previewClassStatistics() { getEngine().previewClassStatistics(); }
 function autoFormatAndResizeAllSheets() { getEngine().autoFormatAndResizeAllSheets(); }
 function clearSystemCache() { getEngine().clearSystemCache(); }

@@ -20,10 +20,24 @@ function onOpen() {
     .addItem('📥 從目前成績分頁匯入名單至「學生名冊」', 'syncStudentsFromSheet')
     .addItem('🔑 為全班產生「家長查詢代碼」', 'generateTokensForStudents')
     .addSeparator()
+    .addItem('📱 查看【家長閱覽紀錄】日誌分頁', 'openAccessLogsSheet')
     .addItem('📊 查看全班各科平時總均與分項平均統計', 'previewClassStatistics')
     .addItem('📐 自動整理欄寬與表格排版', 'autoFormatAndResizeAllSheets')
     .addItem('🚀 立即更新雲端資料（改完分數點此）', 'clearSystemCache')
     .addToUi();
+}
+
+/**
+ * 導向至家長閱覽紀錄分頁
+ */
+function openAccessLogsSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var logSheet = ss.getSheetByName('家長閱覽紀錄');
+  if (logSheet) {
+    ss.setActiveSheet(logSheet);
+  } else {
+    SpreadsheetApp.getUi().alert('提示', '目前尚無家長閱覽紀錄。當有家長掃碼查看時，系統將自動建立【家長閱覽紀錄】分頁！', SpreadsheetApp.getUi().ButtonSet.OK);
+  }
 }
 
 /**
@@ -166,12 +180,14 @@ function setupStandardSheets() {
   // 1. 建立或讀取【學生名冊】
   var sSheet = ss.getSheetByName('學生名冊') || ss.getSheets()[0];
   sSheet.setName('學生名冊');
-  var sHeaders = [['班級', '座號', '姓名', '專屬代碼', '啟用狀態']];
-  sSheet.getRange(1, 1, 1, 5).setValues(sHeaders)
+  var sHeaders = [['班級', '座號', '姓名', '專屬代碼', '啟用狀態', '最後閱覽時間', '累積閱覽次數']];
+  sSheet.getRange(1, 1, 1, 7).setValues(sHeaders)
     .setBackground('#b45309')
     .setFontColor('#ffffff')
     .setFontWeight('bold')
     .setHorizontalAlignment('center');
+  sSheet.setColumnWidth(6, 150);
+  sSheet.setColumnWidth(7, 110);
 
   var defaultSampleRoster = [
     ['501', '01', '王小華', 'DEMO01', true],
@@ -440,9 +456,17 @@ function doGet(e) {
     if (action === 'ping') {
       output = checkSystemStatus();
     } else if (action === 'query') {
-      output = getStudentDailyPortfolioByToken(params.token);
+      output = getStudentDailyPortfolioByToken(params.token, params.device);
     } else if (action === 'getStudentsForPrint' || action === 'getRoster') {
       output = getStudentListForTeacher();
+    } else if (action === 'getAccessLogs') {
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      output = {
+        status: 'success',
+        success: true,
+        updatedAt: Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'Asia/Taipei', 'yyyy-MM-dd HH:mm'),
+        accessLogs: getRecentAccessLogs_(ss, 100)
+      };
     } else if (action === 'appendDailyScores') {
       var body = params.payload || (e && e.postData && e.postData.contents ? e.postData.contents : '');
       output = appendDailyScores(body);
@@ -466,8 +490,9 @@ function doPost(e) {
  */
 function isSystemSheet(sheetName) {
   if (!sheetName) return true;
-  if (sheetName === '學生名冊' || sheetName.startsWith('_')) return true;
+  if (sheetName === '學生名冊' || sheetName === '家長閱覽紀錄' || sheetName.startsWith('_')) return true;
   if (sheetName.indexOf('總表') !== -1 || sheetName.indexOf('總成績') !== -1) return true;
+  if (sheetName.indexOf('閱覽') !== -1 || sheetName.indexOf('紀錄') !== -1 || sheetName.indexOf('日誌') !== -1) return true;
   return false;
 }
 
@@ -1325,19 +1350,10 @@ function checkSystemStatus() {
 /**
  * 家長端依 Token 查詢該生所有平時成績歷程資料 (高資安隔離)
  */
-function getStudentDailyPortfolioByToken(token) {
+function getStudentDailyPortfolioByToken(token, clientDevice) {
   var cleanToken = (token || '').toString().trim().toUpperCase();
   if (!cleanToken) {
     return { status: 'error', success: false, message: '請掃描有效的專屬 QR Code！' };
-  }
-
-  var cache = CacheService.getScriptCache();
-  var cacheKey = 'mpdaily_score_v6_' + cleanToken;
-  var cachedJson = cache.get(cacheKey);
-  if (cachedJson) {
-    try {
-      return JSON.parse(cachedJson);
-    } catch (ignore) {}
   }
 
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1348,6 +1364,7 @@ function getStudentDailyPortfolioByToken(token) {
 
   var sData = sSheet.getDataRange().getValues();
   var matchedStudent = null;
+  var matchedRowIdx = -1;
 
   for (var r = 1; r < sData.length; r++) {
     var rowTok = (sData[r][3] || '').toString().trim().toUpperCase();
@@ -1363,12 +1380,27 @@ function getStudentDailyPortfolioByToken(token) {
         token: (sData[r][3] || '').toString().trim(),
         studentId: cls + '-' + seat
       };
+      matchedRowIdx = r + 1; // 1-based row index in spreadsheet
       break;
     }
   }
 
   if (!matchedStudent) {
     return { status: 'error', success: false, message: '查無此專屬代碼或尚未啟用，請確認通知單上的 QR Code 是否正確。' };
+  }
+
+  // 記錄家長閱覽日誌（含 3 分鐘防抖保護）
+  try {
+    recordParentAccessLog_(ss, sSheet, matchedStudent, matchedRowIdx, clientDevice);
+  } catch (logErr) {}
+
+  var cache = CacheService.getScriptCache();
+  var cacheKey = 'mpdaily_score_v6_' + cleanToken;
+  var cachedJson = cache.get(cacheKey);
+  if (cachedJson) {
+    try {
+      return JSON.parse(cachedJson);
+    } catch (ignore) {}
   }
 
   var sheets = ss.getSheets();
@@ -1408,6 +1440,130 @@ function getStudentDailyPortfolioByToken(token) {
 }
 
 /**
+ * 記錄家長閱覽時間與累計次數（自動維護學生名冊與家長閱覽紀錄分頁，含 3 分鐘防抖保護）
+ */
+function recordParentAccessLog_(ss, sSheet, student, rowIdx, clientDevice) {
+  var cache = CacheService.getScriptCache();
+  var debounceKey = 'mpdaily_visit_debounce_' + student.token;
+  var isDebounced = cache.get(debounceKey);
+
+  var now = new Date();
+  var tz = Session.getScriptTimeZone() || 'Asia/Taipei';
+  var nowStr = Utilities.formatDate(now, tz, 'yyyy-MM-dd HH:mm');
+  var device = (clientDevice || '').toString().trim() || '行動裝置';
+
+  // 1. 確保【學生名冊】欄位 F（最後閱覽時間）與欄位 G（累積閱覽次數）之標題存在
+  var lastCol = sSheet.getLastColumn();
+  if (lastCol < 6) {
+    sSheet.getRange(1, 6).setValue('最後閱覽時間')
+      .setBackground('#b45309').setFontColor('#ffffff').setFontWeight('bold').setHorizontalAlignment('center');
+    sSheet.setColumnWidth(6, 150);
+  } else {
+    var h6 = sSheet.getRange(1, 6).getValue();
+    if (!h6 || h6.toString().indexOf('閱覽') === -1) {
+      sSheet.getRange(1, 6).setValue('最後閱覽時間')
+        .setBackground('#b45309').setFontColor('#ffffff').setFontWeight('bold').setHorizontalAlignment('center');
+      sSheet.setColumnWidth(6, 150);
+    }
+  }
+
+  if (lastCol < 7) {
+    sSheet.getRange(1, 7).setValue('累積閱覽次數')
+      .setBackground('#b45309').setFontColor('#ffffff').setFontWeight('bold').setHorizontalAlignment('center');
+    sSheet.setColumnWidth(7, 110);
+  } else {
+    var h7 = sSheet.getRange(1, 7).getValue();
+    if (!h7 || h7.toString().indexOf('次數') === -1) {
+      sSheet.getRange(1, 7).setValue('累積閱覽次數')
+        .setBackground('#b45309').setFontColor('#ffffff').setFontWeight('bold').setHorizontalAlignment('center');
+      sSheet.setColumnWidth(7, 110);
+    }
+  }
+
+  // 2. 若在 3 分鐘內重複開啟，只視為同一筆，不重複增加寫入與次數（防刷）
+  if (isDebounced) {
+    return;
+  }
+  cache.put(debounceKey, '1', 180);
+
+  // 3. 更新【學生名冊】該生之最後閱覽時間與累積次數
+  var currentCount = 0;
+  try {
+    var rawCount = sSheet.getRange(rowIdx, 7).getValue();
+    currentCount = parseInt(rawCount || '0', 10);
+    if (isNaN(currentCount)) currentCount = 0;
+  } catch (e) {}
+
+  sSheet.getRange(rowIdx, 6).setValue(nowStr).setHorizontalAlignment('center');
+  sSheet.getRange(rowIdx, 7).setValue(currentCount + 1).setHorizontalAlignment('center');
+
+  // 4. 寫入【家長閱覽紀錄】專屬日誌分頁
+  var logSheet = ss.getSheetByName('家長閱覽紀錄');
+  if (!logSheet) {
+    logSheet = ss.insertSheet('家長閱覽紀錄');
+    var logHeaders = [['閱覽時間', '班級', '座號', '姓名', '查詢代碼', '裝置環境']];
+    logSheet.getRange(1, 1, 1, 6).setValues(logHeaders)
+      .setBackground('#0f766e').setFontColor('#ffffff').setFontWeight('bold').setHorizontalAlignment('center');
+    try {
+      logSheet.setFrozenRows(1);
+    } catch (ignore) {}
+    logSheet.setColumnWidth(1, 150);
+    logSheet.setColumnWidth(2, 80);
+    logSheet.setColumnWidth(3, 80);
+    logSheet.setColumnWidth(4, 120);
+    logSheet.setColumnWidth(5, 120);
+    logSheet.setColumnWidth(6, 140);
+  }
+
+  logSheet.insertRowBefore(2);
+  logSheet.getRange(2, 1, 1, 6).setValues([[
+    nowStr,
+    student.className || '本班',
+    student.seatNo || '',
+    student.name || '',
+    student.token || '',
+    device
+  ]]).setHorizontalAlignment('center');
+
+  // 維護紀錄上限，保留最新 1000 筆避免試算表肥大
+  if (logSheet.getLastRow() > 1001) {
+    try {
+      logSheet.deleteRows(1002, logSheet.getLastRow() - 1001);
+    } catch (ignore) {}
+  }
+}
+
+/**
+ * 讀取最新家長閱覽紀錄明細（供教師端即時儀表板與日誌明細視窗使用）
+ */
+function getRecentAccessLogs_(ss, maxCount) {
+  var logSheet = ss.getSheetByName('家長閱覽紀錄');
+  if (!logSheet || logSheet.getLastRow() <= 1) return [];
+  var limit = Math.min(maxCount || 50, logSheet.getLastRow() - 1);
+  var values = logSheet.getRange(2, 1, limit, 6).getValues();
+  var logs = [];
+  var tz = Session.getScriptTimeZone() || 'Asia/Taipei';
+  for (var i = 0; i < values.length; i++) {
+    var rawTime = values[i][0];
+    var timeStr = '';
+    if (rawTime instanceof Date) {
+      timeStr = Utilities.formatDate(rawTime, tz, 'yyyy-MM-dd HH:mm');
+    } else if (rawTime) {
+      timeStr = rawTime.toString().trim();
+    }
+    logs.push({
+      time: timeStr,
+      className: (values[i][1] || '').toString().trim(),
+      seatNo: (values[i][2] || '').toString().trim(),
+      name: (values[i][3] || '').toString().trim(),
+      token: (values[i][4] || '').toString().trim(),
+      device: (values[i][5] || '').toString().trim()
+    });
+  }
+  return logs;
+}
+
+/**
  * 教師端同步名冊與全班各科平時成績統計（供 A4 通知小卡 PDF 預覽與全班總表使用）
  */
 function getStudentListForTeacher() {
@@ -1419,11 +1575,22 @@ function getStudentListForTeacher() {
 
   var sData = sSheet.getDataRange().getValues();
   var students = [];
+  var tz = Session.getScriptTimeZone() || 'Asia/Taipei';
+
   for (var r = 1; r < sData.length; r++) {
     var cls = (sData[r][0] || '本班').toString().trim();
     var seat = normalizeSeatNumber(sData[r][1]);
     var name = (sData[r][2] || '').toString().trim();
     var token = (sData[r][3] || '').toString().trim();
+    var lastViewedAt = '';
+    var rawTime = sData[r][5];
+    if (rawTime instanceof Date) {
+      lastViewedAt = Utilities.formatDate(rawTime, tz, 'yyyy-MM-dd HH:mm');
+    } else if (rawTime) {
+      lastViewedAt = rawTime.toString().trim();
+    }
+    var rawCount = sData[r][6];
+    var viewCount = parseInt(rawCount || '0', 10) || 0;
     if (!seat && !name) continue;
     students.push({
       className: cls,
@@ -1431,6 +1598,8 @@ function getStudentListForTeacher() {
       seatNumber: seat,
       name: name,
       token: token,
+      lastViewedAt: lastViewedAt,
+      viewCount: viewCount,
       studentId: cls + '-' + seat,
       subjects: [],
       subjectStats: {}
@@ -1457,13 +1626,14 @@ function getStudentListForTeacher() {
     }
   }
 
-  var nowStr = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'Asia/Taipei', 'yyyy-MM-dd HH:mm');
+  var nowStr = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd HH:mm');
   return {
     status: 'success',
     success: true,
     updatedAt: nowStr,
     students: students,
-    subjectList: subjectList
+    subjectList: subjectList,
+    accessLogs: getRecentAccessLogs_(ss, 50)
   };
 }
 
@@ -1772,8 +1942,22 @@ function autoFormatAndResizeAllSheets() {
       sh.setColumnWidth(3, 120);
       sh.setColumnWidth(4, 130);
       sh.setColumnWidth(5, 100);
+      sh.setColumnWidth(6, 150);
+      sh.setColumnWidth(7, 110);
       var lr = Math.max(2, sh.getLastRow());
-      sh.getRange(1, 1, lr, 5).setVerticalAlignment('middle').setHorizontalAlignment('center');
+      var maxCol = Math.max(7, sh.getLastColumn());
+      sh.getRange(1, 1, lr, maxCol).setVerticalAlignment('middle').setHorizontalAlignment('center');
+      safeFreezeSheet_(sh, 1, 0);
+      count++;
+    } else if (sName === '家長閱覽紀錄') {
+      sh.setColumnWidth(1, 150);
+      sh.setColumnWidth(2, 80);
+      sh.setColumnWidth(3, 80);
+      sh.setColumnWidth(4, 120);
+      sh.setColumnWidth(5, 120);
+      sh.setColumnWidth(6, 140);
+      var lrLog = Math.max(2, sh.getLastRow());
+      sh.getRange(1, 1, lrLog, 6).setVerticalAlignment('middle').setHorizontalAlignment('center');
       safeFreezeSheet_(sh, 1, 0);
       count++;
     } else {
@@ -1836,6 +2020,8 @@ var MPScoreDailyEngine = {
   generateTokensForStudents: generateTokensForStudents,
   previewClassStatistics: previewClassStatistics,
   autoFormatAndResizeAllSheets: autoFormatAndResizeAllSheets,
+  openAccessLogsSheet: openAccessLogsSheet,
+  getRecentAccessLogs: getRecentAccessLogs_,
   clearSystemCache: clearSystemCache,
   handleDoGet: doGet,
   handleDoPost: doPost
