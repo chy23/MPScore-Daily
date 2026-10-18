@@ -1430,6 +1430,83 @@
         </div>
     </div>
 
+    <!-- ========================================================================= -->
+    <!-- 📱 單一學生家長瀏覽次數及近 10 次瀏覽時間 Modal (Apple HIG Sheet 標準) -->
+    <!-- ========================================================================= -->
+    <div id="studentViewHistoryModal" class="hidden fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-md overflow-y-auto flex items-end sm:items-center justify-center p-0 sm:p-4 transition-all">
+        <div class="bg-white rounded-t-[32px] sm:rounded-3xl shadow-2xl max-w-lg w-full border border-slate-200 overflow-hidden sm:my-6 flex flex-col max-h-[92vh] sm:max-h-[90vh]">
+            
+            <!-- iOS Grabber -->
+            <div class="w-10 h-1.5 bg-white/40 rounded-full mx-auto mt-2.5 -mb-2 sm:hidden z-10"></div>
+
+            <!-- Modal Header -->
+            <div class="p-5 bg-gradient-to-r from-emerald-700 via-teal-700 to-slate-900 text-white flex items-center justify-between border-b border-slate-800 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div id="studentModalSeatBadge" class="w-10 h-10 rounded-2xl bg-white text-emerald-900 flex items-center justify-center font-mono font-black text-base shadow-md">
+                        01
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 id="studentModalTitle" class="text-base font-black tracking-tight text-white">學生姓名 家長閱覽歷程</h3>
+                            <span id="studentModalClassTag" class="text-[10px] bg-white/20 text-white font-bold px-2 py-0.5 rounded-full">本班</span>
+                        </div>
+                        <p class="text-xs text-emerald-100 mt-0.5">查詢代碼：<span id="studentModalToken" class="font-mono font-bold tracking-wider">------</span></p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeStudentViewHistoryModal()" class="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-lg font-bold transition cursor-pointer">
+                    ✕
+                </button>
+            </div>
+
+            <!-- 核心統計數據卡 (大字一目了然) -->
+            <div class="p-4 bg-slate-50 border-b border-slate-200 shrink-0 grid grid-cols-2 gap-3 text-center text-xs">
+                <div class="bg-white p-3 rounded-2xl border border-emerald-200 shadow-2xs">
+                    <div class="text-[11px] font-bold text-slate-500">家長累計瀏覽次數</div>
+                    <div class="flex items-baseline justify-center gap-1 mt-1">
+                        <span id="studentModalViewCount" class="text-2xl font-black text-emerald-700 font-mono">0</span>
+                        <span class="text-xs font-bold text-slate-500">次</span>
+                    </div>
+                </div>
+                <div class="bg-white p-3 rounded-2xl border border-sky-200 shadow-2xs">
+                    <div class="text-[11px] font-bold text-slate-500">最後瀏覽時間</div>
+                    <div id="studentModalLastTime" class="text-xs font-black text-slate-800 font-mono mt-1 whitespace-nowrap">尚未閱覽</div>
+                    <div id="studentModalRelativeTime" class="text-[10px] font-bold text-emerald-700 mt-0.5">--</div>
+                </div>
+            </div>
+
+            <!-- 近 10 次瀏覽時間清單 -->
+            <div class="p-4 md:p-5 overflow-y-auto flex-1 space-y-3 bg-slate-50/50">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                        <span>🕒 近 10 次家長瀏覽時間紀錄</span>
+                        <span class="text-[10px] text-slate-400 font-bold">（由新至舊）</span>
+                    </span>
+                    <span id="studentModalListBadge" class="text-[10.5px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">共 0 筆紀錄</span>
+                </div>
+
+                <div id="studentModalTimeline" class="space-y-2">
+                    <!-- JS 動態生成近 10 次列表 -->
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-4 bg-white border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 shrink-0">
+                <div class="flex items-center gap-2">
+                    <button type="button" id="studentModalCopyBtn" onclick="copySingleStudentLog()" class="min-h-[34px] px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs shadow-2xs transition flex items-center gap-1 cursor-pointer">
+                        <span>📋 複製此生紀錄</span>
+                    </button>
+                    <a id="studentModalOpenLink" href="#" target="_blank" class="min-h-[34px] px-3.5 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 font-bold text-xs transition flex items-center gap-1">
+                        <span>📊 開啟家長端 ↗</span>
+                    </a>
+                </div>
+                <button type="button" onclick="closeStudentViewHistoryModal()" class="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-extrabold text-xs shadow-md transition active:scale-95 cursor-pointer">
+                    關閉
+                </button>
+            </div>
+
+        </div>
+    </div>
+
     <!-- JavaScript 邏輯 -->
     <script>
         // =========================================================================
@@ -1537,6 +1614,8 @@ function testGitHubConnection() {
         let currentPrintEdition = 'parent'; // 'parent' | 'teacher'
         let currentAccessLogs = [];
         let currentRosterViewFilter = 'all'; // 'all' | 'unviewed' | 'viewed'
+        let currentViewingStudent = null;
+        let currentViewingStudentHistory = [];
 
         // =========================================================================
         // 3. 分頁切換與設定精靈輔助工具
@@ -1691,6 +1770,7 @@ function testGitHubConnection() {
                             token: st.token || '',
                             lastViewedAt: st.lastViewedAt || '',
                             viewCount: parseInt(st.viewCount || '0', 10) || 0,
+                            recentViews: Array.isArray(st.recentViews) ? st.recentViews : (st.lastViewedAt ? [{ time: st.lastViewedAt, device: '行動裝置' }] : []),
                             selected: true,
                             subjects: normalizedSubjs
                         };
@@ -2043,6 +2123,163 @@ function testGitHubConnection() {
             URL.revokeObjectURL(url);
         }
 
+        function getRelativeTimeStr(timeStr) {
+            if (!timeStr) return '';
+            try {
+                const d = new Date(timeStr.replace(/-/g, '/'));
+                const diffMs = Date.now() - d.getTime();
+                if (isNaN(diffMs) || diffMs < 0) return '';
+                const diffSec = Math.floor(diffMs / 1000);
+                if (diffSec < 60) return '剛剛';
+                const diffMin = Math.floor(diffSec / 60);
+                if (diffMin < 60) return `${diffMin} 分鐘前`;
+                const diffHr = Math.floor(diffMin / 60);
+                if (diffHr < 24) return `${diffHr} 小時前`;
+                const diffDay = Math.floor(diffHr / 24);
+                if (diffDay < 30) return `${diffDay} 天前`;
+                return '';
+            } catch (e) {
+                return '';
+            }
+        }
+
+        function openStudentViewHistoryModal(token) {
+            const cleanTok = String(token || '').trim().toUpperCase();
+            const student = currentRoster.find(s => String(s.token).trim().toUpperCase() === cleanTok) ||
+                            currentRoster.find(s => s.studentId === token);
+            if (!student) {
+                alert('⚠️ 查無此學生資料！');
+                return;
+            }
+
+            currentViewingStudent = student;
+
+            // 整合該生近 10 次瀏覽時間紀錄（優先讀取學生 recentViews，並與全班 accessLogs 雙向合併去重）
+            let history = Array.isArray(student.recentViews) && student.recentViews.length > 0
+                ? student.recentViews.map(item => typeof item === 'string' ? { time: item, device: '行動裝置' } : item)
+                : [];
+
+            if (Array.isArray(currentAccessLogs)) {
+                const matched = currentAccessLogs.filter(log => 
+                    (log.token && log.token.toUpperCase() === cleanTok) ||
+                    (log.seatNo && String(log.seatNo) === String(student.seatNo) && log.name === student.name)
+                );
+                matched.forEach(ml => {
+                    if (!history.some(h => h.time === ml.time)) {
+                        history.push({ time: ml.time, device: ml.device || '行動裝置' });
+                    }
+                });
+            }
+
+            if (history.length === 0 && student.lastViewedAt) {
+                history.push({ time: student.lastViewedAt, device: '行動裝置' });
+            }
+
+            // 由新至舊排序並截取近 10 次
+            history.sort((a, b) => {
+                const tA = new Date((a.time || '').replace(/-/g, '/')).getTime() || 0;
+                const tB = new Date((b.time || '').replace(/-/g, '/')).getTime() || 0;
+                return tB - tA;
+            });
+            history = history.slice(0, 10);
+            currentViewingStudentHistory = history;
+
+            renderStudentViewHistoryContent(student, history);
+            document.getElementById('studentViewHistoryModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeStudentViewHistoryModal() {
+            document.getElementById('studentViewHistoryModal').classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+
+        function renderStudentViewHistoryContent(student, history) {
+            document.getElementById('studentModalSeatBadge').textContent = student.seatNo || '00';
+            document.getElementById('studentModalTitle').textContent = `${student.name} 家長閱覽歷程`;
+            document.getElementById('studentModalClassTag').textContent = `${student.className || '本班'}`;
+            document.getElementById('studentModalToken').textContent = student.token || '------';
+
+            const count = Math.max(student.viewCount || 0, history.length);
+            document.getElementById('studentModalViewCount').textContent = count;
+
+            const lastTimeEl = document.getElementById('studentModalLastTime');
+            const relTimeEl = document.getElementById('studentModalRelativeTime');
+
+            if (student.lastViewedAt || (history[0] && history[0].time)) {
+                const latestTime = student.lastViewedAt || history[0].time;
+                lastTimeEl.textContent = latestTime;
+                relTimeEl.textContent = getRelativeTimeStr(latestTime) || '剛剛';
+            } else {
+                lastTimeEl.textContent = '尚未閱覽';
+                relTimeEl.textContent = '家長尚未掃碼';
+            }
+
+            const listBadge = document.getElementById('studentModalListBadge');
+            listBadge.textContent = history.length > 0 ? `近 ${history.length} 次紀錄` : '共 0 筆紀錄';
+
+            const timeline = document.getElementById('studentModalTimeline');
+            if (history.length === 0) {
+                timeline.innerHTML = `
+                    <div class="p-6 rounded-2xl bg-white border border-slate-200 text-center space-y-1.5 text-slate-500">
+                        <div class="text-sm font-bold text-slate-700">目前尚無家長瀏覽紀錄</div>
+                        <div class="text-xs text-slate-400">當家長掃描此小卡 QR Code 進入網頁時，系統將自動記錄每次瀏覽時間與裝置。</div>
+                    </div>
+                `;
+            } else {
+                timeline.innerHTML = history.map((item, idx) => {
+                    const idxBadge = idx === 0
+                        ? `<span class="px-2 py-0.5 rounded-md bg-emerald-600 text-white font-mono font-black text-[10.5px]">最新 #1</span>`
+                        : `<span class="px-2 py-0.5 rounded-md bg-slate-200 text-slate-700 font-mono font-bold text-[10.5px]">#${idx + 1}</span>`;
+
+                    const relTime = getRelativeTimeStr(item.time);
+
+                    return `
+                        <div class="p-3 rounded-2xl bg-white border border-slate-200 shadow-2xs flex items-center justify-between gap-3 hover:border-emerald-300 transition">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                ${idxBadge}
+                                <div>
+                                    <div class="font-mono font-bold text-xs text-slate-800 flex items-center gap-1.5">
+                                        <span>${item.time}</span>
+                                        ${relTime ? `<span class="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded font-sans font-bold">(${relTime})</span>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="shrink-0">
+                                <span class="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 border border-slate-200 text-[10.5px] font-bold">
+                                    📱 ${item.device || '行動裝置'}
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            const openLink = document.getElementById('studentModalOpenLink');
+            if (openLink) {
+                openLink.href = buildParentPortalUrl(student.token);
+            }
+        }
+
+        function copySingleStudentLog() {
+            if (!currentViewingStudent) return;
+            const st = currentViewingStudent;
+            const history = currentViewingStudentHistory || [];
+            let text = `【平時成績家長閱覽紀錄】\n學生：${st.className || '本班'} ${st.seatNo}號 ${st.name}（代碼：${st.token}）\n累計瀏覽次數：${st.viewCount || history.length} 次\n最後瀏覽時間：${st.lastViewedAt || (history[0] ? history[0].time : '尚未閱覽')}\n\n近 ${history.length} 次瀏覽時間明細：\n`;
+            if (history.length === 0) {
+                text += '（尚無瀏覽紀錄）\n';
+            } else {
+                history.forEach((h, i) => {
+                    text += `${i + 1}. ${h.time} (${h.device || '行動裝置'})\n`;
+                });
+            }
+            navigator.clipboard.writeText(text).then(() => {
+                alert(`📋 已複製 ${st.name} 的家長瀏覽紀錄！\n\n累計次數：${st.viewCount || history.length} 次\n可直接貼至備忘錄或通訊軟體。`);
+            }).catch(() => {
+                prompt('請手動複製紀錄：', text);
+            });
+        }
+
         function renderTeacherRosterTable() {
             const thead = document.getElementById('teacherRosterTableHead');
             const tbody = document.getElementById('teacherRosterTableBody');
@@ -2127,21 +2364,29 @@ function testGitHubConnection() {
                     : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200/90';
 
                 const viewBadgeHtml = st.lastViewedAt ? `
-                    <div class="inline-flex flex-col items-center">
-                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs" title="最後閱覽時間：${st.lastViewedAt}">
+                    <button type="button" onclick="openStudentViewHistoryModal('${st.token}')" 
+                        class="group inline-flex flex-col items-center p-1 rounded-xl hover:bg-emerald-50 transition cursor-pointer"
+                        title="點擊查看 ${st.name} 的累計瀏覽次數與近 10 次瀏覽時間">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 group-hover:bg-emerald-200 text-emerald-800 border border-emerald-300 shadow-2xs transition">
                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                             <span>${formatDisplayDate(st.lastViewedAt)}</span>
+                            <span class="text-[10px] text-emerald-600 group-hover:scale-110 transition">📋</span>
                         </span>
-                        <span class="text-[10px] text-slate-500 font-mono mt-0.5 font-bold">累計查看 ${st.viewCount || 1} 次</span>
-                    </div>
+                        <span class="text-[10.5px] text-slate-600 font-mono mt-0.5 font-bold group-hover:text-emerald-800 flex items-center gap-0.5">
+                            累計查看 <span class="text-emerald-700 font-black">${st.viewCount || 1}</span> 次
+                            <span class="text-[9px] opacity-70">↗</span>
+                        </span>
+                    </button>
                 ` : `
-                    <div class="inline-flex flex-col items-center">
-                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-500 border border-slate-200">
+                    <button type="button" onclick="openStudentViewHistoryModal('${st.token}')" 
+                        class="group inline-flex flex-col items-center p-1 rounded-xl hover:bg-slate-100 transition cursor-pointer"
+                        title="點擊查看 ${st.name} 的閱覽狀態明細">
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 group-hover:bg-slate-200 text-slate-500 border border-slate-200">
                             <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
                             <span>尚未閱覽</span>
                         </span>
-                        <span class="text-[10px] text-slate-400 mt-0.5 font-bold">尚未掃碼登入</span>
-                    </div>
+                        <span class="text-[10px] text-slate-400 mt-0.5 font-bold group-hover:text-slate-600">累計查看 0 次</span>
+                    </button>
                 `;
 
                 return `

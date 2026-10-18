@@ -467,6 +467,16 @@ function doGet(e) {
         updatedAt: Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'Asia/Taipei', 'yyyy-MM-dd HH:mm'),
         accessLogs: getRecentAccessLogs_(ss, 100)
       };
+    } else if (action === 'getStudentLogs') {
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      var studentToken = (params.token || '').toString().trim().toUpperCase();
+      var historyMap = getStudentAccessHistoryMap_(ss);
+      output = {
+        status: 'success',
+        success: true,
+        token: studentToken,
+        recentViews: historyMap[studentToken] || []
+      };
     } else if (action === 'appendDailyScores') {
       var body = params.payload || (e && e.postData && e.postData.contents ? e.postData.contents : '');
       output = appendDailyScores(body);
@@ -1564,6 +1574,36 @@ function getRecentAccessLogs_(ss, maxCount) {
 }
 
 /**
+ * 讀取各學生專屬之近 10 次家長瀏覽時間紀錄對照表
+ */
+function getStudentAccessHistoryMap_(ss) {
+  var logSheet = ss.getSheetByName('家長閱覽紀錄');
+  if (!logSheet || logSheet.getLastRow() <= 1) return {};
+  var numRows = Math.min(1000, logSheet.getLastRow() - 1);
+  var data = logSheet.getRange(2, 1, numRows, 6).getValues();
+  var map = {};
+  var tz = Session.getScriptTimeZone() || 'Asia/Taipei';
+
+  for (var i = 0; i < data.length; i++) {
+    var rawTime = data[i][0];
+    var timeStr = '';
+    if (rawTime instanceof Date) {
+      timeStr = Utilities.formatDate(rawTime, tz, 'yyyy-MM-dd HH:mm');
+    } else if (rawTime) {
+      timeStr = rawTime.toString().trim();
+    }
+    var tok = (data[i][4] || '').toString().trim().toUpperCase();
+    var dev = (data[i][5] || '').toString().trim() || '行動裝置';
+    if (!tok) continue;
+    if (!map[tok]) map[tok] = [];
+    if (map[tok].length < 10) {
+      map[tok].push({ time: timeStr, device: dev });
+    }
+  }
+  return map;
+}
+
+/**
  * 教師端同步名冊與全班各科平時成績統計（供 A4 通知小卡 PDF 預覽與全班總表使用）
  */
 function getStudentListForTeacher() {
@@ -1576,6 +1616,7 @@ function getStudentListForTeacher() {
   var sData = sSheet.getDataRange().getValues();
   var students = [];
   var tz = Session.getScriptTimeZone() || 'Asia/Taipei';
+  var historyMap = getStudentAccessHistoryMap_(ss);
 
   for (var r = 1; r < sData.length; r++) {
     var cls = (sData[r][0] || '本班').toString().trim();
@@ -1592,6 +1633,13 @@ function getStudentListForTeacher() {
     var rawCount = sData[r][6];
     var viewCount = parseInt(rawCount || '0', 10) || 0;
     if (!seat && !name) continue;
+
+    var studentToken = token.toUpperCase();
+    var recentViews = historyMap[studentToken] || [];
+    if (recentViews.length === 0 && lastViewedAt) {
+      recentViews = [{ time: lastViewedAt, device: '行動裝置' }];
+    }
+
     students.push({
       className: cls,
       seatNo: seat,
@@ -1600,6 +1648,7 @@ function getStudentListForTeacher() {
       token: token,
       lastViewedAt: lastViewedAt,
       viewCount: viewCount,
+      recentViews: recentViews,
       studentId: cls + '-' + seat,
       subjects: [],
       subjectStats: {}
@@ -1633,7 +1682,7 @@ function getStudentListForTeacher() {
     updatedAt: nowStr,
     students: students,
     subjectList: subjectList,
-    accessLogs: getRecentAccessLogs_(ss, 50)
+    accessLogs: getRecentAccessLogs_(ss, 100)
   };
 }
 
@@ -2022,6 +2071,7 @@ var MPScoreDailyEngine = {
   autoFormatAndResizeAllSheets: autoFormatAndResizeAllSheets,
   openAccessLogsSheet: openAccessLogsSheet,
   getRecentAccessLogs: getRecentAccessLogs_,
+  getStudentAccessHistoryMap: getStudentAccessHistoryMap_,
   clearSystemCache: clearSystemCache,
   handleDoGet: doGet,
   handleDoPost: doPost
