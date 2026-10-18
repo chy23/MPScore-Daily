@@ -224,20 +224,20 @@
         }
 
         .a4-grid-6 .slip-card {
-            --card-pad-v: 2.8mm;
-            --card-pad-h: 3.8mm;
+            --card-pad-v: 3.2mm;
+            --card-pad-h: 4mm;
             border-radius: 12px;
         }
 
         .a4-grid-8 .slip-card {
-            --card-pad-v: 1.5mm;
-            --card-pad-h: 2.5mm;
+            --card-pad-v: 2.4mm;
+            --card-pad-h: 3.2mm;
             border-radius: 10px;
         }
 
         .a4-grid-10 .slip-card {
-            --card-pad-v: 1.2mm;
-            --card-pad-h: 2mm;
+            --card-pad-v: 1.8mm;
+            --card-pad-h: 2.6mm;
             border-radius: 8px;
         }
 
@@ -510,11 +510,16 @@
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2.5">
-                        <button onclick="connectCloudGradebook()" class="min-h-[42px] px-3.5 py-2.5 rounded-2xl bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-300 font-extrabold text-xs sm:text-sm shadow-sm transition flex items-center gap-1.5">
+                        <button onclick="connectCloudGradebook()" class="min-h-[42px] px-3.5 py-2.5 rounded-2xl bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-300 font-extrabold text-xs sm:text-sm shadow-sm transition flex items-center gap-1.5 cursor-pointer">
                             <span>🔄</span>
                             <span>重新同步試算表最新成績</span>
                         </button>
-                        <button onclick="openPrintPreviewModal()" class="min-h-[42px] px-4 py-2.5 rounded-2xl bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-700 hover:to-teal-700 text-white font-black text-xs sm:text-sm shadow-lg shadow-sky-600/20 transition flex items-center gap-2">
+                        <button onclick="openTeacherChangelogModal()" class="min-h-[42px] px-3.5 py-2.5 rounded-2xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-extrabold text-xs sm:text-sm shadow-sm transition flex items-center gap-1.5 cursor-pointer" title="查看 MPScore-Daily 系統詳細更新紀錄">
+                            <span>📋</span>
+                            <span>系統詳細更新紀錄</span>
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        </button>
+                        <button onclick="openPrintPreviewModal()" class="min-h-[42px] px-4 py-2.5 rounded-2xl bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-700 hover:to-teal-700 text-white font-black text-xs sm:text-sm shadow-lg shadow-sky-600/20 transition flex items-center gap-2 cursor-pointer">
                             <span>🖨️</span>
                             <span>預覽與下載 A4 平時成績通知小卡 PDF</span>
                         </button>
@@ -989,7 +994,7 @@
                     <div>
                         <div class="flex items-center gap-2">
                             <h3 class="text-base md:text-lg font-black tracking-tight text-white">MPScore-Daily 系統詳細更新紀錄</h3>
-                            <span class="text-[10px] bg-emerald-500 text-white font-black px-2 py-0.5 rounded-full">v2.5.0 最新版</span>
+                            <span class="text-[10px] bg-emerald-500 text-white font-black px-2 py-0.5 rounded-full">v2.5.1 最新版</span>
                         </div>
                         <p class="text-xs text-sky-100 mt-0.5">平時成績無痛結算 ‧ 親師雲端即時溝通 ‧ 國中小專用智慧平台</p>
                     </div>
@@ -1002,12 +1007,34 @@
             <!-- 更新日誌內容滾動區 -->
             <div class="p-5 md:p-8 overflow-y-auto space-y-6 text-xs text-slate-700 bg-slate-50/50 leading-relaxed">
                 
-                <!-- v2.5.0 最新版里程碑 -->
+                <!-- v2.5.1 最新版里程碑 -->
                 <div class="bg-white p-5 rounded-3xl border border-sky-300 shadow-sm space-y-4 relative overflow-hidden ring-2 ring-sky-400/20">
                     <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                         <div class="flex items-center gap-2">
-                            <span class="text-xs font-black bg-sky-600 text-white px-2.5 py-1 rounded-xl shadow-xs">v2.5.0 最新版</span>
-                            <span class="text-sm font-black text-slate-900">🖨️ A4 通知小卡排版全尺寸自適應無截斷修復 & 系統更新紀錄窗格上線</span>
+                            <span class="text-xs font-black bg-sky-600 text-white px-2.5 py-1 rounded-xl shadow-xs">v2.5.1 最新版</span>
+                            <span class="text-sm font-black text-slate-900">🔤 徹底根除中文字形切頂截斷 & 全入口更新紀錄窗格</span>
+                        </div>
+                        <span class="text-[11px] text-slate-400 font-mono font-bold">2026-10-18</span>
+                    </div>
+
+                    <div class="space-y-3.5">
+                        <div class="p-3.5 bg-sky-50/80 rounded-2xl border border-sky-200/80 text-[11px] text-sky-950 font-bold space-y-1.5">
+                            <div>🎯 <b>本次核心修復與優化細節</b>：</div>
+                            <ul class="list-disc list-inside font-normal text-slate-700 pl-1 space-y-1.5">
+                                <li><b>徹底根絕中文字元（CJK）字頂截斷問題</b>：全字塊淘汰 <code class="text-rose-600 font-mono">truncate</code> 所伴隨的隱性 <code class="text-rose-600 font-mono">overflow: hidden</code>，改採 <code class="text-emerald-700 font-mono">whitespace-nowrap overflow-visible</code>，並將微字級行距統一提升至 <code class="text-emerald-700 font-mono">leading-normal</code>，杜絕 Noto Sans TC / PingFang TC 字形在緊湊行高下產生的負半行距（Negative Half-Leading）腰斬現象。</li>
+                                <li><b>卡片圓角幾何邊界安全隔離</b>：調升 8 格（4×2）小卡上下邊距至 <code class="text-emerald-700 font-mono">2.4mm</code>，使頂部「平時成績查詢小卡」膠囊與底部「💡 隱私叮嚀」完全避開 10px 圓角虛線曲率邊緣，杜絕重疊。</li>
+                                <li><b>全維度部署「📋 系統更新紀錄」直達按鈕</b>：於「頂部導覽列」、「Tab 2 成績總覽操作列」與「A4 列印預覽懸浮工具列」三處同步提供金黃色高辨識度快捷按鈕，隨時隨地一鍵開展更新日誌。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- v2.5.0 版本里程碑 -->
+                <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 relative overflow-hidden">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-black bg-slate-100 text-slate-700 px-2.5 py-1 rounded-xl">v2.5.0</span>
+                            <span class="text-sm font-black text-slate-900">🖨️ A4 通知小卡排版全尺寸自適應無截斷修復</span>
                         </div>
                         <span class="text-[11px] text-slate-400 font-mono font-bold">2026-10-18</span>
                     </div>
@@ -1962,49 +1989,49 @@ function testGitHubConnection() {
 
             const badgeFont = is4Grid
                 ? 'text-xs font-black px-2 py-0.5'
-                : (is6Grid ? 'text-[10px] font-black px-1.5 py-0.5' : 'text-[8.5px] font-black px-1.5 py-0.5');
+                : (is6Grid ? 'text-[10px] font-black px-1.5 py-0.5' : (is8Grid ? 'text-[9px] font-black px-1.5 py-0.5' : 'text-[8px] font-black px-1 py-0.5'));
 
             const topTagFont = is4Grid
                 ? 'text-[10.5px] font-extrabold px-2 py-0.5'
-                : (is6Grid ? 'text-[9.5px] font-extrabold px-1.5 py-0.5' : 'text-[8px] font-extrabold px-1.5 py-0.5');
+                : (is6Grid ? 'text-[9.5px] font-extrabold px-1.5 py-0.5' : (is8Grid ? 'text-[8.5px] font-extrabold px-1.5 py-0.5' : 'text-[7.5px] font-extrabold px-1.5 py-0.5'));
 
             const subtitleFont = is4Grid
                 ? 'text-xs font-bold px-2.5 py-1 leading-normal'
-                : (is6Grid ? 'text-[10.5px] font-bold px-2 py-0.5 leading-snug' : (is8Grid ? 'text-[8.5px] font-bold px-1.5 py-0.5 leading-tight' : 'text-[7.5px] font-bold px-1.5 py-0.5 leading-tight'));
+                : (is6Grid ? 'text-[10.5px] font-bold px-2 py-0.5 leading-snug' : (is8Grid ? 'text-[9px] font-bold px-2 py-1 leading-normal' : 'text-[8px] font-bold px-1.5 py-0.5 leading-normal'));
 
             const stepTitleFont = is4Grid
                 ? 'text-xs sm:text-sm font-black'
-                : (is6Grid ? 'text-[11px] font-black' : (is8Grid ? 'text-[8.5px] font-black' : 'text-[8px] font-black'));
+                : (is6Grid ? 'text-[11px] font-black' : (is8Grid ? 'text-[9px] font-black' : 'text-[8px] font-black'));
 
             const stepBodyFont = is4Grid
                 ? 'text-xs text-slate-700 leading-relaxed'
-                : (is6Grid ? 'text-[10px] text-slate-700 leading-snug' : (is8Grid ? 'text-[8px] text-slate-700 leading-tight' : 'text-[7px] text-slate-700 leading-tight'));
+                : (is6Grid ? 'text-[10px] text-slate-700 leading-snug' : (is8Grid ? 'text-[8.5px] text-slate-700 leading-snug' : 'text-[7.5px] text-slate-700 leading-snug'));
 
             const stepBoxPad = is4Grid
                 ? 'p-2.5 space-y-1 rounded-xl'
-                : (is6Grid ? 'p-2 space-y-0.5 rounded-lg' : (is8Grid ? 'px-1.5 py-0.5 space-y-0.5 rounded-md' : 'px-1 py-0.5 space-y-0.5 rounded'));
+                : (is6Grid ? 'p-2 space-y-0.5 rounded-lg' : (is8Grid ? 'px-2 py-1 space-y-0.5 rounded-md' : 'px-1.5 py-0.5 space-y-0.5 rounded'));
 
             const qrBoxPad = is4Grid
                 ? 'p-2 rounded-xl'
                 : (is6Grid ? 'p-1.5 rounded-lg' : (is8Grid ? 'p-1 rounded-lg' : 'p-0.5 rounded'));
 
             const qrCaptionFont = is4Grid
-                ? 'text-[10px] font-extrabold text-sky-800 mt-1'
-                : (is6Grid ? 'text-[8.5px] font-extrabold text-sky-800 mt-0.5' : (is8Grid ? 'text-[7.5px] font-extrabold text-sky-800 mt-0.5' : 'text-[7px] font-extrabold text-sky-800 mt-0.5'));
+                ? 'text-[10px] font-extrabold text-sky-800 mt-1 leading-normal'
+                : (is6Grid ? 'text-[8.5px] font-extrabold text-sky-800 mt-0.5 leading-normal' : (is8Grid ? 'text-[7.5px] font-extrabold text-sky-800 mt-0.5 leading-normal' : 'text-[7px] font-extrabold text-sky-800 mt-0.5 leading-normal'));
 
             const tokenFont = is4Grid
-                ? 'text-[10px] font-mono font-bold text-slate-600 mt-0.5'
-                : (is6Grid ? 'text-[8.5px] font-mono font-bold text-slate-600 mt-0.5' : (is8Grid ? 'text-[7.5px] font-mono font-bold text-slate-500 mt-0.5' : 'text-[7px] font-mono font-bold text-slate-500 mt-0.5'));
+                ? 'text-[10px] font-mono font-bold text-slate-600 mt-0.5 leading-normal'
+                : (is6Grid ? 'text-[8.5px] font-mono font-bold text-slate-600 mt-0.5 leading-normal' : (is8Grid ? 'text-[7.5px] font-mono font-bold text-slate-500 mt-0.5 leading-normal' : 'text-[7px] font-mono font-bold text-slate-500 mt-0.5 leading-normal'));
 
             // 關鍵修復：絕不使用 my-auto，改用確定邊距流式佈局，徹底根絕小卡頂部標題文字遭到向上頂出切斷的問題
-            const middleGap = is4Grid ? 'gap-3 my-1 flex-1 min-h-0' : (is6Grid ? 'gap-2.5 my-0.5 flex-1 min-h-0' : (is8Grid ? 'gap-1.5 my-0.5 flex-1 min-h-0' : 'gap-1 my-0.5 flex-1 min-h-0'));
+            const middleGap = is4Grid ? 'gap-3 my-1 flex-1 min-h-0' : (is6Grid ? 'gap-2.5 my-0.5 flex-1 min-h-0' : (is8Grid ? 'gap-2 my-0.5 flex-1 min-h-0' : 'gap-1.5 my-0.5 flex-1 min-h-0'));
             const middleBoxGap = is4Grid ? 'space-y-1.5' : (is6Grid ? 'space-y-1' : 'space-y-0.5');
 
             const footerFont = is4Grid
-                ? 'text-[11px] text-slate-600 pt-2 border-t border-slate-200 leading-tight'
-                : (is6Grid ? 'text-[10px] text-slate-600 pt-1.5 border-t border-slate-200 leading-tight' : (is8Grid ? 'text-[8px] text-slate-600 pt-0.5 border-t border-slate-200 leading-tight' : 'text-[7px] text-slate-600 pt-0.5 border-t border-slate-200 leading-tight'));
+                ? 'text-[11px] text-slate-600 pt-2 border-t border-slate-200 leading-normal'
+                : (is6Grid ? 'text-[10px] text-slate-600 pt-1.5 border-t border-slate-200 leading-normal' : (is8Grid ? 'text-[8.5px] text-slate-600 pt-1 border-t border-slate-200 leading-normal' : 'text-[7.5px] text-slate-600 pt-0.5 border-t border-slate-200 leading-normal'));
 
-            const headerBorderClass = is4Grid ? 'border-b border-slate-200 pb-1.5' : (is6Grid ? 'border-b border-slate-200 pb-1' : 'border-b border-slate-200 pb-0.5');
+            const headerBorderClass = is4Grid ? 'border-b border-slate-200 pb-1.5' : (is6Grid ? 'border-b border-slate-200 pb-1' : 'border-b border-slate-200 pb-1');
 
             const chunks = [];
             for (let i = 0; i < students.length; i += perPage) {
@@ -2016,7 +2043,7 @@ function testGitHubConnection() {
                     const qrDomId = `qr_${pageIdx}_${cardIdx}`;
 
                     const subtitleBarHtml = (optSubtitle && subtitleHtml) ? `
-                        <div class="${subtitleFont} text-slate-700 bg-slate-50 border border-slate-200/90 rounded-lg truncate">
+                        <div class="${subtitleFont} text-slate-700 bg-slate-50 border border-slate-200/90 rounded-lg whitespace-nowrap overflow-visible flex items-center">
                             ${subtitleHtml}
                         </div>
                     ` : '';
@@ -2046,13 +2073,13 @@ function testGitHubConnection() {
                             <!-- 頂部學生資訊列（不含任何成績分數） -->
                             <div class="flex items-center justify-between ${headerBorderClass}">
                                 <div class="flex items-center gap-1.5 min-w-0">
-                                    ${badgeHtml ? `<span class="rounded bg-sky-600 text-white font-black ${badgeFont} shrink-0">${badgeHtml}</span>` : ''}
-                                    ${optSeatClass ? `<span class="${seatClassFont} shrink-0">${st.className || '本班'} ${st.seatNo}號</span>` : ''}
-                                    <span class="${nameFont} text-slate-900 truncate">${st.name}</span>
+                                    ${badgeHtml ? `<span class="rounded bg-sky-600 text-white font-black inline-flex items-center justify-center leading-normal ${badgeFont} shrink-0">${badgeHtml}</span>` : ''}
+                                    ${optSeatClass ? `<span class="${seatClassFont} shrink-0 leading-normal">${st.className || '本班'} ${st.seatNo}號</span>` : ''}
+                                    <span class="${nameFont} text-slate-900 whitespace-nowrap leading-snug">${st.name}</span>
                                 </div>
                                 ${topTagHtml ? `
                                 <div class="text-right shrink-0">
-                                    <span class="inline-flex items-center gap-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 ${topTagFont}">${topTagHtml}</span>
+                                    <span class="inline-flex items-center justify-center gap-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 leading-normal ${topTagFont}">${topTagHtml}</span>
                                 </div>
                                 ` : ''}
                             </div>
@@ -2074,7 +2101,7 @@ function testGitHubConnection() {
 
                             <!-- 底部保存提醒（全寬單行呈現，支援教師自訂修改） -->
                             <div class="flex items-center justify-between ${footerFont}">
-                                <span>${footerHtml}</span>
+                                <span class="leading-normal">${footerHtml}</span>
                             </div>
                         </div>
                     `;
