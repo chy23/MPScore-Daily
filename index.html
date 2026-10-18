@@ -115,11 +115,21 @@
             font-variant-numeric: tabular-nums;
         }
 
-        /* A4 紙張列印與 PDF 匯出專用滿版雙欄十格樣式 */
+        /* A4 紙張列印與 PDF 匯出專用滿版樣式與標尺 */
+        #a4Ruler297mm {
+            position: absolute;
+            left: -9999px;
+            top: -9999px;
+            width: 1px;
+            height: 297mm;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
         .a4-sheet {
             width: 210mm;
             min-height: 297mm;
-            padding: 8mm 10mm;
+            padding: calc(6mm * var(--slip-scale, 1)) calc(8mm * var(--slip-scale, 1));
             margin: 0 auto;
             background: #ffffff;
             box-sizing: border-box;
@@ -129,20 +139,49 @@
             flex-direction: column;
             justify-content: space-between;
             page-break-after: always;
+            break-after: page;
+            position: relative;
+            transition: outline 0.2s ease, box-shadow 0.2s ease;
         }
 
+        /* 內容超出單頁時的醒目警示線（列印時自動隱藏） */
+        .a4-sheet.a4-sheet-overflow {
+            outline: 3px dashed #f59e0b;
+            outline-offset: -3px;
+            box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.25), 0 12px 36px rgba(15, 23, 42, 0.15);
+        }
+
+        /* 雙欄 10 格 (5 列 × 2 欄) */
         .a4-grid-10 {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             grid-template-rows: repeat(5, 1fr);
-            gap: 3.5mm 4.5mm;
+            gap: calc(2.8mm * var(--slip-scale, 1)) calc(3.5mm * var(--slip-scale, 1));
+            flex: 1;
+        }
+
+        /* 雙欄 8 格 (4 列 × 2 欄，推薦防溢版) */
+        .a4-grid-8 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: calc(4mm * var(--slip-scale, 1)) calc(4.5mm * var(--slip-scale, 1));
+            flex: 1;
+        }
+
+        /* 雙欄 6 格 (3 列 × 2 欄，大字清晰版) */
+        .a4-grid-6 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: calc(5mm * var(--slip-scale, 1)) calc(5mm * var(--slip-scale, 1));
             flex: 1;
         }
 
         .slip-card {
             border: 1.5px dashed #94a3b8;
-            border-radius: 10px;
-            padding: 3mm 3.5mm;
+            border-radius: 8px;
+            padding: calc(2.4mm * var(--slip-scale, 1)) calc(3mm * var(--slip-scale, 1));
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -150,7 +189,15 @@
             box-sizing: border-box;
             position: relative;
             overflow: hidden;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
         }
+
+        /* 縮放尺寸輔助 */
+        .slip-card[data-scale="95"] { font-size: 96%; }
+        .slip-card[data-scale="90"] { font-size: 91%; }
+        .slip-card[data-scale="85"] { font-size: 86%; }
+        .slip-card[data-scale="80"] { font-size: 82%; }
 
         /* Apple HIG Accessibility: 尊重系統「減少動態效果」、「減少透明度」與「增加對比」設定 */
         @media (prefers-reduced-motion: reduce) {
@@ -200,12 +247,23 @@
                 margin: 0 !important;
                 width: 210mm !important;
                 height: 297mm !important;
+                max-height: 297mm !important;
+                outline: none !important;
+                page-break-after: always !important;
+                break-after: page !important;
+            }
+            .slip-card {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
             }
         }
     </style>
 </head>
 
 <body class="min-h-screen flex flex-col selection:bg-sky-200 selection:text-sky-950">
+
+    <!-- A4 基準高度量測標尺 (不可見) -->
+    <div id="a4Ruler297mm" class="no-print"></div>
 
     <!-- 頂部導覽列（米藍與米綠毛玻璃導覽列） -->
     <header class="no-print sticky top-0 z-30 apple-glass-nav border-b border-[#C5DDF0]/90 px-4 py-3">
@@ -464,6 +522,33 @@
                                 <span>印出代碼編號(教師核對)</span>
                             </label>
                         </div>
+
+                        <!-- 每頁小卡數量與縮放比例排版設定（防止切頁） -->
+                        <div class="pt-2 border-t border-sky-200/80 grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                            <div class="space-y-1">
+                                <label class="block font-extrabold text-sky-950">🎴 每頁小卡數量（若內容過長切頁，建議選 8 格）</label>
+                                <select data-bind-cards-per-page onchange="setCardsPerPage(this.value)" class="w-full px-2.5 py-1.5 rounded-xl border border-sky-300 bg-white text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-sky-500">
+                                    <option value="10">每頁 10 格 (5 列 × 2 欄，經典精省版)</option>
+                                    <option value="8">每頁 8 格 (4 列 × 2 欄，寬敞防溢推薦)</option>
+                                    <option value="6">每頁 6 格 (3 列 × 2 欄，大字清晰版)</option>
+                                </select>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="block font-extrabold text-sky-950">🔍 列印縮放比例（內容過多時可縮小防切斷）</label>
+                                <div class="flex items-center gap-2">
+                                    <select data-bind-print-scale onchange="setPrintScale(this.value)" class="flex-1 px-2.5 py-1.5 rounded-xl border border-sky-300 bg-white text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-sky-500">
+                                        <option value="100">100% (標準原始)</option>
+                                        <option value="95">95% (微幅縮小防溢)</option>
+                                        <option value="90">90% (緊湊縮小 - 推薦)</option>
+                                        <option value="85">85% (高密縮小)</option>
+                                        <option value="80">80% (最小縮放)</option>
+                                    </select>
+                                    <button type="button" onclick="autoFitPrintScale()" class="min-h-[34px] px-2.5 py-1 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold whitespace-nowrap transition text-xs flex items-center gap-1">
+                                        <span>⚡ 自動適配</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -628,6 +713,38 @@
                     </div>
                 </div>
 
+                <!-- 每頁列印數量與縮放比例快捷控制列 (即時切換與適配) -->
+                <div class="pt-2 border-t border-sky-200/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <div class="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl border border-sky-200 shadow-sm">
+                            <span class="font-extrabold text-slate-700">🎴 每頁數量：</span>
+                            <select data-bind-cards-per-page onchange="setCardsPerPage(this.value)" class="bg-transparent font-black text-sky-800 focus:outline-none cursor-pointer">
+                                <option value="10">每頁 10 格 (5×2 經典)</option>
+                                <option value="8">每頁 8 格 (4×2 寬敞防溢推薦)</option>
+                                <option value="6">每頁 6 格 (3×2 大字版)</option>
+                            </select>
+                        </div>
+
+                        <div class="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl border border-sky-200 shadow-sm">
+                            <span class="font-extrabold text-slate-700">🔍 縮放比例：</span>
+                            <select data-bind-print-scale onchange="setPrintScale(this.value)" class="bg-transparent font-black text-sky-800 focus:outline-none cursor-pointer">
+                                <option value="100">100% (標準)</option>
+                                <option value="95">95% (微縮防溢)</option>
+                                <option value="90">90% (緊湊 - 推薦)</option>
+                                <option value="85">85% (高密)</option>
+                                <option value="80">80% (最小)</option>
+                            </select>
+                            <button type="button" onclick="autoFitPrintScale()" title="自動計算最適縮小比例，剛好符合單頁 A4" class="px-2 py-0.5 rounded-lg bg-sky-100 hover:bg-sky-200 text-sky-800 font-extrabold text-[11px] transition">
+                                ⚡ 自動適配
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="modalPageStatusTag" class="text-xs font-bold text-slate-600">
+                        <!-- JS 動態更新單頁容納狀態 -->
+                    </div>
+                </div>
+
                 <!-- 預覽視窗內嵌的小卡文字即時編輯器 -->
                 <div id="modalSlipTextEditor" class="hidden pt-3 border-t border-sky-200/80 space-y-2.5 text-xs">
                     <div class="flex items-center justify-between">
@@ -680,6 +797,47 @@
                             <input type="text" data-slip-field="qrCaption" oninput="updateSlipCustomField('qrCaption', this.value)"
                                 class="w-full px-2.5 py-1.5 rounded-lg border border-sky-200 bg-white text-slate-800 font-bold">
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 跨頁超出警示提醒橫幅 (當有任何頁面超出 297mm 時自動彈出) -->
+            <div id="printOverflowAlert" class="hidden no-print bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border-2 border-amber-400 rounded-2xl p-4 shadow-xl space-y-3 transition-all duration-300">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-black text-xl shrink-0 shadow-md shadow-amber-500/25">
+                            ⚠️
+                        </div>
+                        <div>
+                            <h4 class="font-black text-amber-950 text-sm sm:text-base flex items-center gap-2">
+                                <span>注意：小卡內容已超出單頁 A4 高度（已跨頁切斷小卡）！</span>
+                                <span class="text-xs px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-300 font-extrabold">跨頁切斷警告</span>
+                            </h4>
+                            <p id="overflowPageCountText" class="text-xs text-amber-900 mt-0.5 font-medium">
+                                目前小卡文字或排版高度已超出單頁 A4 上限，列印或下載 PDF 時最下方小卡將會被截斷分散到下一頁。
+                            </p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="dismissOverflowAlert()" class="text-amber-700 hover:text-amber-950 font-black text-base px-2 py-1 rounded-lg hover:bg-amber-100 transition" title="暫時略過提醒">
+                        ✕
+                    </button>
+                </div>
+
+                <!-- 建議解決方案快捷按鈕 -->
+                <div class="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-amber-300/80">
+                    <div class="flex items-center gap-1.5 text-xs font-extrabold text-amber-950">
+                        <span>💡 建議解決方案（點選立即自動修復）：</span>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button type="button" onclick="autoFitPrintScale()" class="min-h-[34px] px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs shadow-md transition flex items-center gap-1.5">
+                            <span>⚡ 一鍵自動縮小至單頁</span>
+                        </button>
+                        <button type="button" onclick="setPrintScale(90)" class="min-h-[34px] px-3 py-1.5 rounded-xl bg-white hover:bg-amber-100 text-amber-950 border border-amber-400 font-extrabold text-xs shadow-sm transition">
+                            <span>🔍 縮小比例至 90%</span>
+                        </button>
+                        <button type="button" onclick="setCardsPerPage(8)" class="min-h-[34px] px-3 py-1.5 rounded-xl bg-white hover:bg-amber-100 text-amber-950 border border-amber-400 font-extrabold text-xs shadow-sm transition">
+                            <span>📄 更改為每頁 8 格 (4×2 防溢)</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1284,6 +1442,141 @@ function testGitHubConnection() {
             renderA4PrintSheets();
         }
 
+        // =========================================================================
+        // 5.1 A4 列印排版設定 (每頁數量、縮放比例、跨頁溢出檢測與自動適配)
+        // =========================================================================
+        let currentCardsPerPage = 10;
+        let currentPrintScale = 100;
+
+        function loadPrintLayoutSettings() {
+            try {
+                const savedPerPage = localStorage.getItem('mpdaily_cards_per_page');
+                if (savedPerPage) currentCardsPerPage = parseInt(savedPerPage, 10) || 10;
+                const savedScale = localStorage.getItem('mpdaily_print_scale');
+                if (savedScale) currentPrintScale = parseInt(savedScale, 10) || 100;
+            } catch (e) {}
+            syncPrintLayoutControls();
+        }
+
+        function syncPrintLayoutControls() {
+            document.querySelectorAll('[data-bind-cards-per-page]').forEach(el => {
+                el.value = String(currentCardsPerPage);
+            });
+            document.querySelectorAll('[data-bind-print-scale]').forEach(el => {
+                el.value = String(currentPrintScale);
+            });
+        }
+
+        function setCardsPerPage(num) {
+            currentCardsPerPage = parseInt(num, 10) || 10;
+            try {
+                localStorage.setItem('mpdaily_cards_per_page', currentCardsPerPage);
+            } catch (e) {}
+            syncPrintLayoutControls();
+            renderA4PrintSheets();
+        }
+
+        function setPrintScale(scale) {
+            currentPrintScale = parseInt(scale, 10) || 100;
+            try {
+                localStorage.setItem('mpdaily_print_scale', currentPrintScale);
+            } catch (e) {}
+            syncPrintLayoutControls();
+            renderA4PrintSheets();
+        }
+
+        function dismissOverflowAlert() {
+            const banner = document.getElementById('printOverflowAlert');
+            if (banner) banner.classList.add('hidden');
+        }
+
+        // 檢測目前預覽的所有 A4 頁面是否超出單頁 297mm 高度上限
+        function checkA4PagesOverflow() {
+            const ruler = document.getElementById('a4Ruler297mm');
+            if (!ruler) return;
+            const standardPx = ruler.offsetHeight; // 當前瀏覽器環境 297mm 精確像素
+            if (!standardPx) return;
+
+            const sheets = document.querySelectorAll('#a4PreviewContainer .a4-sheet');
+            let overflowCount = 0;
+            let maxOverflowMm = 0;
+
+            sheets.forEach(sheet => {
+                const contentHeight = sheet.scrollHeight;
+                const diffPx = contentHeight - standardPx;
+                const statusBadge = sheet.querySelector('.a4-sheet-status-badge');
+
+                if (diffPx > 3) { // 超過 3px 容差即判定為跨頁切斷
+                    overflowCount++;
+                    const diffMm = Math.max(1, Math.round((diffPx / standardPx) * 297));
+                    if (diffMm > maxOverflowMm) maxOverflowMm = diffMm;
+                    sheet.classList.add('a4-sheet-overflow');
+                    if (statusBadge) {
+                        statusBadge.className = 'a4-sheet-status-badge text-[9.5px] font-black text-rose-700 bg-rose-50 border border-rose-300 rounded px-1.5 py-0.5 animate-pulse';
+                        statusBadge.innerHTML = `⚠️ 超出單頁約 ${diffMm} mm（小卡會被切到下一頁！）`;
+                    }
+                } else {
+                    sheet.classList.remove('a4-sheet-overflow');
+                    if (statusBadge) {
+                        statusBadge.className = 'a4-sheet-status-badge text-[9.5px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-0.5';
+                        statusBadge.innerHTML = `✅ 符合單頁尺寸`;
+                    }
+                }
+            });
+
+            const alertBanner = document.getElementById('printOverflowAlert');
+            const statusTag = document.getElementById('modalPageStatusTag');
+
+            if (overflowCount > 0) {
+                if (alertBanner) {
+                    alertBanner.classList.remove('hidden');
+                    const cntEl = document.getElementById('overflowPageCountText');
+                    if (cntEl) {
+                        cntEl.innerHTML = `目前共有 <strong class="text-rose-700 underline font-black">${overflowCount}</strong> 頁小卡內容超出單頁 A4 高度（最多超出約 <strong class="text-rose-700 font-mono">${maxOverflowMm} mm</strong>），最下方小卡將會被截斷分散到下一頁！`;
+                    }
+                }
+                if (statusTag) {
+                    statusTag.innerHTML = `<span class="inline-flex items-center gap-1 text-rose-700 bg-rose-50 border border-rose-300 px-2 py-0.5 rounded-full font-black animate-pulse">⚠️ 有 ${overflowCount} 頁超出單頁高度</span>`;
+                }
+            } else {
+                if (alertBanner) {
+                    alertBanner.classList.add('hidden');
+                }
+                if (statusTag) {
+                    statusTag.innerHTML = `<span class="inline-flex items-center gap-1 text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full font-extrabold">✅ 完美符合單頁 A4（無跨頁切斷）</span>`;
+                }
+            }
+        }
+
+        // 自動計算最適縮小比例，使所有頁面剛好縮進單頁 A4
+        function autoFitPrintScale() {
+            const ruler = document.getElementById('a4Ruler297mm');
+            if (!ruler) return;
+            const standardPx = ruler.offsetHeight;
+            if (!standardPx) return;
+
+            const sheets = document.querySelectorAll('#a4PreviewContainer .a4-sheet');
+            let maxRatio = 1;
+
+            sheets.forEach(sheet => {
+                const ratio = sheet.scrollHeight / standardPx;
+                if (ratio > maxRatio) maxRatio = ratio;
+            });
+
+            if (maxRatio > 1) {
+                // 安全乘數 1.03 提供適度餘裕避免次像素抖動
+                const calculated = Math.floor((1 / (maxRatio * 1.03)) * (currentPrintScale || 100));
+                let targetScale = 90;
+                if (calculated <= 82) targetScale = 80;
+                else if (calculated <= 87) targetScale = 85;
+                else if (calculated <= 92) targetScale = 90;
+                else targetScale = 95;
+                setPrintScale(targetScale);
+            } else {
+                setPrintScale(100);
+            }
+        }
+
         function renderA4PrintSheets() {
             const container = document.getElementById('a4PreviewContainer');
             const selectedStudents = currentRoster.filter(s => s.selected);
@@ -1300,7 +1593,7 @@ function testGitHubConnection() {
             }
         }
 
-        // 渲染「家長發放版」A4 雙欄 10 格平時成績通知小卡（不呈現任何成績分數，所有區塊文字支援教師自訂修改）
+        // 渲染「家長發放版」A4 雙欄通知小卡（支援每頁 10/8/6 格切換、自訂縮放比例與單頁溢出檢測）
         function renderParentSlipsA4(container, students) {
             const optLoginSteps = document.getElementById('printOptSubjAvg').checked;
             const optAnytimeTip = document.getElementById('printOptPillars').checked;
@@ -1318,9 +1611,14 @@ function testGitHubConnection() {
             const qrCaptionHtml = escapeSlipHtml(slipCustomTexts.qrCaption);
             const footerHtml = escapeSlipHtml(slipCustomTexts.footer);
 
+            const perPage = currentCardsPerPage || 10;
+            const scale = currentPrintScale || 100;
+            const gridClass = perPage === 6 ? 'a4-grid-6' : (perPage === 8 ? 'a4-grid-8' : 'a4-grid-10');
+            const qrSize = Math.max(46, Math.min(60, Math.round(56 * (scale / 100))));
+
             const chunks = [];
-            for (let i = 0; i < students.length; i += 10) {
-                chunks.push(students.slice(i, i + 10));
+            for (let i = 0; i < students.length; i += perPage) {
+                chunks.push(students.slice(i, i + perPage));
             }
 
             container.innerHTML = chunks.map((pageStudents, pageIdx) => {
@@ -1354,7 +1652,7 @@ function testGitHubConnection() {
                     ` : '';
 
                     return `
-                        <div class="slip-card">
+                        <div class="slip-card" data-scale="${scale}">
                             <!-- 頂部學生資訊列（不含任何成績分數） -->
                             <div class="flex items-center justify-between border-b border-slate-200 pb-1">
                                 <div class="flex items-center gap-1.5 min-w-0">
@@ -1377,9 +1675,9 @@ function testGitHubConnection() {
                                     ${anytimeTipBoxHtml}
                                     ${fallbackGuideHtml}
                                 </div>
-                                <div class="shrink-0 flex flex-col items-center justify-center p-1.5 border border-sky-200 rounded-lg bg-white shadow-sm">
-                                    <div id="${qrDomId}" data-token="${st.token}" class="qr-target w-[58px] h-[58px] flex items-center justify-center"></div>
-                                    ${qrCaptionHtml ? `<div class="text-[7.5px] font-extrabold text-sky-800 mt-1">${qrCaptionHtml}</div>` : ''}
+                                <div class="shrink-0 flex flex-col items-center justify-center p-1 border border-sky-200 rounded-lg bg-white shadow-sm">
+                                    <div id="${qrDomId}" data-token="${st.token}" style="width: ${qrSize}px; height: ${qrSize}px;" class="qr-target flex items-center justify-center"></div>
+                                    ${qrCaptionHtml ? `<div class="text-[7.5px] font-extrabold text-sky-800 mt-0.5">${qrCaptionHtml}</div>` : ''}
                                     ${optTokenText ? `<div class="text-[7.5px] font-mono font-bold text-slate-500 leading-none mt-0.5">${st.token}</div>` : ''}
                                 </div>
                             </div>
@@ -1393,19 +1691,25 @@ function testGitHubConnection() {
                 }).join('');
 
                 return `
-                    <div class="a4-sheet">
-                        <div class="flex items-center justify-between text-[10px] text-slate-500 pb-1.5 border-b border-slate-200 mb-2">
-                            <span class="font-bold text-slate-700">📊 MPScore-Daily 學生平時成績雲端查詢通行小卡（家長登入指引版 ‧ 票面不顯示成績）</span>
-                            <span>第 ${pageIdx + 1} / ${chunks.length} 頁（請沿虛線裁切發放）</span>
+                    <div class="a4-sheet" style="--slip-scale: ${scale / 100};">
+                        <div class="flex items-center justify-between text-[10px] text-slate-500 pb-1 border-b border-slate-200 mb-1.5">
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-slate-700">📊 MPScore-Daily 學生平時成績雲端查詢通行小卡（家長登入指引版 ‧ 票面不顯示成績）</span>
+                                <span class="a4-sheet-status-badge text-[9.5px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-0.2">✅ 符合單頁尺寸</span>
+                            </div>
+                            <div class="flex items-center gap-2 font-mono">
+                                <span class="text-slate-600">每頁 ${perPage} 格 ‧ 縮放 ${scale}%</span>
+                                <span>第 ${pageIdx + 1} / ${chunks.length} 頁（請沿虛線裁切發放）</span>
+                            </div>
                         </div>
-                        <div class="a4-grid-10">
+                        <div class="${gridClass}">
                             ${cardsHtml}
                         </div>
                     </div>
                 `;
             }).join('');
 
-            // 生成所有 QR Code
+            // 生成所有 QR Code 並執行單頁溢出檢測
             setTimeout(() => {
                 document.querySelectorAll('.qr-target').forEach(el => {
                     el.innerHTML = '';
@@ -1413,13 +1717,14 @@ function testGitHubConnection() {
                     const url = buildParentPortalUrl(token);
                     new QRCode(el, {
                         text: url,
-                        width: 58,
-                        height: 58,
+                        width: qrSize,
+                        height: qrSize,
                         colorDark: "#1e293b",
                         colorLight: "#ffffff",
                         correctLevel: QRCode.CorrectLevel.M
                     });
                 });
+                setTimeout(checkA4PagesOverflow, 60);
             }, 30);
         }
 
@@ -1494,19 +1799,28 @@ function testGitHubConnection() {
                     ? `MPScore-Daily_教師留存查詢代碼核對表_${new Date().toISOString().slice(0, 10)}.pdf`
                     : `MPScore-Daily_家長版平時成績查詢小卡_${new Date().toISOString().slice(0, 10)}.pdf`;
 
+                // 匯出 PDF 前暫時移除溢出警告邊框，避免污染輸出之 PDF 文件
+                const overflowingSheets = document.querySelectorAll('.a4-sheet-overflow');
+                overflowingSheets.forEach(s => s.classList.remove('a4-sheet-overflow'));
+
                 html2pdf().set({
                     margin: 0,
                     filename: filename,
                     image: { type: 'jpeg', quality: 0.98 },
                     html2canvas: { scale: 2, useCORS: true },
                     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                }).from(target).save();
+                }).from(target).save().then(() => {
+                    overflowingSheets.forEach(s => s.classList.add('a4-sheet-overflow'));
+                }).catch(() => {
+                    overflowingSheets.forEach(s => s.classList.add('a4-sheet-overflow'));
+                });
             }, 250);
         }
 
-        // 初始化：載入教師自訂小卡文字與雲端試算表連線
+        // 初始化：載入排版設定、教師自訂小卡文字與雲端試算表連線
         window.addEventListener('DOMContentLoaded', () => {
             document.getElementById('loaderCodePreview').textContent = LOADER_GS_SOURCE;
+            loadPrintLayoutSettings();
             loadSlipCustomTexts();
             const savedUrl = (localStorage.getItem('mpdaily_api_url') || ((typeof CONFIG !== 'undefined' && CONFIG.API_URL) ? CONFIG.API_URL : '')).trim();
             if (savedUrl) {
@@ -1514,6 +1828,12 @@ function testGitHubConnection() {
                 connectCloudGradebook();
             } else {
                 renderTeacherRosterTable();
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            if (!document.getElementById('printPreviewModal').classList.contains('hidden')) {
+                checkA4PagesOverflow();
             }
         });
     </script>
