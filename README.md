@@ -43,6 +43,17 @@
 
 ## 📝 版本更新紀錄 (Changelog)
 
+### v2.7.2 — 2026-10-18（徹底根絕「網頁直接列印」雜訊 & 8 格拆成 6+2 跨頁截斷問題）
+- **🖨️ 徹底隔離列印媒體（@media print）杜絕網頁列印干擾**：
+  - 導入 `body > :not(#printPreviewModal) { display: none !important; }`，徹底排除導覽列、操作面板與網頁外層容器，並清空預覽容器的外距與內距，確保瀏覽器「只列印乾淨 A4 小卡頁面」。
+  - 強制啟用 `-webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;`，確保列印小卡底色（藍色、綠色膠囊）完好保留。
+- **杜絕 8 格小卡被拆成 6 張 + 2 張跨頁問題**：
+  - 單頁尺寸鎖定為 `210mm × 296mm` 搭配 `overflow: hidden !important;`，徹底消除次像素捨入（1122.5px vs 1123px）造成第 4 列小卡被拆至次頁的現象。
+- **🔤 校準藍色膠囊字形垂直居中度量**：
+  - 改採 `font-bold` 與 `leading-none`，消除過重字級在微小尺寸下的偏下切底問題。
+- **📄 PDF 匯出固定桌面寬度**：
+  - 於 html2canvas 加入 `windowWidth: 1200`，杜絕不同裝置解析度與行動端螢幕造成的 PDF 版面擠壓。
+
 ### v2.7.0 — 2026-10-18（徹底根除中文字形切頂截斷 & 全入口更新紀錄窗格）
 - **🔤 徹底根除中文字元（CJK）字頂截斷與字塊截斷**：
   - **移除 `truncate` 隱性溢出截斷**：在小卡橫幅與學生姓名等固定長度區塊移除 `truncate`（自帶 `overflow: hidden`），全面改採 `whitespace-nowrap overflow-visible`，讓字元上下延伸部完整展示。

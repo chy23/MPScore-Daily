@@ -129,10 +129,10 @@
 
         .a4-sheet {
             width: 210mm;
-            min-height: 297mm;
-            height: 297mm;
-            max-height: 297mm;
-            padding: calc(4.5mm * var(--slip-scale, 1)) calc(6.5mm * var(--slip-scale, 1));
+            min-height: 296mm;
+            height: 296mm;
+            max-height: 296mm;
+            padding: calc(4mm * var(--slip-scale, 1)) calc(6mm * var(--slip-scale, 1));
             margin: 0 auto;
             background: #ffffff;
             box-sizing: border-box;
@@ -145,6 +145,7 @@
             break-after: page;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
+            overflow: hidden;
             position: relative;
             box-sizing: border-box;
             transition: outline 0.2s ease, box-shadow 0.2s ease;
@@ -184,7 +185,7 @@
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
             grid-template-rows: repeat(4, minmax(0, 1fr));
-            gap: calc(2.4mm * var(--slip-scale, 1)) calc(3.2mm * var(--slip-scale, 1));
+            gap: calc(2mm * var(--slip-scale, 1)) calc(3mm * var(--slip-scale, 1));
             flex: 1;
             min-height: 0;
             height: 100%;
@@ -230,8 +231,8 @@
         }
 
         .a4-grid-8 .slip-card {
-            --card-pad-v: 2.4mm;
-            --card-pad-h: 3.2mm;
+            --card-pad-v: 2mm;
+            --card-pad-h: 2.8mm;
             border-radius: 10px;
         }
 
@@ -280,39 +281,88 @@
         @media print {
             @page {
                 size: A4 portrait;
-                margin: 0;
+                margin: 0 !important;
             }
-            body {
+            html, body {
+                width: 210mm !important;
+                height: auto !important;
+                margin: 0 !important;
+                padding: 0 !important;
                 background: #ffffff !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
-            .no-print {
+            /* 關鍵：徹底隱藏頁面上除列印對話框以外的所有頂層元素，杜絕任何第 1 頁空白頁 */
+            body > :not(#printPreviewModal) {
+                display: none !important;
+            }
+            header, nav, main, #teacherApp, #parentPortal, #teacherChangelogModal, #a4Ruler297mm, footer, .no-print {
                 display: none !important;
             }
             #printPreviewModal {
                 position: static !important;
-                background: transparent !important;
-                padding: 0 !important;
-                margin: 0 !important;
                 display: block !important;
+                width: 210mm !important;
+                max-width: 210mm !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: white !important;
+                overflow: visible !important;
+                border: none !important;
+                box-shadow: none !important;
+            }
+            #printPreviewModal > div {
+                max-width: 100% !important;
+                width: 210mm !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                border: none !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                overflow: visible !important;
             }
             #a4PreviewContainer {
                 padding: 0 !important;
                 margin: 0 !important;
-                display: block !important;
+                background: white !important;
+                overflow: visible !important;
+                max-height: none !important;
+                width: 210mm !important;
+                max-width: 210mm !important;
+            }
+            #a4PreviewContainer > * {
+                margin: 0 !important;
             }
             .a4-sheet {
-                box-shadow: none !important;
-                border-radius: 0 !important;
-                margin: 0 auto !important;
                 width: 210mm !important;
-                min-height: 297mm !important;
-                height: 297mm !important;
-                outline: none !important;
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
+                max-width: 210mm !important;
+                height: 296mm !important;
+                max-height: 296mm !important;
+                min-height: 0 !important;
+                padding: 4mm 6mm 3mm 6mm !important;
+                margin: 0 !important;
+                box-sizing: border-box !important;
+                box-shadow: none !important;
+                border: none !important;
+                border-radius: 0 !important;
+                page-break-before: auto !important;
+                break-before: auto !important;
                 page-break-after: always !important;
                 break-after: page !important;
-                box-sizing: border-box !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                overflow: hidden !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+            }
+            .a4-sheet:first-child {
+                page-break-before: avoid !important;
+                break-before: avoid !important;
+            }
+            .a4-sheet:last-child {
+                page-break-after: avoid !important;
+                break-after: avoid !important;
             }
             .slip-card {
                 page-break-inside: avoid !important;
@@ -818,7 +868,7 @@
                         <button id="btnDownloadPdfTeacher" onclick="downloadPdfFile('teacher')" class="min-h-[38px] px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition flex items-center gap-1">
                             <span>⬇️ 下載教師留存 PDF</span>
                         </button>
-                        <button onclick="window.print()" class="min-h-[38px] px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs shadow-sm transition flex items-center gap-1">
+                        <button onclick="triggerDirectPrint()" class="min-h-[38px] px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs shadow-sm transition flex items-center gap-1">
                             <span>🖨️ 直接列印</span>
                         </button>
                         <button onclick="closePrintPreviewModal()" class="min-h-[38px] px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold text-xs transition">
@@ -994,7 +1044,7 @@
                     <div>
                         <div class="flex items-center gap-2">
                             <h3 class="text-base md:text-lg font-black tracking-tight text-white">MPScore-Daily 系統詳細更新紀錄</h3>
-                            <span class="text-[10px] bg-emerald-500 text-white font-black px-2 py-0.5 rounded-full">v2.5.1 最新版</span>
+                            <span class="text-[10px] bg-emerald-500 text-white font-black px-2 py-0.5 rounded-full">v2.7.2 最新版</span>
                         </div>
                         <p class="text-xs text-sky-100 mt-0.5">平時成績無痛結算 ‧ 親師雲端即時溝通 ‧ 國中小專用智慧平台</p>
                     </div>
@@ -1007,11 +1057,35 @@
             <!-- 更新日誌內容滾動區 -->
             <div class="p-5 md:p-8 overflow-y-auto space-y-6 text-xs text-slate-700 bg-slate-50/50 leading-relaxed">
                 
-                <!-- v2.5.1 最新版里程碑 -->
-                <div class="bg-white p-5 rounded-3xl border border-sky-300 shadow-sm space-y-4 relative overflow-hidden ring-2 ring-sky-400/20">
+                <!-- v2.7.2 最新版里程碑 -->
+                <div class="bg-white p-5 rounded-3xl border border-amber-300 shadow-sm space-y-4 relative overflow-hidden ring-2 ring-amber-400/20">
                     <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                         <div class="flex items-center gap-2">
-                            <span class="text-xs font-black bg-sky-600 text-white px-2.5 py-1 rounded-xl shadow-xs">v2.5.1 最新版</span>
+                            <span class="text-xs font-black bg-amber-500 text-slate-950 px-2.5 py-1 rounded-xl shadow-xs">v2.7.2 最新版</span>
+                            <span class="text-sm font-black text-slate-900">🖨️ 徹底根絕「網頁直接列印」雜訊 & 8 格拆成 6+2 跨頁截斷問題</span>
+                        </div>
+                        <span class="text-[11px] text-slate-400 font-mono font-bold">2026-10-18</span>
+                    </div>
+
+                    <div class="space-y-3.5">
+                        <div class="p-3.5 bg-amber-50/80 rounded-2xl border border-amber-200/80 text-[11px] text-amber-950 font-bold space-y-1.5">
+                            <div>🎯 <b>本次核心排版與列印重構說明</b>：</div>
+                            <ul class="list-disc list-inside font-normal text-slate-700 pl-1 space-y-1.5">
+                                <li><b>徹底隔離列印媒體（@media print）</b>：導入 <code class="text-amber-800 font-mono">body > :not(#printPreviewModal) { display: none !important; }</code>，列印時強制消除導覽列、操作面板與網頁外層容器，並重置預覽層的所有外距與內距，確保印表機「只列印乾淨 A4 小卡頁面」。</li>
+                                <li><b>杜絕 8 格小卡被拆成 6 張 + 2 張跨頁問題</b>：將單頁尺寸鎖定為 <code class="text-amber-800 font-mono">210mm × 296mm</code> 搭配 <code class="text-amber-800 font-mono">overflow: hidden !important;</code>，徹底杜絕瀏覽器因為微小的次像素捨入（1122.5px vs 1123px）而誤將第 4 列小卡拆散至下一頁的現象。</li>
+                                <li><b>強制啟用列印色彩（Print Color Adjust）</b>：加入 <code class="text-amber-800 font-mono">-webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;</code>，讓小卡藍色標籤、綠色標籤與步驟底色在印表機與另存 PDF 中完好保留。</li>
+                                <li><b>校準藍色膠囊字形垂直居中度量</b>：改採 <code class="text-amber-800 font-mono">font-bold</code> 與 <code class="text-amber-800 font-mono">leading-none</code>，徹底消除先前因過重字級產生的偏下切底問題。</li>
+                                <li><b>PDF 匯出寬度固定鎖定</b>：於 html2canvas 加入 <code class="text-amber-800 font-mono">windowWidth: 1200</code>，防止窄螢幕或行動端匯出 PDF 時版面遭到擠壓。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- v2.5.1 版本里程碑 -->
+                <div class="bg-white p-5 rounded-3xl border border-sky-300 shadow-sm space-y-4 relative overflow-hidden">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-black bg-sky-600 text-white px-2.5 py-1 rounded-xl">v2.5.1</span>
                             <span class="text-sm font-black text-slate-900">🔤 徹底根除中文字形切頂截斷 & 全入口更新紀錄窗格</span>
                         </div>
                         <span class="text-[11px] text-slate-400 font-mono font-bold">2026-10-18</span>
@@ -1988,8 +2062,8 @@ function testGitHubConnection() {
                 : (is6Grid ? 'text-xs font-bold text-slate-600' : 'text-[9.5px] font-bold text-slate-600');
 
             const badgeFont = is4Grid
-                ? 'text-xs font-black px-2 py-0.5'
-                : (is6Grid ? 'text-[10px] font-black px-1.5 py-0.5' : (is8Grid ? 'text-[9px] font-black px-1.5 py-0.5' : 'text-[8px] font-black px-1 py-0.5'));
+                ? 'text-xs font-bold px-2 py-1'
+                : (is6Grid ? 'text-[10px] font-bold px-1.5 py-0.5' : (is8Grid ? 'text-[9px] font-bold px-1.5 py-0.5' : 'text-[8px] font-bold px-1 py-0.5'));
 
             const topTagFont = is4Grid
                 ? 'text-[10.5px] font-extrabold px-2 py-0.5'
@@ -2073,7 +2147,7 @@ function testGitHubConnection() {
                             <!-- 頂部學生資訊列（不含任何成績分數） -->
                             <div class="flex items-center justify-between ${headerBorderClass}">
                                 <div class="flex items-center gap-1.5 min-w-0">
-                                    ${badgeHtml ? `<span class="rounded bg-sky-600 text-white font-black inline-flex items-center justify-center leading-normal ${badgeFont} shrink-0">${badgeHtml}</span>` : ''}
+                                    ${badgeHtml ? `<span class="rounded bg-sky-600 text-white font-bold inline-flex items-center justify-center leading-none ${badgeFont} shrink-0">${badgeHtml}</span>` : ''}
                                     ${optSeatClass ? `<span class="${seatClassFont} shrink-0 leading-normal">${st.className || '本班'} ${st.seatNo}號</span>` : ''}
                                     <span class="${nameFont} text-slate-900 whitespace-nowrap leading-snug">${st.name}</span>
                                 </div>
@@ -2249,15 +2323,24 @@ function testGitHubConnection() {
                     if (btn) btn.innerHTML = `<span>⏳ 正在生成 PDF (${i + 1}/${sheets.length})...</span>`;
                     const sheet = sheets[i];
 
-                    // 使用 html2canvas 逐頁獨立精確擷取單張 A4 畫布 (徹底根絕多頁長卷裁切、偏位與空白頁)
+                    const prevRadius = sheet.style.borderRadius;
+                    const prevShadow = sheet.style.boxShadow;
+                    sheet.style.borderRadius = '0px';
+                    sheet.style.boxShadow = 'none';
+
+                    // 使用 html2canvas 逐頁獨立精確擷取單張 A4 畫布 (固定 windowWidth 防止窄螢幕或行動端版面擠壓)
                     const canvas = await html2canvas(sheet, {
                         scale: 2,
                         useCORS: true,
                         logging: false,
-                        backgroundColor: '#ffffff'
+                        backgroundColor: '#ffffff',
+                        windowWidth: 1200
                     });
 
-                    const imgData = canvas.toDataURL('image/jpeg', 0.98);
+                    sheet.style.borderRadius = prevRadius;
+                    sheet.style.boxShadow = prevShadow;
+
+                    const imgData = canvas.toDataURL('image/jpeg', 0.96);
                     if (i > 0) {
                         pdf.addPage('a4', 'portrait');
                     }
@@ -2275,6 +2358,25 @@ function testGitHubConnection() {
                 overflowingSheets.forEach(s => s.classList.add('a4-sheet-overflow'));
             }
         }
+
+        // 直接觸發專用乾淨列印 (徹底隔絕網頁雜訊，精確 1 頁 A4 印 8 格)
+        function triggerDirectPrint() {
+            if (document.getElementById('printPreviewModal').classList.contains('hidden')) {
+                openPrintPreviewModal();
+            }
+            setTimeout(() => {
+                window.print();
+            }, 250);
+        }
+
+        // 系統快捷鍵或瀏覽器原生列印監聽
+        window.addEventListener('beforeprint', () => {
+            const modal = document.getElementById('printPreviewModal');
+            if (modal && modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                renderA4PrintSheets();
+            }
+        });
 
         // 初始化：載入排版設定、教師自訂小卡文字與雲端試算表連線
         window.addEventListener('DOMContentLoaded', () => {
