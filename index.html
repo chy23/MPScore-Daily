@@ -160,43 +160,47 @@
         /* 雙欄 10 格 (5 列 × 2 欄) */
         .a4-grid-10 {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            grid-template-rows: repeat(5, 1fr);
-            gap: calc(2.2mm * var(--slip-scale, 1)) calc(3mm * var(--slip-scale, 1));
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-rows: repeat(5, minmax(0, 1fr));
+            gap: calc(2mm * var(--slip-scale, 1)) calc(3mm * var(--slip-scale, 1));
             flex: 1;
+            min-height: 0;
         }
 
         /* 雙欄 8 格 (4 列 × 2 欄，推薦防溢版) */
         .a4-grid-8 {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            grid-template-rows: repeat(4, 1fr);
-            gap: calc(2.8mm * var(--slip-scale, 1)) calc(3.5mm * var(--slip-scale, 1));
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-rows: repeat(4, minmax(0, 1fr));
+            gap: calc(2.4mm * var(--slip-scale, 1)) calc(3.2mm * var(--slip-scale, 1));
             flex: 1;
+            min-height: 0;
         }
 
         /* 雙欄 6 格 (3 列 × 2 欄，大字清晰版) */
         .a4-grid-6 {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            grid-template-rows: repeat(3, 1fr);
-            gap: calc(4mm * var(--slip-scale, 1)) calc(4mm * var(--slip-scale, 1));
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-rows: repeat(3, minmax(0, 1fr));
+            gap: calc(3.5mm * var(--slip-scale, 1)) calc(4mm * var(--slip-scale, 1));
             flex: 1;
+            min-height: 0;
         }
 
         /* 雙欄 4 格 (2 列 × 2 欄，特大卡片版) */
         .a4-grid-4 {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            grid-template-rows: repeat(2, 1fr);
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-rows: repeat(2, minmax(0, 1fr));
             gap: calc(5mm * var(--slip-scale, 1)) calc(5mm * var(--slip-scale, 1));
             flex: 1;
+            min-height: 0;
         }
 
         .slip-card {
             border: 1.5px dashed #94a3b8;
             border-radius: 8px;
-            padding: calc(1.8mm * var(--slip-scale, 1)) calc(2.8mm * var(--slip-scale, 1));
+            padding: calc(1.4mm * var(--slip-scale, 1)) calc(2.2mm * var(--slip-scale, 1));
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -204,6 +208,7 @@
             box-sizing: border-box;
             position: relative;
             overflow: hidden;
+            min-height: 0;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
         }
@@ -1603,7 +1608,7 @@ function testGitHubConnection() {
             if (banner) banner.classList.add('hidden');
         }
 
-        // 檢測目前預覽的所有 A4 頁面是否超出單頁 296mm 高度上限或小卡文字擠壓
+        // 檢測目前預覽的所有 A4 頁面是否超出單頁 297mm 高度上限或小卡文字擠壓
         function checkA4PagesOverflow() {
             const ruler = document.getElementById('a4Ruler297mm');
             if (!ruler) return;
@@ -1615,17 +1620,29 @@ function testGitHubConnection() {
             let maxOverflowMm = 0;
 
             sheets.forEach(sheet => {
-                const contentHeight = sheet.scrollHeight;
-                const clientHeight = sheet.clientHeight || standardPx;
-
-                // 檢查是否有內部小卡文字遭裁切擠壓
+                const sheetRect = sheet.getBoundingClientRect();
+                let maxCardBottom = sheetRect.bottom;
                 let maxCardOverflow = 0;
+
                 sheet.querySelectorAll('.slip-card').forEach(card => {
-                    const cardDiff = card.scrollHeight - card.clientHeight;
-                    if (cardDiff > maxCardOverflow) maxCardOverflow = cardDiff;
+                    const cardRect = card.getBoundingClientRect();
+                    if (cardRect.bottom > maxCardBottom) {
+                        maxCardBottom = cardRect.bottom;
+                    }
+                    // 檢查卡片內部是否有內容被截斷
+                    const internalOverflow = card.scrollHeight - card.clientHeight;
+                    if (internalOverflow > maxCardOverflow) {
+                        maxCardOverflow = internalOverflow;
+                    }
                 });
 
-                const diffPx = Math.max(contentHeight - standardPx, contentHeight - clientHeight, maxCardOverflow);
+                // 物理邊界溢出 (卡片底部超出 Sheet 底部) 或 內部溢出
+                const borderOverflowPx = Math.max(0, maxCardBottom - sheetRect.bottom);
+                const contentHeight = sheet.scrollHeight;
+                const clientHeight = sheet.clientHeight || standardPx;
+                const scrollOverflowPx = Math.max(0, contentHeight - standardPx, contentHeight - clientHeight);
+
+                const diffPx = Math.max(borderOverflowPx, scrollOverflowPx, maxCardOverflow);
                 const statusBadge = sheet.querySelector('.a4-sheet-status-badge');
 
                 if (diffPx > 2) { // 超過 2px 容差即判定為跨頁切斷風險
@@ -1681,7 +1698,16 @@ function testGitHubConnection() {
             let maxRatio = 1;
 
             sheets.forEach(sheet => {
-                const ratio = sheet.scrollHeight / standardPx;
+                const sheetRect = sheet.getBoundingClientRect();
+                let maxCardBottom = sheetRect.bottom;
+                sheet.querySelectorAll('.slip-card').forEach(card => {
+                    const cardRect = card.getBoundingClientRect();
+                    if (cardRect.bottom > maxCardBottom) {
+                        maxCardBottom = cardRect.bottom;
+                    }
+                });
+                const realHeight = Math.max(sheet.scrollHeight, sheetRect.height + (maxCardBottom - sheetRect.bottom));
+                const ratio = realHeight / standardPx;
                 if (ratio > maxRatio) maxRatio = ratio;
             });
 
@@ -1736,8 +1762,8 @@ function testGitHubConnection() {
             const perPage = currentCardsPerPage || 10;
             const scale = currentPrintScale || 100;
             const gridClass = perPage === 4 ? 'a4-grid-4' : (perPage === 6 ? 'a4-grid-6' : (perPage === 8 ? 'a4-grid-8' : 'a4-grid-10'));
-            const baseQr = perPage >= 10 ? 46 : (perPage >= 8 ? 50 : 56);
-            const qrSize = Math.max(42, Math.min(56, Math.round(baseQr * (scale / 100))));
+            const baseQr = perPage >= 10 ? 44 : (perPage >= 8 ? 48 : 54);
+            const qrSize = Math.max(40, Math.min(54, Math.round(baseQr * (scale / 100))));
 
             const chunks = [];
             for (let i = 0; i < students.length; i += perPage) {
@@ -1749,27 +1775,27 @@ function testGitHubConnection() {
                     const qrDomId = `qr_${pageIdx}_${cardIdx}`;
 
                     const subtitleBarHtml = (optSubtitle && subtitleHtml) ? `
-                        <div class="text-[8.5px] font-bold text-slate-700 bg-slate-50 border border-slate-200/90 rounded px-2 py-0.5 truncate">
+                        <div class="text-[8px] font-bold text-slate-700 bg-slate-50 border border-slate-200/90 rounded px-1.5 py-0.5 truncate leading-tight">
                             ${subtitleHtml}
                         </div>
                     ` : '';
 
                     const loginStepBoxHtml = (optLoginSteps && (step1TitleHtml || step1BodyHtml)) ? `
-                        <div class="bg-[#EDF5FA] border border-[#C5DDF0] rounded-md px-2 py-0.5 space-y-0.5">
-                            ${step1TitleHtml ? `<div class="text-[9px] font-black text-sky-900 leading-snug">${step1TitleHtml}</div>` : ''}
-                            ${step1BodyHtml ? `<div class="text-[8px] text-slate-700 leading-tight">${step1BodyHtml}</div>` : ''}
+                        <div class="bg-[#EDF5FA] border border-[#C5DDF0] rounded px-1.5 py-0.5 space-y-0.5">
+                            ${step1TitleHtml ? `<div class="text-[8.5px] font-black text-sky-900 leading-snug">${step1TitleHtml}</div>` : ''}
+                            ${step1BodyHtml ? `<div class="text-[7.5px] text-slate-700 leading-tight">${step1BodyHtml}</div>` : ''}
                         </div>
                     ` : '';
 
                     const anytimeTipBoxHtml = (optAnytimeTip && (step2TitleHtml || step2BodyHtml)) ? `
-                        <div class="bg-[#ECF6F0] border border-[#BFE3CE] rounded-md px-2 py-0.5 space-y-0.5">
-                            ${step2TitleHtml ? `<div class="text-[9px] font-black text-emerald-900 leading-snug">${step2TitleHtml}</div>` : ''}
-                            ${step2BodyHtml ? `<div class="text-[8px] text-slate-700 leading-tight">${step2BodyHtml}</div>` : ''}
+                        <div class="bg-[#ECF6F0] border border-[#BFE3CE] rounded px-1.5 py-0.5 space-y-0.5">
+                            ${step2TitleHtml ? `<div class="text-[8.5px] font-black text-emerald-900 leading-snug">${step2TitleHtml}</div>` : ''}
+                            ${step2BodyHtml ? `<div class="text-[7.5px] text-slate-700 leading-tight">${step2BodyHtml}</div>` : ''}
                         </div>
                     ` : '';
 
                     const fallbackGuideHtml = (!optLoginSteps && !optAnytimeTip) ? `
-                        <div class="bg-[#EDF5FA] border border-[#C5DDF0] rounded-md px-2 py-1 text-[8.5px] text-slate-700 leading-snug">
+                        <div class="bg-[#EDF5FA] border border-[#C5DDF0] rounded px-1.5 py-0.5 text-[8px] text-slate-700 leading-snug">
                             📱 請使用手機相機掃描右側專屬 QR Code 登入，並建議拍照留存於手機相簿，全學期皆可隨時查看最新平時表現。
                         </div>
                     ` : '';
@@ -1779,20 +1805,20 @@ function testGitHubConnection() {
                             <!-- 頂部學生資訊列（不含任何成績分數） -->
                             <div class="flex items-center justify-between border-b border-slate-200 pb-0.5">
                                 <div class="flex items-center gap-1.5 min-w-0">
-                                    ${badgeHtml ? `<span class="px-1.5 py-0.5 rounded bg-sky-600 text-white font-black text-[9px] shrink-0">${badgeHtml}</span>` : ''}
-                                    ${optSeatClass ? `<span class="text-[10px] font-bold text-slate-600 shrink-0">${st.className || '本班'} ${st.seatNo}號</span>` : ''}
-                                    <span class="text-sm font-black text-slate-900 truncate">${st.name}</span>
+                                    ${badgeHtml ? `<span class="px-1.5 py-0.5 rounded bg-sky-600 text-white font-black text-[8px] shrink-0">${badgeHtml}</span>` : ''}
+                                    ${optSeatClass ? `<span class="text-[9.5px] font-bold text-slate-600 shrink-0">${st.className || '本班'} ${st.seatNo}號</span>` : ''}
+                                    <span class="text-[12px] font-black text-slate-900 truncate">${st.name}</span>
                                 </div>
                                 ${topTagHtml ? `
                                 <div class="text-right shrink-0">
-                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[8px] font-extrabold">${topTagHtml}</span>
+                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[7.5px] font-extrabold">${topTagHtml}</span>
                                 </div>
                                 ` : ''}
                             </div>
 
                             <!-- 中段：左側家長登入與隨時查看指南 + 右側專屬 QR Code -->
-                            <div class="flex items-center justify-between gap-2 my-auto py-0.5">
-                                <div class="flex-1 min-w-0 space-y-1">
+                            <div class="flex items-center justify-between gap-2 py-0.5 my-auto min-h-0">
+                                <div class="flex-1 min-w-0 space-y-0.5">
                                     ${subtitleBarHtml}
                                     ${loginStepBoxHtml}
                                     ${anytimeTipBoxHtml}
@@ -1800,13 +1826,13 @@ function testGitHubConnection() {
                                 </div>
                                 <div class="shrink-0 flex flex-col items-center justify-center p-1 border border-sky-200 rounded-lg bg-white shadow-sm">
                                     <div id="${qrDomId}" data-token="${st.token}" style="width: ${qrSize}px; height: ${qrSize}px;" class="qr-target flex items-center justify-center"></div>
-                                    ${qrCaptionHtml ? `<div class="text-[7.5px] font-extrabold text-sky-800 mt-0.5">${qrCaptionHtml}</div>` : ''}
-                                    ${optTokenText ? `<div class="text-[7.5px] font-mono font-bold text-slate-500 leading-none mt-0.5">${st.token}</div>` : ''}
+                                    ${qrCaptionHtml ? `<div class="text-[7px] font-extrabold text-sky-800 mt-0.5">${qrCaptionHtml}</div>` : ''}
+                                    ${optTokenText ? `<div class="text-[7px] font-mono font-bold text-slate-500 leading-none mt-0.5">${st.token}</div>` : ''}
                                 </div>
                             </div>
 
                             <!-- 底部保存提醒（全寬單行呈現，支援教師自訂修改） -->
-                            <div class="flex items-center justify-between border-t border-slate-200 pt-0.5 text-[8px] text-slate-600">
+                            <div class="flex items-center justify-between border-t border-slate-200 pt-0.5 text-[7.5px] text-slate-600 leading-none">
                                 <span>${footerHtml}</span>
                             </div>
                         </div>
