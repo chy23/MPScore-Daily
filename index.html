@@ -23,9 +23,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700;800&family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <!-- QRCode.js & html2pdf.js -->
+    <!-- QRCode.js & html2canvas & jsPDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- System Config -->
     <script src="config.js"></script>
 
@@ -129,6 +130,8 @@
         .a4-sheet {
             width: 210mm;
             min-height: 297mm;
+            height: 297mm;
+            max-height: 297mm;
             padding: calc(4.5mm * var(--slip-scale, 1)) calc(6.5mm * var(--slip-scale, 1));
             margin: 0 auto;
             background: #ffffff;
@@ -143,6 +146,7 @@
             page-break-inside: avoid !important;
             break-inside: avoid !important;
             position: relative;
+            box-sizing: border-box;
             transition: outline 0.2s ease, box-shadow 0.2s ease;
         }
 
@@ -761,10 +765,10 @@
                             </button>
                         </div>
 
-                        <button onclick="downloadPdfFile('parent')" class="min-h-[38px] px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-sm transition flex items-center gap-1">
+                        <button id="btnDownloadPdfParent" onclick="downloadPdfFile('parent')" class="min-h-[38px] px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-sm transition flex items-center gap-1">
                             <span>⬇️ 下載家長版 PDF</span>
                         </button>
-                        <button onclick="downloadPdfFile('teacher')" class="min-h-[38px] px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition flex items-center gap-1">
+                        <button id="btnDownloadPdfTeacher" onclick="downloadPdfFile('teacher')" class="min-h-[38px] px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition flex items-center gap-1">
                             <span>⬇️ 下載教師留存 PDF</span>
                         </button>
                         <button onclick="window.print()" class="min-h-[38px] px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs shadow-sm transition flex items-center gap-1">
@@ -1908,37 +1912,74 @@ function testGitHubConnection() {
             `;
         }
 
-        function downloadPdfFile(edition) {
+        async function downloadPdfFile(edition) {
             if (currentPrintEdition !== edition) {
                 switchPrintEdition(edition);
+                await new Promise(r => setTimeout(r, 200));
             }
-            setTimeout(() => {
-                const target = document.getElementById('a4PreviewContainer');
+
+            const sheets = document.querySelectorAll('#a4PreviewContainer .a4-sheet');
+            if (!sheets.length) {
+                alert('目前沒有可匯出的小卡頁面！');
+                return;
+            }
+
+            const btn = edition === 'teacher' ? document.getElementById('btnDownloadPdfTeacher') : document.getElementById('btnDownloadPdfParent');
+            const originalBtnHtml = btn ? btn.innerHTML : '';
+            if (btn) btn.innerHTML = `<span>⏳ 正在生成 PDF (0/${sheets.length})...</span>`;
+
+            // 匯出 PDF 前暫時移除溢出警告邊框，避免污染輸出之 PDF 文件
+            const overflowingSheets = document.querySelectorAll('.a4-sheet-overflow');
+            overflowingSheets.forEach(s => s.classList.remove('a4-sheet-overflow'));
+
+            // 確保容器歸零水平捲動位置
+            const container = document.getElementById('a4PreviewContainer');
+            if (container) container.scrollLeft = 0;
+
+            try {
+                const jsPDFClass = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+                if (!jsPDFClass) {
+                    throw new Error('jsPDF library not loaded');
+                }
+                const pdf = new jsPDFClass({
+                    unit: 'mm',
+                    format: 'a4',
+                    orientation: 'portrait'
+                });
+
                 const filename = edition === 'teacher'
                     ? `MPScore-Daily_教師留存查詢代碼核對表_${new Date().toISOString().slice(0, 10)}.pdf`
                     : `MPScore-Daily_家長版平時成績查詢小卡_${new Date().toISOString().slice(0, 10)}.pdf`;
 
-                // 匯出 PDF 前暫時移除溢出警告邊框，避免污染輸出之 PDF 文件
-                const overflowingSheets = document.querySelectorAll('.a4-sheet-overflow');
-                overflowingSheets.forEach(s => s.classList.remove('a4-sheet-overflow'));
+                for (let i = 0; i < sheets.length; i++) {
+                    if (btn) btn.innerHTML = `<span>⏳ 正在生成 PDF (${i + 1}/${sheets.length})...</span>`;
+                    const sheet = sheets[i];
 
-                // 確保容器歸零水平捲動位置，避免行動端或縮放時截圖偏位
-                if (target) target.scrollLeft = 0;
+                    // 使用 html2canvas 逐頁獨立精確擷取單張 A4 畫布 (徹底根絕多頁長卷裁切、偏位與空白頁)
+                    const canvas = await html2canvas(sheet, {
+                        scale: 2,
+                        useCORS: true,
+                        logging: false,
+                        backgroundColor: '#ffffff'
+                    });
 
-                const opt = {
-                    margin: 0,
-                    filename: filename,
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, useCORS: true },
-                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                };
+                    const imgData = canvas.toDataURL('image/jpeg', 0.98);
+                    if (i > 0) {
+                        pdf.addPage('a4', 'portrait');
+                    }
+                    pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
+                }
 
-                html2pdf().set(opt).from(target).save().then(() => {
-                    overflowingSheets.forEach(s => s.classList.add('a4-sheet-overflow'));
-                }).catch(() => {
-                    overflowingSheets.forEach(s => s.classList.add('a4-sheet-overflow'));
-                });
-            }, 250);
+                pdf.save(filename);
+                if (btn) btn.innerHTML = `<span>✅ 匯出完成！</span>`;
+                setTimeout(() => { if (btn) btn.innerHTML = originalBtnHtml; }, 2000);
+            } catch (err) {
+                console.error('PDF export failed:', err);
+                alert('PDF 匯出失敗，請改用「🖨️ 直接列印」並於印表機選擇「另存為 PDF」');
+                if (btn) btn.innerHTML = originalBtnHtml;
+            } finally {
+                overflowingSheets.forEach(s => s.classList.add('a4-sheet-overflow'));
+            }
         }
 
         // 初始化：載入排版設定、教師自訂小卡文字與雲端試算表連線
