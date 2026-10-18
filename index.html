@@ -779,7 +779,7 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
                         <div class="md:col-span-2">
-                            <label class="block font-extrabold text-slate-700 mb-1">💡 底部叮嚀文字描述</label>
+                            <label class="block font-extrabold text-slate-700 mb-1">💡 底部註記與學習歷程說明（紙本不印分數）</label>
                             <input type="text" data-slip-field="footer" oninput="updateSlipCustomField('footer', this.value)"
                                 class="w-full px-3 py-1.5 rounded-xl border border-sky-200 bg-[#F5FAFD] text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500">
                         </div>
@@ -967,7 +967,7 @@
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                         <div class="sm:col-span-2">
-                            <label class="block font-bold text-slate-700 mb-0.5">💡 底部叮嚀文字描述</label>
+                            <label class="block font-bold text-slate-700 mb-0.5">💡 底部註記與學習歷程說明（紙本不印分數）</label>
                             <input type="text" data-slip-field="footer" oninput="updateSlipCustomField('footer', this.value)"
                                 class="w-full px-2.5 py-1.5 rounded-lg border border-sky-200 bg-white text-slate-800">
                         </div>
@@ -1050,7 +1050,7 @@
                     <div>
                         <div class="flex items-center gap-2">
                             <h3 class="text-base md:text-lg font-black tracking-tight text-white">MPScore-Daily 系統詳細更新紀錄</h3>
-                            <span class="text-[10px] bg-emerald-500 text-white font-black px-2 py-0.5 rounded-full">v2.7.4 最新版</span>
+                            <span class="text-[10px] bg-emerald-500 text-white font-black px-2 py-0.5 rounded-full">v2.7.5 最新版</span>
                         </div>
                         <p class="text-xs text-sky-100 mt-0.5">平時成績無痛結算 ‧ 親師雲端即時溝通 ‧ 國中小專用智慧平台</p>
                     </div>
@@ -1063,18 +1063,40 @@
             <!-- 更新日誌內容滾動區 -->
             <div class="p-5 md:p-8 overflow-y-auto space-y-6 text-xs text-slate-700 bg-slate-50/50 leading-relaxed">
                 
-                <!-- v2.7.4 最新版里程碑 -->
+                <!-- v2.7.5 最新版里程碑 -->
                 <div class="bg-white p-5 rounded-3xl border border-amber-300 shadow-sm space-y-4 relative overflow-hidden ring-2 ring-amber-400/20">
                     <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                         <div class="flex items-center gap-2">
-                            <span class="text-xs font-black bg-amber-500 text-slate-950 px-2.5 py-1 rounded-xl shadow-xs">v2.7.4 最新版</span>
-                            <span class="text-sm font-black text-slate-900">🎯 徹底解決「文字與底色塊偏右下不協調」問題（膠囊雙軸嚴格居中 & 圖片預檢覆寫）</span>
+                            <span class="text-xs font-black bg-amber-500 text-slate-950 px-2.5 py-1 rounded-xl shadow-xs">v2.7.5 最新版</span>
+                            <span class="text-sm font-black text-slate-900">📋 小卡票面與家長端正式加入「資料作為參考學習歷程用，實際成績依教師紀錄之成績為準」官方權威註記</span>
                         </div>
                         <span class="text-[11px] text-slate-400 font-mono font-bold">2026-10-18</span>
                     </div>
 
                     <div class="space-y-3.5">
                         <div class="p-3.5 bg-amber-50/80 rounded-2xl border border-amber-200/80 text-[11px] text-amber-950 font-bold space-y-1.5">
+                            <div>🎯 <b>本次核心功能與法規規範說明</b>：</div>
+                            <ul class="list-disc list-inside font-normal text-slate-700 pl-1 space-y-1.5">
+                                <li><b>小卡底部官方註記升級</b>：標準叮嚀文字全面更新為「<code class="text-emerald-800 font-mono">💡 資料作為參考學習歷程用，實際成績依教師紀錄之成績為準 ‧ 本卡不印分數以保護隱私</code>」，明確界定平時評量歷程參照定位，兼顧親師溝通透明度與教師成績評定之專業公信力。</li>
+                                <li><b>支援教師彈性自訂與平滑升級</b>：教師可於「票面顯示設定」或「列印預覽工具列」隨時依校內習慣自訂此行註記文字，系統並提供舊版預設叮嚀平滑自動升級與一鍵重設。</li>
+                                <li><b>家長端分析頁同步聲明</b>：家長端頁尾同步連動相同法律與行政效力之學習歷程參照聲明，保障親師雙方權益。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- v2.7.4 版本里程碑 -->
+                <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 relative overflow-hidden">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-black bg-slate-100 text-slate-700 px-2.5 py-1 rounded-xl">v2.7.4</span>
+                            <span class="text-sm font-black text-slate-900">🎯 徹底解決「文字與底色塊偏右下不協調」問題（膠囊雙軸嚴格居中 & 圖片預檢覆寫）</span>
+                        </div>
+                        <span class="text-[11px] text-slate-400 font-mono font-bold">2026-10-18</span>
+                    </div>
+
+                    <div class="space-y-3.5">
+                        <div class="p-3.5 bg-sky-50/80 rounded-2xl border border-sky-200/80 text-[11px] text-sky-950 font-bold space-y-1.5">
                             <div>🎯 <b>本次核心排版置中與渲染修復說明</b>：</div>
                             <ul class="list-disc list-inside font-normal text-slate-700 pl-1 space-y-1.5">
                                 <li><b>標籤膠囊雙軸嚴格幾何居中</b>：全面淘汰 <code class="text-rose-600 font-mono">inline-flex</code> 於 html2canvas 下引發的裸文字節點基線沉底與左移留白，改採標準 <code class="text-emerald-700 font-mono">inline-block text-center align-middle</code> 搭配高度嚴格等比之行距（8格為 <code class="text-emerald-700 font-mono">h-[20px] leading-[20px] px-2</code>），垂直與水平四方留白等比居中。</li>
@@ -1752,7 +1774,7 @@ function testGitHubConnection() {
             step2Title: '2️⃣ 如何全學期隨時查看最新平時成績',
             step2Body: '請將本卡貼於聯絡簿或拍照存於手機相簿（可於網頁點選「從相簿選取 QR 照片」登入），老師更新分數後隨時掃碼即可查看！',
             qrCaption: '📱 掃碼立即登入',
-            footer: '💡 本卡不印出分數以保護隱私，請貼於聯絡簿或拍照留存，隨時掃碼查看最新成績'
+            footer: '💡 資料作為參考學習歷程用，實際成績依教師紀錄之成績為準 ‧ 本卡不印分數以保護隱私'
         };
 
         let slipCustomTexts = { ...DEFAULT_SLIP_TEXTS };
@@ -1772,6 +1794,10 @@ function testGitHubConnection() {
                 if (raw) {
                     const parsed = JSON.parse(raw);
                     if (parsed && typeof parsed === 'object') {
+                        // 若先前存取過舊版預設叮嚀文字，自動平滑升級為最新官方註記
+                        if (!parsed.footer || parsed.footer.includes('請貼於聯絡簿或拍照留存，隨時掃碼查看最新成績')) {
+                            parsed.footer = DEFAULT_SLIP_TEXTS.footer;
+                        }
                         slipCustomTexts = { ...DEFAULT_SLIP_TEXTS, ...parsed };
                     }
                 }
