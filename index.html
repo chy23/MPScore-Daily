@@ -178,6 +178,15 @@
             flex: 1;
         }
 
+        /* 雙欄 4 格 (2 列 × 2 欄，特大卡片版) */
+        .a4-grid-4 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: calc(6mm * var(--slip-scale, 1)) calc(6mm * var(--slip-scale, 1));
+            flex: 1;
+        }
+
         .slip-card {
             border: 1.5px dashed #94a3b8;
             border-radius: 8px;
@@ -523,30 +532,68 @@
                             </label>
                         </div>
 
-                        <!-- 每頁小卡數量與縮放比例排版設定（防止切頁） -->
-                        <div class="pt-2 border-t border-sky-200/80 grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-                            <div class="space-y-1">
-                                <label class="block font-extrabold text-sky-950">🎴 每頁小卡數量（若內容過長切頁，建議選 8 格）</label>
-                                <select data-bind-cards-per-page onchange="setCardsPerPage(this.value)" class="w-full px-2.5 py-1.5 rounded-xl border border-sky-300 bg-white text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-sky-500">
-                                    <option value="10">每頁 10 格 (5 列 × 2 欄，經典精省版)</option>
-                                    <option value="8">每頁 8 格 (4 列 × 2 欄，寬敞防溢推薦)</option>
-                                    <option value="6">每頁 6 格 (3 列 × 2 欄，大字清晰版)</option>
-                                </select>
+                        <!-- 每頁小卡數量專屬分段按鈕組（直覺點選 10 / 8 / 6 / 4 格） -->
+                        <div class="pt-3 border-t border-sky-200/80 space-y-2 text-xs">
+                            <div class="flex items-center justify-between">
+                                <label class="block font-black text-sky-950">🎴 選擇每頁列印小卡數量：</label>
+                                <span class="text-[11px] font-bold text-sky-800 bg-sky-100/80 px-2 py-0.5 rounded-full">
+                                    目前選定：每頁 <strong id="perPageBadgeText">10</strong> 格
+                                </span>
                             </div>
-                            <div class="space-y-1">
-                                <label class="block font-extrabold text-sky-950">🔍 列印縮放比例（內容過多時可縮小防切斷）</label>
+
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                <button type="button" onclick="setCardsPerPage(10)" data-perpage-btn="10"
+                                    class="p-2.5 rounded-xl border text-left transition flex flex-col justify-between min-h-[58px] bg-sky-600 text-white border-sky-600 shadow-sm ring-2 ring-sky-300">
+                                    <div class="flex items-center justify-between">
+                                        <span class="perpage-btn-title font-black text-xs text-white">每頁 10 格</span>
+                                        <span class="perpage-btn-matrix text-[10px] font-mono opacity-80 text-white">5×2</span>
+                                    </div>
+                                    <span class="perpage-btn-sub text-[10.5px] opacity-90 mt-0.5 text-sky-100">經典精省紙張</span>
+                                </button>
+
+                                <button type="button" onclick="setCardsPerPage(8)" data-perpage-btn="8"
+                                    class="p-2.5 rounded-xl border text-left transition flex flex-col justify-between min-h-[58px] bg-white text-slate-700 border-slate-200 hover:border-sky-300 hover:bg-slate-50">
+                                    <div class="flex items-center justify-between">
+                                        <span class="perpage-btn-title font-black text-xs text-emerald-800">每頁 8 格</span>
+                                        <span class="perpage-btn-matrix text-[10px] font-mono text-emerald-600 font-bold">4×2</span>
+                                    </div>
+                                    <span class="perpage-btn-sub text-[10.5px] text-emerald-700 font-bold mt-0.5">推薦 ‧ 寬敞防切頁</span>
+                                </button>
+
+                                <button type="button" onclick="setCardsPerPage(6)" data-perpage-btn="6"
+                                    class="p-2.5 rounded-xl border text-left transition flex flex-col justify-between min-h-[58px] bg-white text-slate-700 border-slate-200 hover:border-sky-300 hover:bg-slate-50">
+                                    <div class="flex items-center justify-between">
+                                        <span class="perpage-btn-title font-black text-xs text-slate-800">每頁 6 格</span>
+                                        <span class="perpage-btn-matrix text-[10px] font-mono text-slate-500">3×2</span>
+                                    </div>
+                                    <span class="perpage-btn-sub text-[10.5px] text-slate-500 mt-0.5">大字清晰易讀</span>
+                                </button>
+
+                                <button type="button" onclick="setCardsPerPage(4)" data-perpage-btn="4"
+                                    class="p-2.5 rounded-xl border text-left transition flex flex-col justify-between min-h-[58px] bg-white text-slate-700 border-slate-200 hover:border-sky-300 hover:bg-slate-50">
+                                    <div class="flex items-center justify-between">
+                                        <span class="perpage-btn-title font-black text-xs text-slate-800">每頁 4 格</span>
+                                        <span class="perpage-btn-matrix text-[10px] font-mono text-slate-500">2×2</span>
+                                    </div>
+                                    <span class="perpage-btn-sub text-[10.5px] text-slate-500 mt-0.5">特大展示卡片</span>
+                                </button>
+                            </div>
+
+                            <!-- 縮放比例微調 -->
+                            <div class="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-sky-100">
                                 <div class="flex items-center gap-2">
-                                    <select data-bind-print-scale onchange="setPrintScale(this.value)" class="flex-1 px-2.5 py-1.5 rounded-xl border border-sky-300 bg-white text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-sky-500">
+                                    <span class="font-bold text-slate-700">🔍 列印縮放比例：</span>
+                                    <select data-bind-print-scale onchange="setPrintScale(this.value)" class="px-2.5 py-1 rounded-lg border border-sky-300 bg-white text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-sky-500">
                                         <option value="100">100% (標準原始)</option>
                                         <option value="95">95% (微幅縮小防溢)</option>
                                         <option value="90">90% (緊湊縮小 - 推薦)</option>
                                         <option value="85">85% (高密縮小)</option>
                                         <option value="80">80% (最小縮放)</option>
                                     </select>
-                                    <button type="button" onclick="autoFitPrintScale()" class="min-h-[34px] px-2.5 py-1 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold whitespace-nowrap transition text-xs flex items-center gap-1">
-                                        <span>⚡ 自動適配</span>
-                                    </button>
                                 </div>
+                                <button type="button" onclick="autoFitPrintScale()" class="min-h-[32px] px-3 py-1 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-sm transition flex items-center gap-1">
+                                    <span>⚡ 一鍵自動適配單頁</span>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -716,15 +763,24 @@
                 <!-- 每頁列印數量與縮放比例快捷控制列 (即時切換與適配) -->
                 <div class="pt-2 border-t border-sky-200/80 flex flex-wrap items-center justify-between gap-3 text-xs">
                     <div class="flex flex-wrap items-center gap-2.5">
-                        <div class="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl border border-sky-200 shadow-sm">
-                            <span class="font-extrabold text-slate-700">🎴 每頁數量：</span>
-                            <select data-bind-cards-per-page onchange="setCardsPerPage(this.value)" class="bg-transparent font-black text-sky-800 focus:outline-none cursor-pointer">
-                                <option value="10">每頁 10 格 (5×2 經典)</option>
-                                <option value="8">每頁 8 格 (4×2 寬敞防溢推薦)</option>
-                                <option value="6">每頁 6 格 (3×2 大字版)</option>
-                            </select>
+                        <!-- 每頁小卡數量分段按鈕組 -->
+                        <div class="flex items-center gap-1 bg-white p-1 rounded-xl border border-sky-200 shadow-sm">
+                            <span class="font-extrabold text-slate-700 px-1.5">🎴 每頁數量：</span>
+                            <button type="button" onclick="setCardsPerPage(10)" data-modal-perpage-btn="10" class="min-h-[30px] px-2.5 py-1 rounded-lg text-xs font-black transition bg-sky-600 text-white shadow-sm">
+                                10 格 (5×2)
+                            </button>
+                            <button type="button" onclick="setCardsPerPage(8)" data-modal-perpage-btn="8" class="min-h-[30px] px-2.5 py-1 rounded-lg text-xs font-black transition text-slate-600 hover:text-slate-900">
+                                8 格 (推薦防溢)
+                            </button>
+                            <button type="button" onclick="setCardsPerPage(6)" data-modal-perpage-btn="6" class="min-h-[30px] px-2.5 py-1 rounded-lg text-xs font-black transition text-slate-600 hover:text-slate-900">
+                                6 格
+                            </button>
+                            <button type="button" onclick="setCardsPerPage(4)" data-modal-perpage-btn="4" class="min-h-[30px] px-2.5 py-1 rounded-lg text-xs font-black transition text-slate-600 hover:text-slate-900">
+                                4 格
+                            </button>
                         </div>
 
+                        <!-- 縮放比例控制 -->
                         <div class="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl border border-sky-200 shadow-sm">
                             <span class="font-extrabold text-slate-700">🔍 縮放比例：</span>
                             <select data-bind-print-scale onchange="setPrintScale(this.value)" class="bg-transparent font-black text-sky-800 focus:outline-none cursor-pointer">
@@ -836,7 +892,10 @@
                             <span>🔍 縮小比例至 90%</span>
                         </button>
                         <button type="button" onclick="setCardsPerPage(8)" class="min-h-[34px] px-3 py-1.5 rounded-xl bg-white hover:bg-amber-100 text-amber-950 border border-amber-400 font-extrabold text-xs shadow-sm transition">
-                            <span>📄 更改為每頁 8 格 (4×2 防溢)</span>
+                            <span>📄 改為每頁 8 格 (4×2 防溢)</span>
+                        </button>
+                        <button type="button" onclick="setCardsPerPage(6)" class="min-h-[34px] px-3 py-1.5 rounded-xl bg-white hover:bg-amber-100 text-amber-950 border border-amber-400 font-extrabold text-xs shadow-sm transition">
+                            <span>📄 改為每頁 6 格 (3×2 大字)</span>
                         </button>
                     </div>
                 </div>
@@ -1465,6 +1524,40 @@ function testGitHubConnection() {
             document.querySelectorAll('[data-bind-print-scale]').forEach(el => {
                 el.value = String(currentPrintScale);
             });
+            const badge = document.getElementById('perPageBadgeText');
+            if (badge) badge.textContent = String(currentCardsPerPage);
+
+            // 更新 Print Center 分段按鈕 (data-perpage-btn)
+            document.querySelectorAll('[data-perpage-btn]').forEach(btn => {
+                const val = parseInt(btn.getAttribute('data-perpage-btn'), 10);
+                const isActive = (val === currentCardsPerPage);
+                if (isActive) {
+                    btn.className = 'p-2.5 rounded-xl border text-left transition flex flex-col justify-between min-h-[58px] bg-sky-600 text-white border-sky-600 shadow-sm ring-2 ring-sky-300';
+                    const title = btn.querySelector('.perpage-btn-title');
+                    if (title) title.className = 'perpage-btn-title font-black text-xs text-white';
+                    const sub = btn.querySelector('.perpage-btn-sub');
+                    if (sub) sub.className = 'perpage-btn-sub text-[10.5px] mt-0.5 text-sky-100';
+                    const matrix = btn.querySelector('.perpage-btn-matrix');
+                    if (matrix) matrix.className = 'perpage-btn-matrix text-[10px] font-mono opacity-80 text-white';
+                } else {
+                    btn.className = 'p-2.5 rounded-xl border text-left transition flex flex-col justify-between min-h-[58px] bg-white text-slate-700 border-slate-200 hover:border-sky-300 hover:bg-slate-50';
+                    const title = btn.querySelector('.perpage-btn-title');
+                    if (title) title.className = 'perpage-btn-title font-black text-xs ' + (val === 8 ? 'text-emerald-800' : 'text-slate-800');
+                    const sub = btn.querySelector('.perpage-btn-sub');
+                    if (sub) sub.className = 'perpage-btn-sub text-[10.5px] mt-0.5 ' + (val === 8 ? 'text-emerald-700 font-bold' : 'text-slate-500');
+                    const matrix = btn.querySelector('.perpage-btn-matrix');
+                    if (matrix) matrix.className = 'perpage-btn-matrix text-[10px] font-mono ' + (val === 8 ? 'text-emerald-600 font-bold' : 'text-slate-500');
+                }
+            });
+
+            // 更新預覽彈窗分段按鈕 (data-modal-perpage-btn)
+            document.querySelectorAll('[data-modal-perpage-btn]').forEach(btn => {
+                const val = parseInt(btn.getAttribute('data-modal-perpage-btn'), 10);
+                const isActive = (val === currentCardsPerPage);
+                btn.className = isActive
+                    ? 'min-h-[30px] px-2.5 py-1 rounded-lg text-xs font-black transition bg-sky-600 text-white shadow-sm'
+                    : 'min-h-[30px] px-2.5 py-1 rounded-lg text-xs font-black transition text-slate-600 hover:text-slate-900 hover:bg-slate-100';
+            });
         }
 
         function setCardsPerPage(num) {
@@ -1613,7 +1706,7 @@ function testGitHubConnection() {
 
             const perPage = currentCardsPerPage || 10;
             const scale = currentPrintScale || 100;
-            const gridClass = perPage === 6 ? 'a4-grid-6' : (perPage === 8 ? 'a4-grid-8' : 'a4-grid-10');
+            const gridClass = perPage === 4 ? 'a4-grid-4' : (perPage === 6 ? 'a4-grid-6' : (perPage === 8 ? 'a4-grid-8' : 'a4-grid-10'));
             const qrSize = Math.max(46, Math.min(60, Math.round(56 * (scale / 100))));
 
             const chunks = [];
@@ -1695,7 +1788,7 @@ function testGitHubConnection() {
                         <div class="flex items-center justify-between text-[10px] text-slate-500 pb-1 border-b border-slate-200 mb-1.5">
                             <div class="flex items-center gap-2">
                                 <span class="font-bold text-slate-700">📊 MPScore-Daily 學生平時成績雲端查詢通行小卡（家長登入指引版 ‧ 票面不顯示成績）</span>
-                                <span class="a4-sheet-status-badge text-[9.5px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-0.2">✅ 符合單頁尺寸</span>
+                                <span class="a4-sheet-status-badge text-[9.5px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-0.5">✅ 符合單頁尺寸</span>
                             </div>
                             <div class="flex items-center gap-2 font-mono">
                                 <span class="text-slate-600">每頁 ${perPage} 格 ‧ 縮放 ${scale}%</span>
