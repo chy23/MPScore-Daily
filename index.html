@@ -157,37 +157,7 @@
             box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.25), 0 12px 36px rgba(15, 23, 42, 0.15);
         }
 
-        /* 雙欄 10 格 (5 列 × 2 欄) */
-        .a4-grid-10 {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            grid-template-rows: repeat(5, minmax(0, 1fr));
-            gap: calc(2mm * var(--slip-scale, 1)) calc(3mm * var(--slip-scale, 1));
-            flex: 1;
-            min-height: 0;
-        }
-
-        /* 雙欄 8 格 (4 列 × 2 欄，推薦防溢版) */
-        .a4-grid-8 {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            grid-template-rows: repeat(4, minmax(0, 1fr));
-            gap: calc(2.4mm * var(--slip-scale, 1)) calc(3.2mm * var(--slip-scale, 1));
-            flex: 1;
-            min-height: 0;
-        }
-
-        /* 雙欄 6 格 (3 列 × 2 欄，大字清晰版) */
-        .a4-grid-6 {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            grid-template-rows: repeat(3, minmax(0, 1fr));
-            gap: calc(3.5mm * var(--slip-scale, 1)) calc(4mm * var(--slip-scale, 1));
-            flex: 1;
-            min-height: 0;
-        }
-
-        /* 雙欄 4 格 (2 列 × 2 欄，特大卡片版) */
+        /* 雙欄 4 格 (2 列 × 2 欄，經典推薦大字版 - 參考 MPScore 202610 解決方案) */
         .a4-grid-4 {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -195,12 +165,46 @@
             gap: calc(5mm * var(--slip-scale, 1)) calc(5mm * var(--slip-scale, 1));
             flex: 1;
             min-height: 0;
+            height: 100%;
+        }
+
+        /* 雙欄 6 格 (3 列 × 2 欄，省紙適中平衡版) */
+        .a4-grid-6 {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-rows: repeat(3, minmax(0, 1fr));
+            gap: calc(3.5mm * var(--slip-scale, 1)) calc(4mm * var(--slip-scale, 1));
+            flex: 1;
+            min-height: 0;
+            height: 100%;
+        }
+
+        /* 雙欄 8 格 (4 列 × 2 欄，隨身便攜版) */
+        .a4-grid-8 {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-rows: repeat(4, minmax(0, 1fr));
+            gap: calc(2.4mm * var(--slip-scale, 1)) calc(3.2mm * var(--slip-scale, 1));
+            flex: 1;
+            min-height: 0;
+            height: 100%;
+        }
+
+        /* 雙欄 10 格 (5 列 × 2 欄，極致省紙高密版) */
+        .a4-grid-10 {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-rows: repeat(5, minmax(0, 1fr));
+            gap: calc(2mm * var(--slip-scale, 1)) calc(3mm * var(--slip-scale, 1));
+            flex: 1;
+            min-height: 0;
+            height: 100%;
         }
 
         .slip-card {
             border: 1.5px dashed #94a3b8;
-            border-radius: 8px;
-            padding: calc(1.4mm * var(--slip-scale, 1)) calc(2.2mm * var(--slip-scale, 1));
+            border-radius: 10px;
+            padding: calc(var(--card-pad-v, 2.5mm) * var(--slip-scale, 1)) calc(var(--card-pad-h, 3.5mm) * var(--slip-scale, 1));
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -209,8 +213,33 @@
             position: relative;
             overflow: hidden;
             min-height: 0;
+            height: 100%;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
+        }
+
+        .a4-grid-4 .slip-card {
+            --card-pad-v: 4.5mm;
+            --card-pad-h: 5.5mm;
+            border-radius: 14px;
+        }
+
+        .a4-grid-6 .slip-card {
+            --card-pad-v: 3.2mm;
+            --card-pad-h: 4.2mm;
+            border-radius: 12px;
+        }
+
+        .a4-grid-8 .slip-card {
+            --card-pad-v: 2.2mm;
+            --card-pad-h: 3mm;
+            border-radius: 10px;
+        }
+
+        .a4-grid-10 .slip-card {
+            --card-pad-v: 1.4mm;
+            --card-pad-h: 2.2mm;
+            border-radius: 8px;
         }
 
         /* 縮放尺寸輔助 */
@@ -557,32 +586,23 @@
                             </label>
                         </div>
 
-                        <!-- 每頁小卡數量專屬分段按鈕組（直覺點選 10 / 8 / 6 / 4 格） -->
+                        <!-- 每頁小卡數量專屬分段按鈕組（直覺點選 4 / 6 / 8 / 10 格） -->
                         <div class="pt-3 border-t border-sky-200/80 space-y-2 text-xs">
                             <div class="flex items-center justify-between">
                                 <label class="block font-black text-sky-950">🎴 選擇每頁列印小卡數量：</label>
                                 <span class="text-[11px] font-bold text-sky-800 bg-sky-100/80 px-2 py-0.5 rounded-full">
-                                    目前選定：每頁 <strong id="perPageBadgeText">10</strong> 格
+                                    目前選定：每頁 <strong id="perPageBadgeText">4</strong> 格
                                 </span>
                             </div>
 
                             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                <button type="button" onclick="setCardsPerPage(10)" data-perpage-btn="10"
+                                <button type="button" onclick="setCardsPerPage(4)" data-perpage-btn="4"
                                     class="p-2.5 rounded-xl border text-left transition flex flex-col justify-between min-h-[58px] bg-sky-600 text-white border-sky-600 shadow-sm ring-2 ring-sky-300">
                                     <div class="flex items-center justify-between">
-                                        <span class="perpage-btn-title font-black text-xs text-white">每頁 10 格</span>
-                                        <span class="perpage-btn-matrix text-[10px] font-mono opacity-80 text-white">5×2</span>
+                                        <span class="perpage-btn-title font-black text-xs text-white">每頁 4 格</span>
+                                        <span class="perpage-btn-matrix text-[10px] font-mono opacity-80 text-white">2×2</span>
                                     </div>
-                                    <span class="perpage-btn-sub text-[10.5px] opacity-90 mt-0.5 text-sky-100">經典精省紙張</span>
-                                </button>
-
-                                <button type="button" onclick="setCardsPerPage(8)" data-perpage-btn="8"
-                                    class="p-2.5 rounded-xl border text-left transition flex flex-col justify-between min-h-[58px] bg-white text-slate-700 border-slate-200 hover:border-sky-300 hover:bg-slate-50">
-                                    <div class="flex items-center justify-between">
-                                        <span class="perpage-btn-title font-black text-xs text-emerald-800">每頁 8 格</span>
-                                        <span class="perpage-btn-matrix text-[10px] font-mono text-emerald-600 font-bold">4×2</span>
-                                    </div>
-                                    <span class="perpage-btn-sub text-[10.5px] text-emerald-700 font-bold mt-0.5">推薦 ‧ 寬敞防切頁</span>
+                                    <span class="perpage-btn-sub text-[10.5px] opacity-90 mt-0.5 text-sky-100">經典推薦 ‧ 大字清晰</span>
                                 </button>
 
                                 <button type="button" onclick="setCardsPerPage(6)" data-perpage-btn="6"
@@ -591,16 +611,25 @@
                                         <span class="perpage-btn-title font-black text-xs text-slate-800">每頁 6 格</span>
                                         <span class="perpage-btn-matrix text-[10px] font-mono text-slate-500">3×2</span>
                                     </div>
-                                    <span class="perpage-btn-sub text-[10.5px] text-slate-500 mt-0.5">大字清晰易讀</span>
+                                    <span class="perpage-btn-sub text-[10.5px] text-slate-500 mt-0.5">省紙適中 ‧ 平衡排版</span>
                                 </button>
 
-                                <button type="button" onclick="setCardsPerPage(4)" data-perpage-btn="4"
+                                <button type="button" onclick="setCardsPerPage(8)" data-perpage-btn="8"
                                     class="p-2.5 rounded-xl border text-left transition flex flex-col justify-between min-h-[58px] bg-white text-slate-700 border-slate-200 hover:border-sky-300 hover:bg-slate-50">
                                     <div class="flex items-center justify-between">
-                                        <span class="perpage-btn-title font-black text-xs text-slate-800">每頁 4 格</span>
-                                        <span class="perpage-btn-matrix text-[10px] font-mono text-slate-500">2×2</span>
+                                        <span class="perpage-btn-title font-black text-xs text-slate-800">每頁 8 格</span>
+                                        <span class="perpage-btn-matrix text-[10px] font-mono text-slate-500">4×2</span>
                                     </div>
-                                    <span class="perpage-btn-sub text-[10.5px] text-slate-500 mt-0.5">特大展示卡片</span>
+                                    <span class="perpage-btn-sub text-[10.5px] text-slate-500 mt-0.5">隨身便攜 ‧ 緊湊小卡</span>
+                                </button>
+
+                                <button type="button" onclick="setCardsPerPage(10)" data-perpage-btn="10"
+                                    class="p-2.5 rounded-xl border text-left transition flex flex-col justify-between min-h-[58px] bg-white text-slate-700 border-slate-200 hover:border-sky-300 hover:bg-slate-50">
+                                    <div class="flex items-center justify-between">
+                                        <span class="perpage-btn-title font-black text-xs text-slate-800">每頁 10 格</span>
+                                        <span class="perpage-btn-matrix text-[10px] font-mono text-slate-500">5×2</span>
+                                    </div>
+                                    <span class="perpage-btn-sub text-[10.5px] text-slate-500 mt-0.5">極致精省 ‧ 微型票券</span>
                                 </button>
                             </div>
 
@@ -791,17 +820,17 @@
                         <!-- 每頁小卡數量分段按鈕組 -->
                         <div class="flex items-center gap-1 bg-white p-1 rounded-xl border border-sky-200 shadow-sm">
                             <span class="font-extrabold text-slate-700 px-1.5">🎴 每頁數量：</span>
-                            <button type="button" onclick="setCardsPerPage(10)" data-modal-perpage-btn="10" class="min-h-[30px] px-2.5 py-1 rounded-lg text-xs font-black transition bg-sky-600 text-white shadow-sm">
-                                10 格 (5×2)
-                            </button>
-                            <button type="button" onclick="setCardsPerPage(8)" data-modal-perpage-btn="8" class="min-h-[30px] px-2.5 py-1 rounded-lg text-xs font-black transition text-slate-600 hover:text-slate-900">
-                                8 格 (推薦防溢)
+                            <button type="button" onclick="setCardsPerPage(4)" data-modal-perpage-btn="4" class="min-h-[30px] px-2.5 py-1 rounded-lg text-xs font-black transition bg-sky-600 text-white shadow-sm">
+                                4 格 (2×2 經典大字)
                             </button>
                             <button type="button" onclick="setCardsPerPage(6)" data-modal-perpage-btn="6" class="min-h-[30px] px-2.5 py-1 rounded-lg text-xs font-black transition text-slate-600 hover:text-slate-900">
-                                6 格
+                                6 格 (3×2 省紙適中)
                             </button>
-                            <button type="button" onclick="setCardsPerPage(4)" data-modal-perpage-btn="4" class="min-h-[30px] px-2.5 py-1 rounded-lg text-xs font-black transition text-slate-600 hover:text-slate-900">
-                                4 格
+                            <button type="button" onclick="setCardsPerPage(8)" data-modal-perpage-btn="8" class="min-h-[30px] px-2.5 py-1 rounded-lg text-xs font-black transition text-slate-600 hover:text-slate-900">
+                                8 格 (4×2 隨身便攜)
+                            </button>
+                            <button type="button" onclick="setCardsPerPage(10)" data-modal-perpage-btn="10" class="min-h-[30px] px-2.5 py-1 rounded-lg text-xs font-black transition text-slate-600 hover:text-slate-900">
+                                10 格 (5×2 極致精省)
                             </button>
                         </div>
 
@@ -1529,13 +1558,13 @@ function testGitHubConnection() {
         // =========================================================================
         // 5.1 A4 列印排版設定 (每頁數量、縮放比例、跨頁溢出檢測與自動適配)
         // =========================================================================
-        let currentCardsPerPage = 10;
+        let currentCardsPerPage = 4;
         let currentPrintScale = 100;
 
         function loadPrintLayoutSettings() {
             try {
                 const savedPerPage = localStorage.getItem('mpdaily_cards_per_page');
-                if (savedPerPage) currentCardsPerPage = parseInt(savedPerPage, 10) || 10;
+                if (savedPerPage) currentCardsPerPage = parseInt(savedPerPage, 10) || 4;
                 const savedScale = localStorage.getItem('mpdaily_print_scale');
                 if (savedScale) currentPrintScale = parseInt(savedScale, 10) || 100;
             } catch (e) {}
@@ -1567,11 +1596,11 @@ function testGitHubConnection() {
                 } else {
                     btn.className = 'p-2.5 rounded-xl border text-left transition flex flex-col justify-between min-h-[58px] bg-white text-slate-700 border-slate-200 hover:border-sky-300 hover:bg-slate-50';
                     const title = btn.querySelector('.perpage-btn-title');
-                    if (title) title.className = 'perpage-btn-title font-black text-xs ' + (val === 8 ? 'text-emerald-800' : 'text-slate-800');
+                    if (title) title.className = 'perpage-btn-title font-black text-xs ' + (val === 4 ? 'text-sky-800' : 'text-slate-800');
                     const sub = btn.querySelector('.perpage-btn-sub');
-                    if (sub) sub.className = 'perpage-btn-sub text-[10.5px] mt-0.5 ' + (val === 8 ? 'text-emerald-700 font-bold' : 'text-slate-500');
+                    if (sub) sub.className = 'perpage-btn-sub text-[10.5px] mt-0.5 ' + (val === 4 ? 'text-sky-700 font-bold' : 'text-slate-500');
                     const matrix = btn.querySelector('.perpage-btn-matrix');
-                    if (matrix) matrix.className = 'perpage-btn-matrix text-[10px] font-mono ' + (val === 8 ? 'text-emerald-600 font-bold' : 'text-slate-500');
+                    if (matrix) matrix.className = 'perpage-btn-matrix text-[10px] font-mono ' + (val === 4 ? 'text-sky-600 font-bold' : 'text-slate-500');
                 }
             });
 
@@ -1586,7 +1615,7 @@ function testGitHubConnection() {
         }
 
         function setCardsPerPage(num) {
-            currentCardsPerPage = parseInt(num, 10) || 10;
+            currentCardsPerPage = parseInt(num, 10) || 4;
             try {
                 localStorage.setItem('mpdaily_cards_per_page', currentCardsPerPage);
             } catch (e) {}
@@ -1759,11 +1788,70 @@ function testGitHubConnection() {
             const qrCaptionHtml = escapeSlipHtml(slipCustomTexts.qrCaption);
             const footerHtml = escapeSlipHtml(slipCustomTexts.footer);
 
-            const perPage = currentCardsPerPage || 10;
+            const perPage = currentCardsPerPage || 4;
             const scale = currentPrintScale || 100;
             const gridClass = perPage === 4 ? 'a4-grid-4' : (perPage === 6 ? 'a4-grid-6' : (perPage === 8 ? 'a4-grid-8' : 'a4-grid-10'));
-            const baseQr = perPage >= 10 ? 44 : (perPage >= 8 ? 48 : 54);
-            const qrSize = Math.max(40, Math.min(54, Math.round(baseQr * (scale / 100))));
+
+            // 依據每頁小卡數量 (4 / 6 / 8 / 10 格) 採漸進式自適應字級、間距與 QR Code 尺寸 (參考 MPScore 202610 解決方案)
+            const is4Grid = perPage <= 4;
+            const is6Grid = perPage === 6;
+            const is8Grid = perPage === 8;
+
+            const baseQr = is4Grid ? 80 : (is6Grid ? 64 : (is8Grid ? 52 : 42));
+            const qrSize = Math.max(38, Math.min(92, Math.round(baseQr * (scale / 100))));
+
+            const nameFont = is4Grid
+                ? 'text-base sm:text-lg font-black'
+                : (is6Grid ? 'text-sm sm:text-base font-black' : (is8Grid ? 'text-xs sm:text-sm font-black' : 'text-xs font-black'));
+
+            const seatClassFont = is4Grid
+                ? 'text-xs sm:text-sm font-bold text-slate-600'
+                : (is6Grid ? 'text-xs font-bold text-slate-600' : 'text-[9.5px] font-bold text-slate-600');
+
+            const badgeFont = is4Grid
+                ? 'text-xs font-black px-2 py-0.5'
+                : (is6Grid ? 'text-[10px] font-black px-1.5 py-0.5' : 'text-[8.5px] font-black px-1.5 py-0.5');
+
+            const topTagFont = is4Grid
+                ? 'text-[10.5px] font-extrabold px-2 py-0.5'
+                : (is6Grid ? 'text-[9.5px] font-extrabold px-1.5 py-0.5' : 'text-[8px] font-extrabold px-1.5 py-0.5');
+
+            const subtitleFont = is4Grid
+                ? 'text-xs font-bold px-2.5 py-1 leading-normal'
+                : (is6Grid ? 'text-[10.5px] font-bold px-2 py-0.5 leading-snug' : (is8Grid ? 'text-[9px] font-bold px-1.5 py-0.5 leading-tight' : 'text-[8px] font-bold px-1.5 py-0.5 leading-tight'));
+
+            const stepTitleFont = is4Grid
+                ? 'text-xs sm:text-sm font-black'
+                : (is6Grid ? 'text-[11px] font-black' : (is8Grid ? 'text-[9.5px] font-black' : 'text-[8.5px] font-black'));
+
+            const stepBodyFont = is4Grid
+                ? 'text-xs text-slate-700 leading-relaxed'
+                : (is6Grid ? 'text-[10px] text-slate-700 leading-snug' : (is8Grid ? 'text-[8.5px] text-slate-700 leading-tight' : 'text-[7.5px] text-slate-700 leading-tight'));
+
+            const stepBoxPad = is4Grid
+                ? 'p-2.5 space-y-1 rounded-xl'
+                : (is6Grid ? 'p-2 space-y-0.5 rounded-lg' : (is8Grid ? 'px-2 py-1 space-y-0.5 rounded-md' : 'px-1.5 py-0.5 space-y-0.5 rounded'));
+
+            const qrBoxPad = is4Grid
+                ? 'p-2 rounded-xl'
+                : (is6Grid ? 'p-1.5 rounded-lg' : (is8Grid ? 'p-1 rounded-lg' : 'p-0.5 rounded'));
+
+            const qrCaptionFont = is4Grid
+                ? 'text-[10px] font-extrabold text-sky-800 mt-1'
+                : (is6Grid ? 'text-[8.5px] font-extrabold text-sky-800 mt-0.5' : (is8Grid ? 'text-[7.5px] font-extrabold text-sky-800 mt-0.5' : 'text-[7px] font-extrabold text-sky-800 mt-0.5'));
+
+            const tokenFont = is4Grid
+                ? 'text-[10px] font-mono font-bold text-slate-600 mt-0.5'
+                : (is6Grid ? 'text-[8.5px] font-mono font-bold text-slate-600 mt-0.5' : (is8Grid ? 'text-[7.5px] font-mono font-bold text-slate-500 mt-0.5' : 'text-[7px] font-mono font-bold text-slate-500 mt-0.5'));
+
+            const middleGap = is4Grid ? 'gap-3.5 my-auto flex-1' : (is6Grid ? 'gap-2.5 my-auto flex-1' : (is8Grid ? 'gap-2 my-auto flex-1' : 'gap-1.5 my-auto flex-1'));
+            const middleBoxGap = is4Grid ? 'space-y-1.5' : (is6Grid ? 'space-y-1' : 'space-y-0.5');
+
+            const footerFont = is4Grid
+                ? 'text-[11px] text-slate-600 pt-2 border-t border-slate-200 leading-tight'
+                : (is6Grid ? 'text-[10px] text-slate-600 pt-1.5 border-t border-slate-200 leading-tight' : (is8Grid ? 'text-[8.5px] text-slate-600 pt-1 border-t border-slate-200 leading-tight' : 'text-[7.5px] text-slate-600 pt-0.5 border-t border-slate-200 leading-tight'));
+
+            const headerBorderClass = is4Grid ? 'border-b border-slate-200 pb-1.5' : (is6Grid ? 'border-b border-slate-200 pb-1' : 'border-b border-slate-200 pb-0.5');
 
             const chunks = [];
             for (let i = 0; i < students.length; i += perPage) {
@@ -1775,27 +1863,27 @@ function testGitHubConnection() {
                     const qrDomId = `qr_${pageIdx}_${cardIdx}`;
 
                     const subtitleBarHtml = (optSubtitle && subtitleHtml) ? `
-                        <div class="text-[8px] font-bold text-slate-700 bg-slate-50 border border-slate-200/90 rounded px-1.5 py-0.5 truncate leading-tight">
+                        <div class="${subtitleFont} text-slate-700 bg-slate-50 border border-slate-200/90 rounded-lg truncate">
                             ${subtitleHtml}
                         </div>
                     ` : '';
 
                     const loginStepBoxHtml = (optLoginSteps && (step1TitleHtml || step1BodyHtml)) ? `
-                        <div class="bg-[#EDF5FA] border border-[#C5DDF0] rounded px-1.5 py-0.5 space-y-0.5">
-                            ${step1TitleHtml ? `<div class="text-[8.5px] font-black text-sky-900 leading-snug">${step1TitleHtml}</div>` : ''}
-                            ${step1BodyHtml ? `<div class="text-[7.5px] text-slate-700 leading-tight">${step1BodyHtml}</div>` : ''}
+                        <div class="bg-[#EDF5FA] border border-[#C5DDF0] ${stepBoxPad}">
+                            ${step1TitleHtml ? `<div class="${stepTitleFont} text-sky-900 leading-snug">${step1TitleHtml}</div>` : ''}
+                            ${step1BodyHtml ? `<div class="${stepBodyFont}">${step1BodyHtml}</div>` : ''}
                         </div>
                     ` : '';
 
                     const anytimeTipBoxHtml = (optAnytimeTip && (step2TitleHtml || step2BodyHtml)) ? `
-                        <div class="bg-[#ECF6F0] border border-[#BFE3CE] rounded px-1.5 py-0.5 space-y-0.5">
-                            ${step2TitleHtml ? `<div class="text-[8.5px] font-black text-emerald-900 leading-snug">${step2TitleHtml}</div>` : ''}
-                            ${step2BodyHtml ? `<div class="text-[7.5px] text-slate-700 leading-tight">${step2BodyHtml}</div>` : ''}
+                        <div class="bg-[#ECF6F0] border border-[#BFE3CE] ${stepBoxPad}">
+                            ${step2TitleHtml ? `<div class="${stepTitleFont} text-emerald-900 leading-snug">${step2TitleHtml}</div>` : ''}
+                            ${step2BodyHtml ? `<div class="${stepBodyFont}">${step2BodyHtml}</div>` : ''}
                         </div>
                     ` : '';
 
                     const fallbackGuideHtml = (!optLoginSteps && !optAnytimeTip) ? `
-                        <div class="bg-[#EDF5FA] border border-[#C5DDF0] rounded px-1.5 py-0.5 text-[8px] text-slate-700 leading-snug">
+                        <div class="bg-[#EDF5FA] border border-[#C5DDF0] ${stepBoxPad} ${stepBodyFont}">
                             📱 請使用手機相機掃描右側專屬 QR Code 登入，並建議拍照留存於手機相簿，全學期皆可隨時查看最新平時表現。
                         </div>
                     ` : '';
@@ -1803,36 +1891,36 @@ function testGitHubConnection() {
                     return `
                         <div class="slip-card" data-scale="${scale}">
                             <!-- 頂部學生資訊列（不含任何成績分數） -->
-                            <div class="flex items-center justify-between border-b border-slate-200 pb-0.5">
+                            <div class="flex items-center justify-between ${headerBorderClass}">
                                 <div class="flex items-center gap-1.5 min-w-0">
-                                    ${badgeHtml ? `<span class="px-1.5 py-0.5 rounded bg-sky-600 text-white font-black text-[8px] shrink-0">${badgeHtml}</span>` : ''}
-                                    ${optSeatClass ? `<span class="text-[9.5px] font-bold text-slate-600 shrink-0">${st.className || '本班'} ${st.seatNo}號</span>` : ''}
-                                    <span class="text-[12px] font-black text-slate-900 truncate">${st.name}</span>
+                                    ${badgeHtml ? `<span class="rounded bg-sky-600 text-white font-black ${badgeFont} shrink-0">${badgeHtml}</span>` : ''}
+                                    ${optSeatClass ? `<span class="${seatClassFont} shrink-0">${st.className || '本班'} ${st.seatNo}號</span>` : ''}
+                                    <span class="${nameFont} text-slate-900 truncate">${st.name}</span>
                                 </div>
                                 ${topTagHtml ? `
                                 <div class="text-right shrink-0">
-                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[7.5px] font-extrabold">${topTagHtml}</span>
+                                    <span class="inline-flex items-center gap-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 ${topTagFont}">${topTagHtml}</span>
                                 </div>
                                 ` : ''}
                             </div>
 
                             <!-- 中段：左側家長登入與隨時查看指南 + 右側專屬 QR Code -->
-                            <div class="flex items-center justify-between gap-2 py-0.5 my-auto min-h-0">
-                                <div class="flex-1 min-w-0 space-y-0.5">
+                            <div class="flex items-center justify-between ${middleGap}">
+                                <div class="flex-1 min-w-0 ${middleBoxGap}">
                                     ${subtitleBarHtml}
                                     ${loginStepBoxHtml}
                                     ${anytimeTipBoxHtml}
                                     ${fallbackGuideHtml}
                                 </div>
-                                <div class="shrink-0 flex flex-col items-center justify-center p-1 border border-sky-200 rounded-lg bg-white shadow-sm">
+                                <div class="shrink-0 flex flex-col items-center justify-center border border-sky-200 bg-white shadow-sm ${qrBoxPad}">
                                     <div id="${qrDomId}" data-token="${st.token}" style="width: ${qrSize}px; height: ${qrSize}px;" class="qr-target flex items-center justify-center"></div>
-                                    ${qrCaptionHtml ? `<div class="text-[7px] font-extrabold text-sky-800 mt-0.5">${qrCaptionHtml}</div>` : ''}
-                                    ${optTokenText ? `<div class="text-[7px] font-mono font-bold text-slate-500 leading-none mt-0.5">${st.token}</div>` : ''}
+                                    ${qrCaptionHtml ? `<div class="${qrCaptionFont}">${qrCaptionHtml}</div>` : ''}
+                                    ${optTokenText ? `<div class="${tokenFont}">${st.token}</div>` : ''}
                                 </div>
                             </div>
 
                             <!-- 底部保存提醒（全寬單行呈現，支援教師自訂修改） -->
-                            <div class="flex items-center justify-between border-t border-slate-200 pt-0.5 text-[7.5px] text-slate-600 leading-none">
+                            <div class="flex items-center justify-between ${footerFont}">
                                 <span>${footerHtml}</span>
                             </div>
                         </div>
