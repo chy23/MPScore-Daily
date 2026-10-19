@@ -552,6 +552,85 @@
             return { label: '🌱 待加強複習', level: 'needs_review', badgeClass: 'bg-rose-50 text-rose-700 border-rose-200' };
         }
 
+        /**
+         * 辨識成績格中的請假紀錄（支援 公/公假、事/事假、病/病假、喪/喪假）
+         */
+        function detectLeaveTypeClient(val) {
+            if (val === null || val === undefined) return null;
+            const str = String(val).trim();
+            if (!str) return null;
+
+            if (str === '公' || str === '公假' || /^公假?$/i.test(str)) {
+                return { type: '公假', short: '公', icon: '🏛️', color: 'sky' };
+            }
+            if (str === '事' || str === '事假' || /^事假?$/i.test(str)) {
+                return { type: '事假', short: '事', icon: '📋', color: 'amber' };
+            }
+            if (str === '病' || str === '病假' || /^病假?$/i.test(str)) {
+                return { type: '病假', short: '病', icon: '💊', color: 'rose' };
+            }
+            if (str === '喪' || str === '喪假' || /^喪假?$/i.test(str)) {
+                return { type: '喪假', short: '喪', icon: '🕯️', color: 'slate' };
+            }
+
+            if (str.includes('公') && (str.includes('假') || str.length === 1)) {
+                return { type: '公假', short: '公', icon: '🏛️', color: 'sky' };
+            }
+            if (str.includes('事') && (str.includes('假') || str.length === 1)) {
+                return { type: '事假', short: '事', icon: '📋', color: 'amber' };
+            }
+            if (str.includes('病') && (str.includes('假') || str.length === 1)) {
+                return { type: '病假', short: '病', icon: '💊', color: 'rose' };
+            }
+            if (str.includes('喪') && (str.includes('假') || str.length === 1)) {
+                return { type: '喪假', short: '喪', icon: '🕯️', color: 'slate' };
+            }
+            return null;
+        }
+
+        function resolveItemLeave(item) {
+            if (!item) return null;
+            if (item.isLeave && item.leaveType) {
+                return {
+                    type: item.leaveType,
+                    short: item.leaveShort || item.leaveType.charAt(0),
+                    icon: item.leaveIcon || (item.leaveType === '公假' ? '🏛️' : item.leaveType === '事假' ? '📋' : item.leaveType === '病假' ? '💊' : '🕯️'),
+                    color: item.leaveColor || (item.leaveType === '公假' ? 'sky' : item.leaveType === '事假' ? 'amber' : item.leaveType === '病假' ? 'rose' : 'slate')
+                };
+            }
+            return detectLeaveTypeClient(item.rawScore || item.score);
+        }
+
+        function getLeaveBadgeStyle(color) {
+            switch (color) {
+                case 'sky':
+                    return {
+                        badgeClass: 'bg-sky-50 text-sky-800 border-sky-300',
+                        pillClass: 'bg-sky-100 text-sky-800 border-sky-300 font-extrabold'
+                    };
+                case 'amber':
+                    return {
+                        badgeClass: 'bg-amber-50 text-amber-800 border-amber-300',
+                        pillClass: 'bg-amber-100 text-amber-800 border-amber-300 font-extrabold'
+                    };
+                case 'rose':
+                    return {
+                        badgeClass: 'bg-rose-50 text-rose-800 border-rose-300',
+                        pillClass: 'bg-rose-100 text-rose-800 border-rose-300 font-extrabold'
+                    };
+                case 'slate':
+                    return {
+                        badgeClass: 'bg-slate-100 text-slate-800 border-slate-300',
+                        pillClass: 'bg-slate-200 text-slate-800 border-slate-300 font-extrabold'
+                    };
+                default:
+                    return {
+                        badgeClass: 'bg-slate-100 text-slate-700 border-slate-300',
+                        pillClass: 'bg-slate-100 text-slate-700 border-slate-300 font-extrabold'
+                    };
+            }
+        }
+
         // =========================================================================
         // 2. 頁面狀態與渲染引擎（100% 讀取真實雲端試算表，不載入任何假示範資料）
         // =========================================================================
@@ -902,7 +981,7 @@
                                     <h4 class="font-extrabold text-slate-800 text-sm">${p.label}</h4>
                                     ${typeBadgeHtml}
                                 </div>
-                                <span class="block text-xs text-slate-600 font-medium">採計 ${p.count} 次平時分數（${rangeStr}）</span>
+                                <span class="block text-xs text-slate-600 font-medium">採計 ${p.count} 次平時分數（${rangeStr}）${p.leaveCount > 0 ? ` ‧ <span class="text-amber-700 font-bold">${p.leaveCount}次請假免計</span>` : ''}</span>
                             </div>
                             <span class="text-xs font-bold px-2 py-0.5 rounded-full border shrink-0 ${badgeInfo.badgeClass}">${badgeInfo.label}</span>
                         </div>
@@ -1061,7 +1140,11 @@
             }
 
             const labels = filteredItems.map(it => it.name);
-            const studentData = filteredItems.map(it => it.score);
+            const studentData = filteredItems.map(it => {
+                const leave = resolveItemLeave(it);
+                if (leave) return null;
+                return (it.score !== null && it.score !== undefined && !isNaN(it.score)) ? it.score : null;
+            });
             const classData = filteredItems.map(it => it.classAvg);
 
             // 自動計算合適且安全的 Y 軸範圍（支援 0~100 分完整跨度，低分點如 22 分完整呈現不被截斷、高分點 100 分頂部留有緩衝不被切半圓）：
@@ -1169,6 +1252,13 @@
                                     return `${itemObj.name} 【${itemObj.assessmentType || '作業'}】`;
                                 },
                                 label: function (context) {
+                                    const idx = context.dataIndex;
+                                    const itemObj = filteredItems[idx];
+                                    const isStudent = context.datasetIndex === 0;
+                                    const leaveInfo = isStudent ? resolveItemLeave(itemObj) : null;
+                                    if (leaveInfo) {
+                                        return ` ${context.dataset.label}: ${leaveInfo.icon} ${leaveInfo.type}（請假不計分）`;
+                                    }
                                     const val = context.parsed.y;
                                     return ` ${context.dataset.label}: ${val !== null && val !== undefined ? val.toFixed(1) + ' 分' : '無資料'}`;
                                 }
@@ -1210,7 +1300,10 @@
 
         function renderUnitDiagnosticStrip(subj) {
             const strip = document.getElementById('unitDiagnosticStrip');
-            const validItems = (subj.items || []).filter(it => it.score !== null && it.score !== undefined && !isNaN(it.score));
+            const validItems = (subj.items || []).filter(it => {
+                if (it.isLeave || resolveItemLeave(it)) return false;
+                return it.score !== null && it.score !== undefined && !isNaN(it.score);
+            });
             if (validItems.length === 0) {
                 strip.innerHTML = '';
                 return;
@@ -1291,14 +1384,19 @@
             }
 
             tbody.innerHTML = filtered.map((item, idx) => {
-                const hasScore = item.score !== null && item.score !== undefined && !isNaN(item.score);
+                const leaveInfo = resolveItemLeave(item);
+                const isLeave = Boolean(leaveInfo);
+                const leaveStyle = isLeave ? getLeaveBadgeStyle(leaveInfo.color) : null;
+                const hasScore = !isLeave && item.score !== null && item.score !== undefined && !isNaN(item.score);
                 const scoreColor = !hasScore
                     ? 'text-slate-400 font-normal'
                     : (item.score >= 90 ? 'text-emerald-700 font-black' : (item.score < 80 ? 'text-rose-600 font-black' : 'text-sky-800 font-bold'));
                 const classAvgStr = (displayFlags.showClassNorm && item.classAvg !== null && !isNaN(item.classAvg))
                     ? `${item.classAvg.toFixed(1)} 分`
                     : '--';
-                const diffHtml = hasScore ? formatDiffTag(item.diffFromClass) : '<span class="text-slate-400">--</span>';
+                const diffHtml = isLeave
+                    ? '<span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-slate-100 text-slate-500 border border-slate-200">請假免計</span>'
+                    : (hasScore ? formatDiffTag(item.diffFromClass) : '<span class="text-slate-400">--</span>');
                 const typeBadge = formatAssessmentTypeBadge(item.assessmentType);
                 const rowBg = idx % 2 === 0 ? 'bg-[#F2F8FC] hover:bg-[#E5F1FA]' : 'bg-[#F1F8F4] hover:bg-[#E3F3EA]';
 
@@ -1317,7 +1415,14 @@
                             </span>
                         </td>
                         <td class="py-3 px-3 text-center whitespace-nowrap">
-                            <span class="font-mono text-base tabular-nums ${scoreColor}">${hasScore ? item.score + ' 分' : '--'}</span>
+                            ${isLeave ? `
+                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-black border shadow-xs ${leaveStyle.pillClass}">
+                                    <span>${leaveInfo.icon}</span>
+                                    <span>${leaveInfo.type}</span>
+                                </span>
+                            ` : `
+                                <span class="font-mono text-base tabular-nums ${scoreColor}">${hasScore ? item.score + ' 分' : '--'}</span>
+                            `}
                         </td>
                         <td class="py-3 px-3 text-center font-mono text-xs text-slate-600 whitespace-nowrap">
                             ${classAvgStr}
@@ -1406,9 +1511,16 @@
             }
 
             grid.innerHTML = filtered.map((item, idx) => {
-                const hasScore = item.score !== null && item.score !== undefined && !isNaN(item.score);
-                const badgeInfo = getScoreBadgeInfo(item.score);
-                const diffHtml = hasScore ? formatDiffTag(item.diffFromClass) : '';
+                const leaveInfo = resolveItemLeave(item);
+                const isLeave = Boolean(leaveInfo);
+                const leaveStyle = isLeave ? getLeaveBadgeStyle(leaveInfo.color) : null;
+                const hasScore = !isLeave && item.score !== null && item.score !== undefined && !isNaN(item.score);
+                const badgeInfo = isLeave
+                    ? { label: `${leaveInfo.icon} ${leaveInfo.type}`, badgeClass: leaveStyle.badgeClass }
+                    : getScoreBadgeInfo(item.score);
+                const diffHtml = isLeave
+                    ? '<span class="inline-flex items-center px-1.5 py-0.5 rounded-md text-xs font-bold bg-slate-100 text-slate-500 border border-slate-200">免計</span>'
+                    : (hasScore ? formatDiffTag(item.diffFromClass) : '');
                 const classNormText = (displayFlags.showClassNorm && item.classAvg !== null)
                     ? `班級平均 ${item.classAvg.toFixed(1)} 分`
                     : `${item.categoryLabel}`;
@@ -1416,6 +1528,21 @@
                 const itemCardClass = idx % 2 === 0
                     ? 'subcard-cream-blue hover:border-sky-400/90'
                     : 'subcard-cream-green hover:border-emerald-400/90';
+
+                const scoreBoxHtml = isLeave ? `
+                    <div class="text-right shrink-0 space-y-1">
+                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-sm font-black border shadow-xs ${leaveStyle.pillClass}">
+                            <span>${leaveInfo.icon}</span>
+                            <span>${leaveInfo.type}</span>
+                        </div>
+                        <div class="text-[11px] font-bold text-slate-500 whitespace-nowrap">請假不計分</div>
+                    </div>
+                ` : `
+                    <div class="text-right shrink-0">
+                        <div class="text-xl font-black font-mono tabular-nums text-slate-900">${hasScore ? item.score : '--'}<span class="text-xs font-bold text-slate-600 ml-0.5">分</span></div>
+                        <span class="inline-block text-xs font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${badgeInfo.badgeClass}">${badgeInfo.label}</span>
+                    </div>
+                `;
 
                 return `
                     <div class="p-3.5 rounded-2xl ${itemCardClass} flex items-center justify-between gap-3 transition">
@@ -1430,10 +1557,7 @@
                                 ${diffHtml}
                             </div>
                         </div>
-                        <div class="text-right shrink-0">
-                            <div class="text-xl font-black font-mono tabular-nums text-slate-900">${hasScore ? item.score : '--'}<span class="text-xs font-bold text-slate-600 ml-0.5">分</span></div>
-                            <span class="inline-block text-xs font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${badgeInfo.badgeClass}">${badgeInfo.label}</span>
-                        </div>
+                        ${scoreBoxHtml}
                     </div>
                 `;
             }).join('');

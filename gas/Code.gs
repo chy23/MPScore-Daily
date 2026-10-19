@@ -997,6 +997,48 @@ function getScoreGradeInfo(score) {
 }
 
 /**
+ * 辨識成績格中的請假紀錄：
+ * 公 / 公假 -> 公假 (🏛️)
+ * 事 / 事假 -> 事假 (📋)
+ * 病 / 病假 -> 病假 (💊)
+ * 喪 / 喪假 -> 喪假 (🕯️)
+ */
+function detectLeaveType(val) {
+  if (val === null || val === undefined) return null;
+  var str = val.toString().trim();
+  if (!str) return null;
+
+  if (str === '公' || str === '公假' || /^公假?$/i.test(str)) {
+    return { type: '公假', short: '公', icon: '🏛️', color: 'sky' };
+  }
+  if (str === '事' || str === '事假' || /^事假?$/i.test(str)) {
+    return { type: '事假', short: '事', icon: '📋', color: 'amber' };
+  }
+  if (str === '病' || str === '病假' || /^病假?$/i.test(str)) {
+    return { type: '病假', short: '病', icon: '💊', color: 'rose' };
+  }
+  if (str === '喪' || str === '喪假' || /^喪假?$/i.test(str)) {
+    return { type: '喪假', short: '喪', icon: '🕯️', color: 'slate' };
+  }
+
+  // 容錯包含型判斷（例如 "公（假）"、"事假未考" 等）
+  if (str.indexOf('公') !== -1 && (str.indexOf('假') !== -1 || str.length === 1)) {
+    return { type: '公假', short: '公', icon: '🏛️', color: 'sky' };
+  }
+  if (str.indexOf('事') !== -1 && (str.indexOf('假') !== -1 || str.length === 1)) {
+    return { type: '事假', short: '事', icon: '📋', color: 'amber' };
+  }
+  if (str.indexOf('病') !== -1 && (str.indexOf('假') !== -1 || str.length === 1)) {
+    return { type: '病假', short: '病', icon: '💊', color: 'rose' };
+  }
+  if (str.indexOf('喪') !== -1 && (str.indexOf('假') !== -1 || str.length === 1)) {
+    return { type: '喪假', short: '喪', icon: '🕯️', color: 'slate' };
+  }
+
+  return null;
+}
+
+/**
  * 解析單一平時成績工作表（自動確保「作業／考試」列存在，並僅回傳該試算表實際存在的評量分項！）
  */
 function parseDailySubjectSheet(sheet) {
@@ -1126,21 +1168,29 @@ function parseDailySubjectSheet(sheet) {
     for (var m = 0; m < itemCols.length; m++) {
       var colMeta = itemCols[m];
       var rawVal = st.row[colMeta.colIdx];
+      var leaveInfo = detectLeaveType(rawVal);
+      var isLeave = leaveInfo !== null;
       var hasScoresInCol = colCounts[colMeta.colIdx] > 0;
 
-      if (!hasScoresInCol && (rawVal === '' || rawVal === null)) {
+      // 若整欄無人有成績且該生亦無成績也無請假，則略過
+      if (!hasScoresInCol && !isLeave && (rawVal === '' || rawVal === null)) {
         continue;
       }
 
-      var numScore = (rawVal !== '' && rawVal !== null && !isNaN(Number(rawVal))) ? Number(rawVal) : null;
+      var numScore = (!isLeave && rawVal !== '' && rawVal !== null && !isNaN(Number(rawVal))) ? Number(rawVal) : null;
       var classAvg = colClassAvgs[colMeta.colIdx];
-      var gradeInfo = getScoreGradeInfo(numScore);
+      var gradeInfo = isLeave
+        ? { level: 'leave', label: leaveInfo.icon + ' ' + leaveInfo.type, badgeColor: leaveInfo.color }
+        : getScoreGradeInfo(numScore);
       var diffVal = (numScore !== null && classAvg !== null) ? Number((numScore - classAvg).toFixed(1)) : null;
 
       var bkt = pillarBuckets[colMeta.pillarKey] || pillarBuckets.quiz;
       if (numScore !== null) {
         bkt.scores.push(numScore);
         allValidScores.push(numScore);
+      } else if (isLeave) {
+        bkt.leaves = bkt.leaves || [];
+        bkt.leaves.push(leaveInfo.type);
       }
 
       var uKey = colMeta.unitCode || '平時';
@@ -1177,6 +1227,11 @@ function parseDailySubjectSheet(sheet) {
         pillarShort: colMeta.pillarShort,
         categoryIcon: colMeta.pillarIcon,
         score: numScore,
+        rawScore: (rawVal !== null && rawVal !== undefined) ? rawVal.toString().trim() : '',
+        isLeave: isLeave,
+        leaveType: isLeave ? leaveInfo.type : null,
+        leaveShort: isLeave ? leaveInfo.short : null,
+        leaveIcon: isLeave ? leaveInfo.icon : null,
         classAvg: classAvg,
         diffFromClass: diffVal,
         gradeLevel: gradeInfo.level,
@@ -1228,6 +1283,7 @@ function parseDailySubjectSheet(sheet) {
         maxScore: pMax,
         minScore: pMin,
         count: pb.scores.length,
+        leaveCount: (pb.leaves ? pb.leaves.length : 0),
         badge: pGrade.label,
         badgeColor: pGrade.badgeColor
       };
@@ -1286,6 +1342,7 @@ function parseDailySubjectSheet(sheet) {
     });
 
     var shortSubj = inferSubjectShortName(sheetName, sheetTitle);
+    var leaveItems = items.filter(function(it) { return it.isLeave; });
     var stDataObj = {
       subject: shortSubj,
       sheetName: sheetName,
@@ -1294,6 +1351,8 @@ function parseDailySubjectSheet(sheet) {
       overallAverage: overallAvg,
       totalItems: allValidScores.length,
       totalScoresCount: allValidScores.length,
+      leaveCount: leaveItems.length,
+      leaves: leaveItems.map(function(it) { return { name: it.name, type: it.leaveType, icon: it.leaveIcon }; }),
       pillars: pillarsArray,
       pillarsMap: pillarsSummaryObj,
       unitTimeline: unitTimeline,
@@ -1396,6 +1455,10 @@ function buildDailyScoreDiagnosticAdvice(stRecord) {
     if (highestUnit && lowestUnit && highestUnit.unit !== lowestUnit.unit && (highestUnit.val - lowestUnit.val >= 8)) {
       parts.push('在單元歷程走勢中，' + highestUnit.unit + '（均分 ' + highestUnit.val + '分）表現最佳；而 ' + lowestUnit.unit + '（均分 ' + lowestUnit.val + '分）相對偏低，建議期中/期末考前優先複習 ' + lowestUnit.unit + '！');
     }
+  }
+
+  if (stRecord.leaveCount > 0) {
+    parts.push('（本科包含 ' + stRecord.leaveCount + ' 次請假紀錄，依校規皆免計分且不列入平均計算。）');
   }
 
   return parts.join(' ');
