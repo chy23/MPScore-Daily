@@ -573,7 +573,7 @@
 
         function parseUrlDisplayConfig() {
             const params = new URLSearchParams(window.location.search);
-            const cfgParam = params.get('cfg');
+            const cfgParam = params.get('c') || params.get('cfg');
             if (cfgParam !== null && !isNaN(parseInt(cfgParam, 10))) {
                 const mask = parseInt(cfgParam, 10);
                 displayFlags.showOverallHero = Boolean(mask & 1);
@@ -1511,18 +1511,24 @@
             let extractedApi = '';
             let extractedCfg = '';
 
-            if (text.startsWith('http://') || text.startsWith('https://') || text.includes('token=') || text.includes('code=')) {
+            if (text.startsWith('http://') || text.startsWith('https://') || text.includes('token=') || text.includes('code=') || text.includes('t=')) {
                 try {
                     const urlObj = new URL(text, window.location.origin);
-                    extractedToken = (urlObj.searchParams.get('token') || urlObj.searchParams.get('code') || '').trim();
+                    extractedToken = (urlObj.searchParams.get('t') || urlObj.searchParams.get('token') || urlObj.searchParams.get('code') || '').trim();
                     extractedApi = (urlObj.searchParams.get('api') || '').trim();
-                    extractedCfg = (urlObj.searchParams.get('cfg') || '').trim();
+                    const extractedGas = (urlObj.searchParams.get('g') || '').trim();
+                    if (!extractedApi && extractedGas) {
+                        extractedApi = `https://script.google.com/macros/s/${extractedGas}/exec`;
+                    }
+                    extractedCfg = (urlObj.searchParams.get('c') || urlObj.searchParams.get('cfg') || '').trim();
                 } catch (err) {
-                    const mToken = text.match(/[?&](?:token|code)=([^&#]+)/i);
+                    const mToken = text.match(/[?&](?:t|token|code)=([^&#]+)/i);
                     const mApi = text.match(/[?&]api=([^&#]+)/i);
-                    const mCfg = text.match(/[?&]cfg=([^&#]+)/i);
+                    const mGas = text.match(/[?&]g=([^&#]+)/i);
+                    const mCfg = text.match(/[?&](?:c|cfg)=([^&#]+)/i);
                     if (mToken) extractedToken = decodeURIComponent(mToken[1]);
                     if (mApi) extractedApi = decodeURIComponent(mApi[1]);
+                    else if (mGas) extractedApi = `https://script.google.com/macros/s/${decodeURIComponent(mGas[1])}/exec`;
                     if (mCfg) extractedCfg = decodeURIComponent(mCfg[1]);
                 }
             } else {
@@ -1535,8 +1541,8 @@
 
             if (extractedToken) {
                 const newParams = new URLSearchParams(window.location.search);
-                newParams.set('token', extractedToken.toUpperCase());
-                if (extractedCfg) newParams.set('cfg', extractedCfg);
+                newParams.set('t', extractedToken.toUpperCase());
+                if (extractedCfg) newParams.set('c', extractedCfg);
                 if (extractedApi) newParams.set('api', extractedApi);
                 const newUrl = `${window.location.pathname}?${newParams.toString()}`;
                 window.history.replaceState({}, '', newUrl);
@@ -1636,11 +1642,16 @@
             document.getElementById('qrScannerBanner').classList.add('hidden');
 
             const params = new URLSearchParams(window.location.search);
-            const urlApi = overrideApiUrl || params.get('api');
+            let urlApi = overrideApiUrl || params.get('api');
+            const urlGas = params.get('g');
+            if (!urlApi && urlGas) {
+                urlApi = `https://script.google.com/macros/s/${urlGas.trim()}/exec`;
+            }
             if (urlApi) {
                 localStorage.setItem('mpdaily_api_url', urlApi);
             }
-            const apiUrl = (urlApi || localStorage.getItem('mpdaily_api_url') || ((typeof CONFIG !== 'undefined' && CONFIG.API_URL) ? CONFIG.API_URL : '')).trim();
+            const configApi = (window.MPSCORE_DAILY_CONFIG?.apiUrl || (typeof CONFIG !== 'undefined' ? CONFIG.API_URL : '') || '').trim();
+            const apiUrl = (urlApi || localStorage.getItem('mpdaily_api_url') || configApi).trim();
 
             if (!apiUrl) {
                 showErrorState('尚未包含雲端試算表連線資訊', '請重新掃描老師發放之「平時成績通知小卡」上的完整 QR Code。');
@@ -1682,7 +1693,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             parseUrlDisplayConfig();
             const params = new URLSearchParams(window.location.search);
-            const urlToken = params.get('token') || params.get('code');
+            const urlToken = params.get('t') || params.get('token') || params.get('code');
             if (urlToken) {
                 loadStudentPortfolioByToken(urlToken, false);
             } else {
