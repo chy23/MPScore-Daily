@@ -225,14 +225,14 @@
         }
 
         .a4-grid-4 .slip-card {
-            --card-pad-v: 4.5mm;
-            --card-pad-h: 5.5mm;
+            --card-pad-v: 4mm;
+            --card-pad-h: 4.5mm;
             border-radius: 14px;
         }
 
         .a4-grid-6 .slip-card {
-            --card-pad-v: 3.2mm;
-            --card-pad-h: 4mm;
+            --card-pad-v: 2.8mm;
+            --card-pad-h: 3.5mm;
             border-radius: 12px;
         }
 
@@ -243,9 +243,22 @@
         }
 
         .a4-grid-10 .slip-card {
-            --card-pad-v: 1.8mm;
-            --card-pad-h: 2.6mm;
+            --card-pad-v: 1.6mm;
+            --card-pad-h: 2.4mm;
             border-radius: 8px;
+        }
+
+        /* 確保高解析度 QR Code 點陣畫布在任何縮放比例下皆極致銳利、不模糊、不變形 */
+        .qr-target canvas,
+        .qr-target img {
+            width: 100% !important;
+            height: 100% !important;
+            max-width: 100% !important;
+            max-height: 100% !important;
+            display: block !important;
+            object-fit: contain !important;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
         }
 
         /* 縮放尺寸輔助 */
@@ -2859,13 +2872,14 @@ function testGitHubConnection() {
             const scale = currentPrintScale || 100;
             const gridClass = perPage === 4 ? 'a4-grid-4' : (perPage === 6 ? 'a4-grid-6' : (perPage === 8 ? 'a4-grid-8' : 'a4-grid-10'));
 
-            // 依據每頁小卡數量 (4 / 6 / 8 / 10 格) 採漸進式自適應字級、間距與 QR Code 尺寸 (參考 MPScore 202610 解決方案)
+            // 依據每頁小卡數量 (4 / 6 / 8 / 10 格) 採漸進式自適應字級、間距與 QR Code 尺寸
             const is4Grid = perPage <= 4;
             const is6Grid = perPage === 6;
             const is8Grid = perPage === 8;
 
-            const baseQr = is4Grid ? 78 : (is6Grid ? 60 : (is8Grid ? 46 : 38));
-            const qrSize = Math.max(36, Math.min(90, Math.round(baseQr * (scale / 100))));
+            // QR Code 顯示尺寸 (px)：全規格加大提升辨識率，特別強化 8 格 (升級至 68px) 與 6 格 (升級至 78px)
+            const baseQr = is4Grid ? 88 : (is6Grid ? 78 : (is8Grid ? 68 : 58));
+            const qrSize = Math.max(50, Math.min(105, Math.round(baseQr * (scale / 100))));
 
             const nameFont = is4Grid
                 ? 'text-base sm:text-lg font-black'
@@ -2876,12 +2890,12 @@ function testGitHubConnection() {
                 : (is6Grid ? 'text-xs font-bold text-slate-600' : 'text-[9.5px] font-bold text-slate-600');
 
             const badgeFont = is4Grid
-                ? 'text-xs font-bold px-2.5 h-[24px] leading-[24px]'
-                : (is6Grid ? 'text-[10.5px] font-bold px-2 h-[22px] leading-[22px]' : (is8Grid ? 'text-[9.5px] font-bold px-2 h-[20px] leading-[20px]' : 'text-[8.5px] font-bold px-1.5 h-[19px] leading-[19px]'));
+                ? 'text-xs font-bold px-2 py-0.5 leading-normal'
+                : (is6Grid ? 'text-[10.5px] font-bold px-1.5 py-0.5 leading-normal' : (is8Grid ? 'text-[9.5px] font-bold px-1.5 py-0.5 leading-normal' : 'text-[8.5px] font-bold px-1 py-0.5 leading-normal'));
 
             const topTagFont = is4Grid
-                ? 'text-[10.5px] font-extrabold px-2.5 h-[24px] leading-[24px]'
-                : (is6Grid ? 'text-[9.5px] font-extrabold px-2 h-[22px] leading-[22px]' : (is8Grid ? 'text-[8.5px] font-extrabold px-2 h-[20px] leading-[20px]' : 'text-[7.5px] font-extrabold px-1.5 h-[19px] leading-[19px]'));
+                ? 'text-[11px] font-extrabold px-2 py-0.5 leading-normal'
+                : (is6Grid ? 'text-[10px] font-extrabold px-1.5 py-0.5 leading-normal' : (is8Grid ? 'text-[9px] font-extrabold px-1.5 py-0.5 leading-normal' : 'text-[8px] font-extrabold px-1 py-0.5 leading-normal'));
 
             const subtitleFont = is4Grid
                 ? 'text-xs font-bold px-2.5 py-1.5 leading-normal'
@@ -2889,7 +2903,7 @@ function testGitHubConnection() {
 
             const stepTitleFont = is4Grid
                 ? 'text-xs sm:text-sm font-black'
-                : (is6Grid ? 'text-[11px] font-black' : (is8Grid ? 'text-[9px] font-black' : 'text-[8px] font-black'));
+                : (is6Grid ? 'text-[11px] font-black' : (is8Grid ? 'text-[9.5px] font-black' : 'text-[8.5px] font-black'));
 
             const stepBodyFont = is4Grid
                 ? 'text-xs text-slate-700 leading-relaxed'
@@ -2904,14 +2918,14 @@ function testGitHubConnection() {
                 : (is6Grid ? 'p-1.5 rounded-lg' : (is8Grid ? 'p-1 rounded-lg' : 'p-0.5 rounded'));
 
             const qrCaptionFont = is4Grid
-                ? 'text-[10px] font-extrabold text-sky-800 mt-1 leading-normal'
-                : (is6Grid ? 'text-[8.5px] font-extrabold text-sky-800 mt-0.5 leading-normal' : (is8Grid ? 'text-[7.5px] font-extrabold text-sky-800 mt-0.5 leading-normal' : 'text-[7px] font-extrabold text-sky-800 mt-0.5 leading-normal'));
+                ? 'text-[10px] font-extrabold text-sky-800 mt-1 leading-normal whitespace-nowrap'
+                : (is6Grid ? 'text-[9px] font-extrabold text-sky-800 mt-0.5 leading-normal whitespace-nowrap' : (is8Grid ? 'text-[8px] font-extrabold text-sky-800 mt-0.5 leading-normal whitespace-nowrap' : 'text-[7.5px] font-extrabold text-sky-800 mt-0.5 leading-normal whitespace-nowrap'));
 
             const tokenFont = is4Grid
-                ? 'text-[10px] font-mono font-bold text-slate-600 mt-0.5 leading-normal'
-                : (is6Grid ? 'text-[8.5px] font-mono font-bold text-slate-600 mt-0.5 leading-normal' : (is8Grid ? 'text-[7.5px] font-mono font-bold text-slate-500 mt-0.5 leading-normal' : 'text-[7px] font-mono font-bold text-slate-500 mt-0.5 leading-normal'));
+                ? 'text-[10px] font-mono font-bold text-slate-600 mt-0.5 leading-normal whitespace-nowrap'
+                : (is6Grid ? 'text-[8.5px] font-mono font-bold text-slate-600 mt-0.5 leading-normal whitespace-nowrap' : (is8Grid ? 'text-[7.5px] font-mono font-bold text-slate-500 mt-0.5 leading-normal whitespace-nowrap' : 'text-[7px] font-mono font-bold text-slate-500 mt-0.5 leading-normal whitespace-nowrap'));
 
-            // 關鍵修復：絕不使用 my-auto，改用確定邊距流式佈局，徹底根絕小卡頂部標題文字遭到向上頂出切斷的問題
+            // 確定邊距流式佈局，小卡頂部標題與姓名絕不擠壓
             const middleGap = is4Grid ? 'gap-3 my-1 flex-1 min-h-0' : (is6Grid ? 'gap-2.5 my-0.5 flex-1 min-h-0' : (is8Grid ? 'gap-2 my-0.5 flex-1 min-h-0' : 'gap-1.5 my-0.5 flex-1 min-h-0'));
             const middleBoxGap = is4Grid ? 'space-y-1.5' : (is6Grid ? 'space-y-1' : 'space-y-0.5');
 
@@ -2931,7 +2945,7 @@ function testGitHubConnection() {
                     const qrDomId = `qr_${pageIdx}_${cardIdx}`;
 
                     const subtitleBarHtml = (optSubtitle && subtitleHtml) ? `
-                        <div class="${subtitleFont} text-slate-700 bg-slate-50 border border-slate-200/90 rounded-lg whitespace-nowrap overflow-visible block text-left">
+                        <div class="${subtitleFont} text-slate-700 bg-slate-50 border border-slate-200/90 rounded-lg break-words block text-left">
                             ${subtitleHtml}
                         </div>
                     ` : '';
@@ -2958,18 +2972,26 @@ function testGitHubConnection() {
 
                     return `
                         <div class="slip-card" data-scale="${scale}">
-                            <!-- 頂部學生資訊列（不含任何成績分數） -->
-                            <div class="flex items-center justify-between ${headerBorderClass}">
-                                <div class="flex items-center gap-1.5 min-w-0">
-                                    ${badgeHtml ? `<span class="rounded-md bg-sky-600 text-white font-bold inline-block text-center align-middle whitespace-nowrap ${badgeFont} shrink-0">${badgeHtml}</span>` : ''}
-                                    ${optSeatClass ? `<span class="${seatClassFont} shrink-0 leading-normal align-middle">${st.className || '本班'} ${st.seatNo}號</span>` : ''}
-                                    <span class="${nameFont} text-slate-900 whitespace-nowrap leading-snug align-middle">${st.name}</span>
-                                </div>
-                                ${topTagHtml ? `
-                                <div class="text-right shrink-0">
-                                    <span class="rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 inline-block text-center align-middle whitespace-nowrap ${topTagFont}">${topTagHtml}</span>
+                            <!-- 頂部卡片標籤與學生身分列（雙層清晰階層排版，學生姓名 100% 完整無裁切、資訊絕不殘缺） -->
+                            <div class="${headerBorderClass} space-y-1">
+                                ${(badgeHtml || topTagHtml) ? `
+                                <div class="flex items-center justify-between gap-1 text-slate-700">
+                                    <div>
+                                        ${badgeHtml ? `<span class="rounded-md bg-sky-600 text-white font-bold inline-block text-center align-middle whitespace-nowrap ${badgeFont}">${badgeHtml}</span>` : ''}
+                                    </div>
+                                    <div>
+                                        ${topTagHtml ? `<span class="rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 inline-block text-center align-middle whitespace-nowrap ${topTagFont}">${topTagHtml}</span>` : ''}
+                                    </div>
                                 </div>
                                 ` : ''}
+
+                                <div class="flex items-baseline justify-between gap-2 pt-0.5">
+                                    <div class="flex items-baseline gap-2 min-w-0">
+                                        ${optSeatClass ? `<span class="${seatClassFont} shrink-0">${st.className || '本班'} ${st.seatNo}號</span>` : ''}
+                                        <span class="${nameFont} text-slate-900 font-black leading-snug tracking-wide whitespace-nowrap">${st.name}</span>
+                                    </div>
+                                    ${optTokenText ? `<span class="${tokenFont}">代碼: ${st.token}</span>` : ''}
+                                </div>
                             </div>
 
                             <!-- 中段：左側家長登入與隨時查看指南 + 右側專屬 QR Code -->
@@ -2981,15 +3003,15 @@ function testGitHubConnection() {
                                     ${fallbackGuideHtml}
                                 </div>
                                 <div class="shrink-0 flex flex-col items-center justify-center border border-sky-200 bg-white shadow-sm ${qrBoxPad}">
-                                    <div id="${qrDomId}" data-token="${st.token}" style="width: ${qrSize}px; height: ${qrSize}px;" class="qr-target flex items-center justify-center"></div>
+                                    <div id="${qrDomId}" data-token="${st.token}" style="width: ${qrSize}px; height: ${qrSize}px;" class="qr-target flex items-center justify-center overflow-hidden"></div>
                                     ${qrCaptionHtml ? `<div class="${qrCaptionFont}">${qrCaptionHtml}</div>` : ''}
                                     ${optTokenText ? `<div class="${tokenFont}">${st.token}</div>` : ''}
                                 </div>
                             </div>
 
-                            <!-- 底部保存提醒（全寬單行呈現，支援教師自訂修改） -->
+                            <!-- 底部保存提醒（全寬呈現，支援教師自訂修改） -->
                             <div class="flex items-center justify-between ${footerFont}">
-                                <span class="leading-normal">${footerHtml}</span>
+                                <span class="leading-normal break-words w-full text-left">${footerHtml}</span>
                             </div>
                         </div>
                     `;
@@ -3016,17 +3038,18 @@ function testGitHubConnection() {
 
             // 生成所有 QR Code 並執行單頁溢出檢測
             setTimeout(() => {
+                const QR_HIGH_RES = 240; // 以 240x240 超高解析度畫布生成，徹底杜絕 8 格/6 格模糊或點陣黏連
                 document.querySelectorAll('.qr-target').forEach(el => {
                     el.innerHTML = '';
                     const token = el.getAttribute('data-token');
                     const url = buildParentPortalUrl(token);
                     new QRCode(el, {
                         text: url,
-                        width: qrSize,
-                        height: qrSize,
-                        colorDark: "#1e293b",
+                        width: QR_HIGH_RES,
+                        height: QR_HIGH_RES,
+                        colorDark: "#0f172a",
                         colorLight: "#ffffff",
-                        correctLevel: QRCode.CorrectLevel.M
+                        correctLevel: QRCode.CorrectLevel.L // 採用 L 級容錯，大幅擴大單個點陣模組面積，提升手機相機辨識率
                     });
                 });
                 setTimeout(checkA4PagesOverflow, 60);
