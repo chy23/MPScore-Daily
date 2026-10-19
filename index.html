@@ -248,8 +248,15 @@
             border-radius: 8px;
         }
 
-        /* 確保高解析度 QR Code 點陣畫布在任何縮放比例下皆極致銳利、不模糊、不變形 */
-        .qr-target canvas,
+        /* 確保高解析度 QR Code 只顯示單一 img 元素，徹底排除 canvas 雙重顯示並列擠壓之變形問題 */
+        .qr-target {
+            position: relative;
+        }
+
+        .qr-target canvas {
+            display: none !important;
+        }
+
         .qr-target img {
             width: 100% !important;
             height: 100% !important;
@@ -258,7 +265,7 @@
             display: block !important;
             object-fit: contain !important;
             image-rendering: -webkit-optimize-contrast;
-            image-rendering: crisp-edges;
+            image-rendering: pixelated;
         }
 
         /* 縮放尺寸輔助 */
@@ -3051,6 +3058,9 @@ function testGitHubConnection() {
                         colorLight: "#ffffff",
                         correctLevel: QRCode.CorrectLevel.L // 採用 L 級容錯，大幅擴大單個點陣模組面積，提升手機相機辨識率
                     });
+                    // 移除 qrcodejs 殘留的 canvas，保證 DOM 內僅有唯一的 img，絕不並列擠壓
+                    const cvs = el.querySelector('canvas');
+                    if (cvs) cvs.remove();
                 });
                 setTimeout(checkA4PagesOverflow, 60);
             }, 30);
