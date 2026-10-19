@@ -91,7 +91,7 @@ function doPost(e) {
 
 function testGitHubConnection() {
   try {
-    var engine = getEngine();
+    var engine = getEngine(true);
     SpreadsheetApp.getUi().alert("🎉 連線成功！已成功自 GitHub (chy23/MPScore-Daily) 載入最新版 MPScore-Daily 平時成績歷程核心模組。");
   } catch (err) {
     SpreadsheetApp.getUi().alert("⚠️ 連線失敗: " + err.toString());

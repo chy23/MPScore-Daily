@@ -1861,7 +1861,7 @@ function testGitHubConnection() {
                 let rawHtmlErr = '';
 
                 for (let attempt = 1; attempt <= 2; attempt++) {
-                    const res = await fetch(`${inputUrl}${sep}action=getStudentsForPrint&t=${Date.now()}`, { redirect: 'follow' });
+                    const res = await fetch(`${inputUrl}${sep}action=getStudentsForPrint&nocache=1&v=7&t=${Date.now()}`, { redirect: 'follow', cache: 'no-store' });
                     const text = await res.text();
                     try {
                         data = JSON.parse(text);

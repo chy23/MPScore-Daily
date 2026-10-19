@@ -521,7 +521,7 @@ function doGet(e) {
     if (action === 'ping') {
       output = checkSystemStatus();
     } else if (action === 'query') {
-      output = getStudentDailyPortfolioByToken(params.token, params.device);
+      output = getStudentDailyPortfolioByToken(params.token, params.device, (params.nocache === '1' || params.reload === '1'));
     } else if (action === 'getStudentsForPrint' || action === 'getRoster') {
       output = getStudentListForTeacher();
     } else if (action === 'getAccessLogs') {
@@ -1509,7 +1509,7 @@ function checkSystemStatus() {
 /**
  * 家長端依 Token 查詢該生所有平時成績歷程資料 (高資安隔離)
  */
-function getStudentDailyPortfolioByToken(token, clientDevice) {
+function getStudentDailyPortfolioByToken(token, clientDevice, skipCacheOpt) {
   var cleanToken = (token || '').toString().trim().toUpperCase();
   if (!cleanToken) {
     return { status: 'error', success: false, message: '請掃描有效的專屬 QR Code！' };
@@ -1553,7 +1553,7 @@ function getStudentDailyPortfolioByToken(token, clientDevice) {
     recordParentAccessLog_(ss, sSheet, matchedStudent, matchedRowIdx, clientDevice);
   } catch (logErr) {}
 
-  var skipCache = (e && e.parameter && (e.parameter.nocache === '1' || e.parameter.reload === '1'));
+  var skipCache = Boolean(skipCacheOpt);
   var cache = CacheService.getScriptCache();
   var cacheKey = 'mpdaily_score_v7_' + cleanToken;
   var cachedJson = !skipCache ? cache.get(cacheKey) : null;
