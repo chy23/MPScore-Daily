@@ -43,6 +43,24 @@
 
 ## 📝 版本更新紀錄 (Changelog)
 
+### v2.8.4 — 2026-10-19（教師端與家長端專屬「相似卻不同」雙生分頁圖示）
+- **🎭 同體系、雙角色專屬分頁識別 (Twin Favicons System)**：
+  - **解決同時開啟雙端易混淆問題**：教師常同時開啟「教師端管理中心」與「家長端小卡檢視」，過去兩者圖示相同難以迅速分辨。
+  - **相似的設計系統（Brand Consistency）**：
+    - 兩端皆採用一致的 Apple Squircle 圓角微立體漸層底座、毛玻璃弧頂光澤與經典三階分項均標條狀圖。
+  - **鮮明的角色差異（Role Differentiation）**：
+    - **👨‍🏫 教師端 (`index.html`)**：
+      - **色彩**：皇家深海藍漸層 (`#0284C7` ➔ `#1E3A8A`)，呈現教育專業、管理、授課與全班總覽的沉穩氣質。
+      - **符號**：頂端配置**「金色導師學士帽 🎓」**搭配垂墜流蘇與評量校準節點，代表教學領導與成績核算。
+      - **行動端主題**：`<meta name="theme-color" content="#0284C7">`。
+    - **👨‍👩‍👧 家長端 (`parent.html`)**：
+      - **色彩**：翡翠翠綠漸層 (`#0D9488` ➔ `#047857`)，象徵生命活力、孩子成長手札與溫馨親師溝通。
+      - **符號**：主體貫穿**「動態金色學習走勢成長曲線 📈」**與頂峰閃耀的**「成就之星 🌟」**，代表孩子在各科平時成績的真實成長軌跡。
+      - **行動端主題**：`<meta name="theme-color" content="#0D9488">`。
+  - **獨立產出雙套專屬資源**：
+    - 教師端：`favicon-teacher.svg`、`favicon-teacher-32x32.png`、`favicon-teacher-16x16.png`、`apple-touch-icon-teacher.png`。
+    - 家長端：`favicon-parent.svg`、`favicon-parent-32x32.png`、`favicon-parent-16x16.png`、`apple-touch-icon-parent.png`。
+
 ### v2.8.3 — 2026-10-19（全新 Apple Design 品牌專屬分頁圖示與高解析 Web App 圖標）
 - **🎨 打造品牌專屬分頁圖示 (Favicon & Touch Icons)**：
   - **解決未配置圖示顯示地球問題**：先前未設定 `<link rel="icon">`，瀏覽器預設顯示灰色地球圖示。
