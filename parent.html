@@ -424,6 +424,9 @@
                     <canvas id="unitTrendChart"></canvas>
                 </div>
 
+                <!-- 請假項目即時點擊提示條（當點擊圖表中的請假點時動態顯示） -->
+                <div id="chartLeaveNotice" class="hidden transition-all duration-300"></div>
+
                 <!-- 強弱項目快篩橫幅 -->
                 <div id="unitDiagnosticStrip" class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     <!-- JS 自動計算本科最佳表現項目與待加強項目 -->
@@ -877,6 +880,7 @@
             currentSubjectIdx = idx;
             currentCategoryFilter = 'all';
             currentChartMetric = 'all';
+            if (typeof hideLeaveNoticeBanner === 'function') hideLeaveNoticeBanner();
             renderSubjectTabs();
             renderActiveSubjectModules();
         }
@@ -1080,6 +1084,7 @@
         }
 
         function switchChartMetric(metricKey) {
+            hideLeaveNoticeBanner();
             currentChartMetric = metricKey;
             document.querySelectorAll('.chart-tab-btn').forEach(btn => {
                 const isSelected = btn.getAttribute('data-metric') === metricKey;
@@ -1089,6 +1094,76 @@
             });
             const subj = currentPortfolio.student.subjects[currentSubjectIdx];
             if (subj) renderUnitTrendChart(subj);
+        }
+
+        function getInterpolatedScore(items, idx) {
+            let prevScore = null, prevIdx = -1;
+            for (let i = idx - 1; i >= 0; i--) {
+                const isL = Boolean(resolveItemLeave(items[i]));
+                if (!isL && items[i].score !== null && !isNaN(items[i].score)) {
+                    prevScore = items[i].score;
+                    prevIdx = i;
+                    break;
+                }
+            }
+            let nextScore = null, nextIdx = -1;
+            for (let i = idx + 1; i < items.length; i++) {
+                const isL = Boolean(resolveItemLeave(items[i]));
+                if (!isL && items[i].score !== null && !isNaN(items[i].score)) {
+                    nextScore = items[i].score;
+                    nextIdx = i;
+                    break;
+                }
+            }
+            if (prevScore !== null && nextScore !== null) {
+                const ratio = (idx - prevIdx) / (nextIdx - prevIdx);
+                return Number((prevScore + ratio * (nextScore - prevScore)).toFixed(1));
+            }
+            if (prevScore !== null) return prevScore;
+            if (nextScore !== null) return nextScore;
+            if (items[idx].classAvg !== null && !isNaN(items[idx].classAvg)) return items[idx].classAvg;
+            return 85;
+        }
+
+        function showLeaveNoticeBanner(itemObj, leaveInfo) {
+            const noticeEl = document.getElementById('chartLeaveNotice');
+            if (!noticeEl) return;
+            const style = getLeaveBadgeStyle(leaveInfo.color);
+            noticeEl.className = `p-3.5 rounded-2xl border shadow-sm flex items-center justify-between gap-3 ${style.badgeClass}`;
+            noticeEl.innerHTML = `
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <span class="text-2xl shrink-0">${leaveInfo.icon}</span>
+                    <div class="min-w-0">
+                        <div class="text-xs font-black flex items-center gap-2 flex-wrap text-slate-900">
+                            <span>${itemObj.name}</span>
+                            <span class="px-2 py-0.5 rounded-full text-xs font-black ${style.pillClass}">${leaveInfo.type}</span>
+                        </div>
+                        <div class="text-xs text-slate-700 mt-0.5">
+                            本項目已登記為「${leaveInfo.type}」，依學校評量標準<b>免計分</b>，不納入個人與班級平均計算除數。
+                        </div>
+                    </div>
+                </div>
+                <button onclick="scrollToItemCard('${encodeURIComponent(itemObj.name)}')" class="shrink-0 text-xs font-bold px-3 py-1.5 rounded-xl bg-white border border-slate-300 shadow-xs hover:bg-slate-50 transition active:scale-95 cursor-pointer">
+                    查看卡片 ⬇️
+                </button>
+            `;
+            noticeEl.classList.remove('hidden');
+        }
+
+        function hideLeaveNoticeBanner() {
+            const noticeEl = document.getElementById('chartLeaveNotice');
+            if (noticeEl) noticeEl.classList.add('hidden');
+        }
+
+        function scrollToItemCard(encodedItemName) {
+            const name = decodeURIComponent(encodedItemName);
+            const cards = Array.from(document.querySelectorAll('#scoreItemsGrid > div'));
+            const target = cards.find(el => el.textContent.includes(name));
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                target.classList.add('ring-4', 'ring-amber-400');
+                setTimeout(() => target.classList.remove('ring-4', 'ring-amber-400'), 2500);
+            }
         }
 
         function renderUnitTrendChart(subj) {
@@ -1146,12 +1221,46 @@
             }
 
             const labels = filteredItems.map(it => it.name);
-            const studentData = filteredItems.map(it => {
+            const studentData = filteredItems.map((it, idx) => {
                 const leave = resolveItemLeave(it);
-                if (leave) return null;
+                if (leave) {
+                    return getInterpolatedScore(filteredItems, idx);
+                }
                 return (it.score !== null && it.score !== undefined && !isNaN(it.score)) ? it.score : null;
             });
             const classData = filteredItems.map(it => it.classAvg);
+
+            // 自定義學生資料點樣式：若是請假項目，呈現特殊假別色彩與稍大點徑，讓點擊/觸控極其靈敏清晰
+            const studentPointColors = [];
+            const studentPointBorders = [];
+            const studentPointRadii = [];
+            const studentPointHoverRadii = [];
+            const studentPointBorderWidths = [];
+
+            filteredItems.forEach((it) => {
+                const leave = resolveItemLeave(it);
+                if (leave) {
+                    studentPointRadii.push(7.5);
+                    studentPointHoverRadii.push(10.5);
+                    studentPointBorderWidths.push(4);
+                    studentPointColors.push('#FFFFFF');
+                    if (leave.color === 'rose') {
+                        studentPointBorders.push('#E11D48'); // 玫瑰紅 (病假)
+                    } else if (leave.color === 'amber') {
+                        studentPointBorders.push('#D97706'); // 琥珀橘 (事假/請假)
+                    } else if (leave.color === 'sky') {
+                        studentPointBorders.push('#0284C7'); // 天空藍 (公假)
+                    } else {
+                        studentPointBorders.push('#475569'); // 石板灰 (喪假)
+                    }
+                } else {
+                    studentPointRadii.push(6.5);
+                    studentPointHoverRadii.push(9);
+                    studentPointBorderWidths.push(3.5);
+                    studentPointColors.push('#FFFFFF');
+                    studentPointBorders.push('#0284C7');
+                }
+            });
 
             // 自動計算合適且安全的 Y 軸範圍（支援 0~100 分完整跨度，低分點如 22 分完整呈現不被截斷、高分點 100 分頂部留有緩衝不被切半圓）：
             const allNums = [...studentData, ...(displayFlags.showClassNorm ? classData : [])].filter(v => v !== null && !isNaN(v));
@@ -1185,12 +1294,12 @@
                     borderColor: '#0284C7',
                     backgroundColor: 'rgba(14, 165, 233, 0.12)',
                     borderWidth: 3.5,
-                    pointBackgroundColor: '#FFFFFF',
-                    pointBorderColor: '#0284C7',
-                    pointBorderWidth: 3.5,
-                    pointRadius: 6.5, // 顯著放大個人點陣
-                    pointHoverRadius: 9,
-                    pointHoverBackgroundColor: '#0284C7',
+                    pointBackgroundColor: studentPointColors,
+                    pointBorderColor: studentPointBorders,
+                    pointBorderWidth: studentPointBorderWidths,
+                    pointRadius: studentPointRadii,
+                    pointHoverRadius: studentPointHoverRadii,
+                    pointHoverBackgroundColor: studentPointBorders,
                     pointHoverBorderColor: '#FFFFFF',
                     pointHoverBorderWidth: 3,
                     tension: 0.25,
@@ -1219,9 +1328,74 @@
                 });
             }
 
+            // 在圖表畫布上直接為請假點繪製醒目的專屬迷你標籤（如 💊 病假）
+            const leaveBadgePlugin = {
+                id: 'leaveBadgePlugin',
+                afterDatasetsDraw(chart) {
+                    const { ctx: cCtx } = chart;
+                    const meta = chart.getDatasetMeta(0);
+                    if (!meta || !meta.data) return;
+
+                    filteredItems.forEach((item, idx) => {
+                        const leave = resolveItemLeave(item);
+                        if (!leave) return;
+                        const pt = meta.data[idx];
+                        if (!pt) return;
+
+                        const px = pt.x;
+                        const py = pt.y;
+
+                        cCtx.save();
+                        cCtx.font = 'bold 11px "Noto Sans TC", sans-serif';
+                        const badgeText = `${leave.icon} ${leave.type}`;
+                        const textW = cCtx.measureText(badgeText).width;
+                        const padX = 7;
+                        const badgeW = textW + padX * 2;
+                        const badgeH = 20;
+                        const badgeX = px - badgeW / 2;
+                        const badgeY = (py < 42) ? (py + 14) : (py - 28);
+
+                        // Pill background
+                        cCtx.fillStyle = leave.color === 'rose' ? 'rgba(255, 241, 242, 0.96)' :
+                                       (leave.color === 'amber' ? 'rgba(254, 243, 199, 0.96)' :
+                                       (leave.color === 'sky' ? 'rgba(224, 242, 254, 0.96)' : 'rgba(241, 245, 249, 0.96)'));
+                        cCtx.strokeStyle = leave.color === 'rose' ? '#F43F5E' :
+                                         (leave.color === 'amber' ? '#D97706' :
+                                         (leave.color === 'sky' ? '#0284C7' : '#64748B'));
+                        cCtx.lineWidth = 1.5;
+
+                        // Draw rounded pill
+                        const r = 6;
+                        cCtx.beginPath();
+                        cCtx.moveTo(badgeX + r, badgeY);
+                        cCtx.lineTo(badgeX + badgeW - r, badgeY);
+                        cCtx.quadraticCurveTo(badgeX + badgeW, badgeY, badgeX + badgeW, badgeY + r);
+                        cCtx.lineTo(badgeX + badgeW, badgeY + badgeH - r);
+                        cCtx.quadraticCurveTo(badgeX + badgeW, badgeY + badgeH, badgeX + badgeW - r, badgeY + badgeH);
+                        cCtx.lineTo(badgeX + r, badgeY + badgeH);
+                        cCtx.quadraticCurveTo(badgeX, badgeY + badgeH, badgeX, badgeY + badgeH - r);
+                        cCtx.lineTo(badgeX, badgeY + r);
+                        cCtx.quadraticCurveTo(badgeX, badgeY, badgeX + r, badgeY);
+                        cCtx.closePath();
+                        cCtx.fill();
+                        cCtx.stroke();
+
+                        // Text
+                        cCtx.fillStyle = leave.color === 'rose' ? '#9F1239' :
+                                       (leave.color === 'amber' ? '#92400E' :
+                                       (leave.color === 'sky' ? '#075985' : '#1E293B'));
+                        cCtx.textAlign = 'center';
+                        cCtx.textBaseline = 'middle';
+                        cCtx.fillText(badgeText, px, badgeY + badgeH / 2);
+                        cCtx.restore();
+                    });
+                }
+            };
+
             unitChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: { labels, datasets },
+                plugins: [leaveBadgePlugin],
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
@@ -1229,6 +1403,19 @@
                     interaction: {
                         mode: 'index',
                         intersect: false
+                    },
+                    onClick: function (evt, elements) {
+                        if (!elements || elements.length === 0) return;
+                        const el = elements[0];
+                        const idx = el.index;
+                        const itemObj = filteredItems[idx];
+                        if (!itemObj) return;
+                        const leaveInfo = resolveItemLeave(itemObj);
+                        if (leaveInfo) {
+                            showLeaveNoticeBanner(itemObj, leaveInfo);
+                        } else {
+                            hideLeaveNoticeBanner();
+                        }
                     },
                     plugins: {
                         legend: {
@@ -1261,12 +1448,31 @@
                                     const idx = context.dataIndex;
                                     const itemObj = filteredItems[idx];
                                     const isStudent = context.datasetIndex === 0;
-                                    const leaveInfo = isStudent ? resolveItemLeave(itemObj) : null;
-                                    if (leaveInfo) {
-                                        return ` ${context.dataset.label}: ${leaveInfo.icon} ${leaveInfo.type}（請假不計分）`;
+                                    if (isStudent) {
+                                        const leaveInfo = resolveItemLeave(itemObj);
+                                        if (leaveInfo) {
+                                            return ` ${context.dataset.label}: ${leaveInfo.icon} ${leaveInfo.type}（請假不計分）`;
+                                        }
+                                        const val = itemObj.score;
+                                        return ` ${context.dataset.label}: ${val !== null && val !== undefined ? val.toFixed(1) + ' 分' : '尚無成績'}`;
+                                    } else {
+                                        const val = context.parsed.y;
+                                        return ` ${context.dataset.label}: ${val !== null && val !== undefined ? val.toFixed(1) + ' 分' : '無資料'}`;
                                     }
-                                    const val = context.parsed.y;
-                                    return ` ${context.dataset.label}: ${val !== null && val !== undefined ? val.toFixed(1) + ' 分' : '無資料'}`;
+                                },
+                                labelColor: function (context) {
+                                    const idx = context.dataIndex;
+                                    const itemObj = filteredItems[idx];
+                                    const isStudent = context.datasetIndex === 0;
+                                    if (isStudent) {
+                                        const leaveInfo = resolveItemLeave(itemObj);
+                                        if (leaveInfo) {
+                                            const c = leaveInfo.color === 'rose' ? '#E11D48' : (leaveInfo.color === 'amber' ? '#D97706' : (leaveInfo.color === 'sky' ? '#0284C7' : '#475569'));
+                                            return { borderColor: c, backgroundColor: c, borderWidth: 2, borderRadius: 4 };
+                                        }
+                                        return { borderColor: '#0284C7', backgroundColor: '#0284C7', borderWidth: 2, borderRadius: 4 };
+                                    }
+                                    return { borderColor: '#059669', backgroundColor: '#059669', borderWidth: 2, borderRadius: 4 };
                                 }
                             }
                         }
