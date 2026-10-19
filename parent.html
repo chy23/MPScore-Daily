@@ -751,10 +751,18 @@
                     : 'text-slate-800';
                 const icon = getSubjectIcon(subj.subject);
                 const avgText = subj.overallAverage !== null ? subj.overallAverage.toFixed(1) : '--';
-                const classAvgText = (displayFlags.showClassNorm && subj.classOverallAverage !== null)
-                    ? `班均 ${subj.classOverallAverage.toFixed(1)}`
-                    : `共 ${subj.totalItems || 0} 次平時成績`;
-                const diffHtml = formatDiffTag(subj.diffFromClassAvg);
+                const hasPersonalScore = subj.overallAverage !== null && !isNaN(subj.overallAverage);
+                const hasClassData = displayFlags.showClassNorm && subj.classOverallAverage !== null && subj.classOverallAverage !== undefined && (subj.totalItems || 0) > 0;
+
+                let classAvgText = '';
+                if (!hasPersonalScore && !hasClassData) {
+                    classAvgText = '尚未評量';
+                } else if (hasClassData) {
+                    classAvgText = `班均 ${subj.classOverallAverage.toFixed(1)}`;
+                } else {
+                    classAvgText = (subj.totalItems || 0) > 0 ? `共 ${subj.totalItems} 次平時成績` : `尚未評量`;
+                }
+                const diffHtml = hasPersonalScore ? formatDiffTag(subj.diffFromClassAvg) : '';
                 const badgeInfo = getScoreBadgeInfo(subj.overallAverage);
 
                 return `
@@ -815,9 +823,18 @@
             // A. 平時評量分項平均卡片（僅顯示試算表實際有的項目！）
             document.getElementById('pillarSubjectTitle').textContent = subj.subject;
             document.getElementById('currentSubjAvg').textContent = subj.overallAverage !== null ? subj.overallAverage.toFixed(1) : '--';
-            document.getElementById('currentSubjClassAvg').textContent = (displayFlags.showClassNorm && subj.classOverallAverage !== null)
-                ? `(班均 ${subj.classOverallAverage.toFixed(1)})`
-                : `(共 ${subj.totalItems || 0} 次評量)`;
+            
+            const hasSubjPersonalScore = subj.overallAverage !== null && !isNaN(subj.overallAverage);
+            const hasSubjClassAvg = displayFlags.showClassNorm && subj.classOverallAverage !== null && subj.classOverallAverage !== undefined && (subj.totalItems || 0) > 0;
+            let currentClassAvgText = '';
+            if (!hasSubjPersonalScore && !hasSubjClassAvg) {
+                currentClassAvgText = '(尚未登錄成績)';
+            } else if (hasSubjClassAvg) {
+                currentClassAvgText = `(班均 ${subj.classOverallAverage.toFixed(1)})`;
+            } else {
+                currentClassAvgText = (subj.totalItems || 0) > 0 ? `(共 ${subj.totalItems} 次評量)` : `(尚未登錄成績)`;
+            }
+            document.getElementById('currentSubjClassAvg').textContent = currentClassAvgText;
 
             const activePillars = getExistingPillarsForSubject(subj);
             const pillarNamesStr = activePillars.map(p => getPillarDisplayShortName(p.key, p.shortLabel || p.label)).join('、');
@@ -829,6 +846,20 @@
             }
 
             const pillarsGrid = document.getElementById('pillarsGrid');
+            if (activePillars.length === 0) {
+                pillarsGrid.className = 'grid grid-cols-1';
+                pillarsGrid.innerHTML = `
+                    <div class="p-6 sm:p-8 text-center bg-white/70 rounded-2xl border border-dashed border-slate-300 space-y-2">
+                        <div class="text-3xl">📝</div>
+                        <div class="text-sm font-bold text-slate-700">本科尚無平時評量登記</div>
+                        <div class="text-xs text-slate-500">目前試算表尚未登錄本科成績，老師登錄後系統將即時自動更新。</div>
+                    </div>
+                `;
+                renderUnitTrendChart(subj);
+                renderItemsList(subj);
+                return;
+            }
+
             if (activePillars.length === 1) {
                 pillarsGrid.className = 'grid grid-cols-1 gap-3.5';
             } else if (activePillars.length === 2) {
@@ -996,38 +1027,84 @@
                 classLegend = `班級${shortName}平均`;
             }
 
+            const canvasEl = document.getElementById('unitTrendChart');
+            if (unitChartInstance) {
+                unitChartInstance.destroy();
+                unitChartInstance = null;
+            }
+
+            // 若本科完全無任何平時成績項目，顯示溫和友善的空狀態提示，不顯示空坐標軸
+            const wrapper = canvasEl ? canvasEl.parentElement : null;
             if (filteredItems.length === 0) {
-                filteredItems = allItems;
+                if (wrapper) {
+                    let emptyMsg = wrapper.querySelector('.chart-empty-msg');
+                    if (!emptyMsg) {
+                        emptyMsg = document.createElement('div');
+                        emptyMsg.className = 'chart-empty-msg absolute inset-0 flex flex-col items-center justify-center text-center p-6 text-slate-400 space-y-2 pointer-events-none';
+                        emptyMsg.innerHTML = `
+                            <div class="text-3xl">📈</div>
+                            <div class="text-sm font-bold text-slate-700">本科尚無平時評量成績走勢</div>
+                            <div class="text-xs text-slate-500">目前試算表尚未登記評量項目，老師登錄成績後系統將自動繪製學習曲線。</div>
+                        `;
+                        wrapper.appendChild(emptyMsg);
+                    }
+                    emptyMsg.classList.remove('hidden');
+                }
+                if (canvasEl) canvasEl.classList.add('hidden');
+                return;
+            } else {
+                if (wrapper) {
+                    const emptyMsg = wrapper.querySelector('.chart-empty-msg');
+                    if (emptyMsg) emptyMsg.classList.add('hidden');
+                }
+                if (canvasEl) canvasEl.classList.remove('hidden');
             }
 
             const labels = filteredItems.map(it => it.name);
             const studentData = filteredItems.map(it => it.score);
             const classData = filteredItems.map(it => it.classAvg);
 
-            // 自動計算合適的 Y 軸範圍
+            // 自動計算合適且安全的 Y 軸範圍（支援 0~100 分完整跨度，低分點如 22 分完整呈現不被截斷、高分點 100 分頂部留有緩衝不被切半圓）：
             const allNums = [...studentData, ...(displayFlags.showClassNorm ? classData : [])].filter(v => v !== null && !isNaN(v));
-            const minVal = allNums.length ? Math.max(40, Math.floor((Math.min(...allNums) - 6) / 5) * 5) : 60;
+            const lowestVal = allNums.length ? Math.min(...allNums) : 60;
+            const highestVal = allNums.length ? Math.max(...allNums) : 100;
 
-            const ctx = document.getElementById('unitTrendChart').getContext('2d');
-            if (unitChartInstance) {
-                unitChartInstance.destroy();
+            let minVal = 0;
+            if (lowestVal >= 80) {
+                minVal = 60;
+            } else if (lowestVal >= 60) {
+                minVal = 40;
+            } else if (lowestVal >= 40) {
+                minVal = 20;
+            } else if (lowestVal >= 20) {
+                minVal = 10;
+            } else {
+                minVal = 0;
             }
 
+            // 頂部設置安全繪製空間（上限 106），確保 100 分圓點頂部完整展示不被裁切
+            const maxVal = Math.max(106, highestVal > 100 ? highestVal + 6 : 106);
+
+            const ctx = canvasEl.getContext('2d');
             const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
             const datasets = [
                 {
                     label: studentLegend,
                     data: studentData,
+                    order: 1, // 頂層繪製：個人線與個人點永遠繪製於最上層，絕對不被班均虛線或平均點遮擋！
                     borderColor: '#0284C7',
-                    backgroundColor: 'rgba(14, 165, 233, 0.14)',
+                    backgroundColor: 'rgba(14, 165, 233, 0.12)',
                     borderWidth: 3.5,
                     pointBackgroundColor: '#FFFFFF',
                     pointBorderColor: '#0284C7',
-                    pointBorderWidth: 3,
-                    pointRadius: 5.5,
-                    pointHoverRadius: 7,
-                    tension: 0.3,
+                    pointBorderWidth: 3.5,
+                    pointRadius: 6.5, // 顯著放大個人點陣
+                    pointHoverRadius: 9,
+                    pointHoverBackgroundColor: '#0284C7',
+                    pointHoverBorderColor: '#FFFFFF',
+                    pointHoverBorderWidth: 3,
+                    tension: 0.25,
                     fill: true,
                     spanGaps: true
                 }
@@ -1037,16 +1114,17 @@
                 datasets.push({
                     label: classLegend,
                     data: classData,
+                    order: 2, // 底層繪製：班級平均線置於個人得分線後方
                     borderColor: '#059669',
                     backgroundColor: 'transparent',
-                    borderWidth: 2.2,
-                    borderDash: [6, 5],
+                    borderWidth: 2,
+                    borderDash: [5, 4],
                     pointBackgroundColor: '#059669',
                     pointBorderColor: '#FFFFFF',
                     pointBorderWidth: 1.5,
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
-                    tension: 0.3,
+                    pointRadius: 3.5, // 較小點徑，不搶個人點焦點
+                    pointHoverRadius: 5.5,
+                    tension: 0.25,
                     fill: false,
                     spanGaps: true
                 });
@@ -1075,11 +1153,13 @@
                             }
                         },
                         tooltip: {
-                            backgroundColor: 'rgba(15, 23, 42, 0.92)',
+                            backgroundColor: 'rgba(15, 23, 42, 0.94)',
                             titleFont: { family: '"Noto Sans TC", sans-serif', size: 13, weight: 'bold' },
                             bodyFont: { family: '"JetBrains Mono", "Noto Sans TC", monospace', size: 12 },
                             padding: 12,
                             cornerRadius: 12,
+                            caretPadding: 14,
+                            caretSize: 6,
                             callbacks: {
                                 title: function (itemsCtx) {
                                     if (!itemsCtx || !itemsCtx.length) return '';
@@ -1098,7 +1178,7 @@
                     scales: {
                         y: {
                             min: minVal,
-                            max: 100,
+                            max: maxVal,
                             grid: {
                                 color: 'rgba(148, 163, 184, 0.3)',
                                 drawBorder: false
@@ -1106,7 +1186,12 @@
                             ticks: {
                                 font: { family: '"JetBrains Mono", monospace', size: 12, weight: '600' },
                                 color: '#475569',
-                                callback: v => v + '分'
+                                stepSize: (maxVal - minVal) > 60 ? 10 : 5,
+                                callback: function (v) {
+                                    if (v > 100) return ''; // 100 以上僅為視覺圓點安全緩衝，不顯示多餘刻度文字
+                                    if (v < 0) return '';
+                                    return v + '分';
+                                }
                             }
                         },
                         x: {
@@ -1263,6 +1348,20 @@
 
             const hwCount = items.filter(i => i.assessmentType === '作業').length;
             const examCount = items.filter(i => i.assessmentType === '考試').length;
+
+            if (items.length === 0) {
+                if (filterBar) filterBar.innerHTML = '';
+                if (grid) {
+                    grid.innerHTML = `
+                        <div class="col-span-full p-8 text-center bg-white/70 rounded-2xl border border-dashed border-slate-300 space-y-2">
+                            <div class="text-3xl">📋</div>
+                            <div class="text-sm font-bold text-slate-700">本科尚無平時評量成績明細</div>
+                            <div class="text-xs text-slate-500">目前試算表尚未登錄平時成績項目，老師登錄後系統將即時自動更新。</div>
+                        </div>
+                    `;
+                }
+                return;
+            }
 
             // 僅建立試算表「實際存在」的篩選膠囊（試算表沒有的項目絕不顯示！）
             const categories = [

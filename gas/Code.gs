@@ -1305,17 +1305,17 @@ function parseDailySubjectSheet(sheet) {
     }
   }
 
-  var subjectClassAvg = classOverallCount > 0 ? Number((classOverallSum / classOverallCount).toFixed(1)) : 85.0;
+  var subjectClassAvg = classOverallCount > 0 ? Number((classOverallSum / classOverallCount).toFixed(1)) : null;
   var pillarClassAvgs = {};
   ['workbook', 'homework', 'foundation', 'quiz'].forEach(function(pk) {
-    pillarClassAvgs[pk] = pillarClassCounts[pk] > 0 ? Number((pillarClassSums[pk] / pillarClassCounts[pk]).toFixed(1)) : subjectClassAvg;
+    pillarClassAvgs[pk] = pillarClassCounts[pk] > 0 ? Number((pillarClassSums[pk] / pillarClassCounts[pk]).toFixed(1)) : null;
   });
 
   Object.keys(studentMap).forEach(function(seatKey) {
     if (seatKey.indexOf('NAME_') === 0) return;
     var stRecord = studentMap[seatKey];
     stRecord.classOverallAverage = subjectClassAvg;
-    stRecord.diffFromClassAvg = stRecord.overallAverage !== null ? Number((stRecord.overallAverage - subjectClassAvg).toFixed(1)) : null;
+    stRecord.diffFromClassAvg = (stRecord.overallAverage !== null && subjectClassAvg !== null) ? Number((stRecord.overallAverage - subjectClassAvg).toFixed(1)) : null;
 
     if (stRecord.overallAverage !== null && allStudentAverages.length > 0) {
       var belowCnt = 0;
@@ -1330,7 +1330,7 @@ function parseDailySubjectSheet(sheet) {
     stRecord.pillars.forEach(function(pItem) {
       var cAvg = pillarClassAvgs[pItem.key];
       pItem.classAverage = cAvg;
-      pItem.diffFromClass = pItem.average !== null ? Number((pItem.average - cAvg).toFixed(1)) : null;
+      pItem.diffFromClass = (pItem.average !== null && cAvg !== null) ? Number((pItem.average - cAvg).toFixed(1)) : null;
     });
     stRecord.teacherAdvice = buildDailyScoreDiagnosticAdvice(stRecord);
   });
@@ -1365,12 +1365,15 @@ function buildDailyScoreDiagnosticAdvice(stRecord) {
   var qz = pMap.quiz ? pMap.quiz.average : null;
 
   if (stRecord.overallAverage !== null) {
+    var classAvgSuffix = (stRecord.classOverallAverage !== null && stRecord.classOverallAverage !== undefined)
+      ? '（班均 ' + stRecord.classOverallAverage + ' 分）'
+      : '';
     if (stRecord.overallAverage >= 90) {
-      parts.push('【' + sub + '】平時總平均達 ' + stRecord.overallAverage + ' 分（班均 ' + stRecord.classOverallAverage + ' 分），平時表現非常扎實穩健！');
+      parts.push('【' + sub + '】平時總平均達 ' + stRecord.overallAverage + ' 分' + classAvgSuffix + '，平時表現非常扎實穩健！');
     } else if (stRecord.overallAverage >= 80) {
-      parts.push('【' + sub + '】平時總平均為 ' + stRecord.overallAverage + ' 分（班均 ' + stRecord.classOverallAverage + ' 分），各類平時表現穩定良好。');
+      parts.push('【' + sub + '】平時總平均為 ' + stRecord.overallAverage + ' 分' + classAvgSuffix + '，各類平時表現穩定良好。');
     } else {
-      parts.push('【' + sub + '】平時總平均為 ' + stRecord.overallAverage + ' 分（班均 ' + stRecord.classOverallAverage + ' 分），建議透過各單元平時測驗的分數變化，逐步鞏固核心概念。');
+      parts.push('【' + sub + '】平時總平均為 ' + stRecord.overallAverage + ' 分' + classAvgSuffix + '，建議透過各單元平時測驗的分數變化，逐步鞏固核心概念。');
     }
   }
 

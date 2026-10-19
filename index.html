@@ -1112,7 +1112,7 @@
                     <div>
                         <div class="flex items-center gap-2">
                             <h3 class="text-base md:text-lg font-black tracking-tight text-white">MPScore-Daily 系統詳細更新紀錄</h3>
-                            <span class="text-[10px] bg-emerald-500 text-white font-black px-2 py-0.5 rounded-full">v2.8.4 最新版</span>
+                            <span class="text-[10px] bg-emerald-500 text-white font-black px-2 py-0.5 rounded-full">v2.8.5 最新版</span>
                         </div>
                         <p class="text-xs text-sky-100 mt-0.5">平時成績無痛結算 ‧ 親師雲端即時溝通 ‧ 國中小專用智慧平台</p>
                     </div>
@@ -1125,11 +1125,34 @@
             <!-- 更新日誌內容滾動區 -->
             <div class="p-5 md:p-8 overflow-y-auto space-y-6 text-xs text-slate-700 bg-slate-50/50 leading-relaxed">
                 
-                <!-- v2.8.4 最新版里程碑 -->
+                <!-- v2.8.5 最新版里程碑 -->
                 <div class="bg-white p-5 rounded-3xl border border-sky-300 shadow-sm space-y-4 relative overflow-hidden ring-2 ring-sky-400/20">
                     <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                         <div class="flex items-center gap-2">
-                            <span class="text-xs font-black bg-sky-600 text-white px-2.5 py-1 rounded-xl shadow-xs">v2.8.4 最新版</span>
+                            <span class="text-xs font-black bg-sky-600 text-white px-2.5 py-1 rounded-xl shadow-xs">v2.8.5 最新版</span>
+                            <span class="text-sm font-black text-slate-900">📈 全動態 Y 軸極限解禁 ‧ 個人點層級優先置頂 ‧ 無成績分頁假班均徹底歸零！</span>
+                        </div>
+                        <span class="text-[11px] text-slate-400 font-mono font-bold">2026-10-19</span>
+                    </div>
+
+                    <div class="space-y-3.5">
+                        <div class="p-3.5 bg-sky-50/80 rounded-2xl border border-sky-200/80 text-[11px] text-sky-950 font-bold space-y-1.5">
+                            <div>🎯 <b>本次核心修復與體驗提升說明</b>：</div>
+                            <ul class="list-disc list-inside font-normal text-slate-700 pl-1 space-y-1.5">
+                                <li><b>徹底根除空白分頁假班均</b>：修復雲端核心在空白分頁回傳舊測試預設值 85.0 的問題，尚未評量之科目班均正確歸零為空，家長端正確顯示「尚未評量」或「(尚未登錄成績)」。</li>
+                                <li><b>低分點 100% 完整呈現（解除 40 分下限）</b>：移除原先 40 分硬性下限限制，導入自適應區間下限，22 分等低分評量底部保有充裕緩衝，數據點與折線完好展示、絕不沈底消失。</li>
+                                <li><b>個人點優先置頂與防裁切</b>：Y 軸上限設置 106 緩衝，滿分 100 分圓點頂部完整展示不被裁切；個人線與個人點設為 <code>order: 1</code>（頂層繪製），絕對不被班均虛線或綠點遮擋。</li>
+                                <li><b>溫和友善空狀態</b>：當科目完全無平時成績項目時，分項均標卡片、走勢圖與明細皆展示清晰友善的空狀態說明卡片。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- v2.8.4 里程碑 -->
+                <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 relative overflow-hidden">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-black bg-slate-100 text-slate-700 px-2.5 py-1 rounded-xl">v2.8.4</span>
                             <span class="text-sm font-black text-slate-900">🎭 教師端與家長端專屬「相似卻不同」雙生分頁圖示正式上線！</span>
                         </div>
                         <span class="text-[11px] text-slate-400 font-mono font-bold">2026-10-19</span>
