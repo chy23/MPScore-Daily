@@ -183,11 +183,12 @@ function clearSystemCache() {
       'mpdaily_print_summary_v3',
       'mpdaily_print_summary_v4',
       'mpdaily_print_summary_v5',
-      'mpdaily_print_summary_v6'
+      'mpdaily_print_summary_v6',
+      'mpdaily_print_summary_v7'
     ];
     for (var i = 1; i <= 60; i++) {
       var s = i < 10 ? '0' + i : '' + i;
-      ['v2', 'v3', 'v4', 'v5', 'v6'].forEach(function(ver) {
+      ['v2', 'v3', 'v4', 'v5', 'v6', 'v7'].forEach(function(ver) {
         keys.push('mpdaily_score_' + ver + '_DEMO' + s);
         keys.push('mpdaily_score_' + ver + '_' + s);
       });
@@ -205,7 +206,7 @@ function clearSystemCache() {
         for (var r = 1; r < sData.length; r++) {
           var tok = (sData[r][3] || '').toString().trim().toUpperCase();
           if (tok) {
-            ['v2', 'v3', 'v4', 'v5', 'v6'].forEach(function(ver) {
+            ['v2', 'v3', 'v4', 'v5', 'v6', 'v7'].forEach(function(ver) {
               keys.push('mpdaily_score_' + ver + '_' + tok);
             });
           }
@@ -1005,7 +1006,7 @@ function getScoreGradeInfo(score) {
  */
 function detectLeaveType(val) {
   if (val === null || val === undefined) return null;
-  var str = val.toString().trim();
+  var str = val.toString().trim().replace(/[\s\u3000]+/g, '');
   if (!str) return null;
 
   if (str === '公' || str === '公假' || /^公假?$/i.test(str)) {
@@ -1020,6 +1021,9 @@ function detectLeaveType(val) {
   if (str === '喪' || str === '喪假' || /^喪假?$/i.test(str)) {
     return { type: '喪假', short: '喪', icon: '🕯️', color: 'slate' };
   }
+  if (str === '假' || str === '請假' || /^請?假$/i.test(str)) {
+    return { type: '請假', short: '假', icon: '📋', color: 'amber' };
+  }
 
   // 容錯包含型判斷（例如 "公（假）"、"事假未考" 等）
   if (str.indexOf('公') !== -1 && (str.indexOf('假') !== -1 || str.length === 1)) {
@@ -1033,6 +1037,9 @@ function detectLeaveType(val) {
   }
   if (str.indexOf('喪') !== -1 && (str.indexOf('假') !== -1 || str.length === 1)) {
     return { type: '喪假', short: '喪', icon: '🕯️', color: 'slate' };
+  }
+  if (str.indexOf('假') !== -1) {
+    return { type: '請假', short: '假', icon: '📋', color: 'amber' };
   }
 
   return null;
@@ -1546,9 +1553,10 @@ function getStudentDailyPortfolioByToken(token, clientDevice) {
     recordParentAccessLog_(ss, sSheet, matchedStudent, matchedRowIdx, clientDevice);
   } catch (logErr) {}
 
+  var skipCache = (e && e.parameter && (e.parameter.nocache === '1' || e.parameter.reload === '1'));
   var cache = CacheService.getScriptCache();
-  var cacheKey = 'mpdaily_score_v6_' + cleanToken;
-  var cachedJson = cache.get(cacheKey);
+  var cacheKey = 'mpdaily_score_v7_' + cleanToken;
+  var cachedJson = !skipCache ? cache.get(cacheKey) : null;
   if (cachedJson) {
     try {
       return JSON.parse(cachedJson);

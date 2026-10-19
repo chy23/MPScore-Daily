@@ -18,8 +18,8 @@ function setup() {
   SpreadsheetApp.getActiveSpreadsheet();
 }
 
-function getEngine() {
-  if (!_cachedEngine) {
+function getEngine(forceReload) {
+  if (!_cachedEngine || forceReload) {
     var t = new Date().getTime();
     var response = UrlFetchApp.fetch(GITHUB_CORE_URL + "?t=" + t);
     var code = response.getContentText();
@@ -64,12 +64,16 @@ function openAccessLogsSheet() { getEngine().openAccessLogsSheet(); }
 function clearAllAccessLogsMenu() { getEngine().clearAllAccessLogsMenu(); }
 function previewClassStatistics() { getEngine().previewClassStatistics(); }
 function autoFormatAndResizeAllSheets() { getEngine().autoFormatAndResizeAllSheets(); }
-function clearSystemCache() { getEngine().clearSystemCache(); }
+function clearSystemCache() {
+  _cachedEngine = null;
+  getEngine(true).clearSystemCache();
+}
 
 // Web API 入口點 (附完整錯誤捕捉保護，絕不回傳 HTML 當機頁面)
 function doGet(e) {
   try {
-    return getEngine().handleDoGet(e);
+    var force = (e && e.parameter && (e.parameter.reload === '1' || e.parameter.nocache === '1'));
+    return getEngine(force).handleDoGet(e);
   } catch (err) {
     var out = {
       status: "error",

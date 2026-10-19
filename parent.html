@@ -557,7 +557,7 @@
          */
         function detectLeaveTypeClient(val) {
             if (val === null || val === undefined) return null;
-            const str = String(val).trim();
+            const str = String(val).trim().replace(/[\s\u3000]+/g, '');
             if (!str) return null;
 
             if (str === '公' || str === '公假' || /^公假?$/i.test(str)) {
@@ -572,6 +572,9 @@
             if (str === '喪' || str === '喪假' || /^喪假?$/i.test(str)) {
                 return { type: '喪假', short: '喪', icon: '🕯️', color: 'slate' };
             }
+            if (str === '假' || str === '請假' || /^請?假$/i.test(str)) {
+                return { type: '請假', short: '假', icon: '📋', color: 'amber' };
+            }
 
             if (str.includes('公') && (str.includes('假') || str.length === 1)) {
                 return { type: '公假', short: '公', icon: '🏛️', color: 'sky' };
@@ -585,6 +588,9 @@
             if (str.includes('喪') && (str.includes('假') || str.length === 1)) {
                 return { type: '喪假', short: '喪', icon: '🕯️', color: 'slate' };
             }
+            if (str.includes('假')) {
+                return { type: '請假', short: '假', icon: '📋', color: 'amber' };
+            }
             return null;
         }
 
@@ -594,11 +600,11 @@
                 return {
                     type: item.leaveType,
                     short: item.leaveShort || item.leaveType.charAt(0),
-                    icon: item.leaveIcon || (item.leaveType === '公假' ? '🏛️' : item.leaveType === '事假' ? '📋' : item.leaveType === '病假' ? '💊' : '🕯️'),
-                    color: item.leaveColor || (item.leaveType === '公假' ? 'sky' : item.leaveType === '事假' ? 'amber' : item.leaveType === '病假' ? 'rose' : 'slate')
+                    icon: item.leaveIcon || (item.leaveType === '公假' ? '🏛️' : item.leaveType === '事假' ? '📋' : item.leaveType === '病假' ? '💊' : item.leaveType === '喪假' ? '🕯️' : '📋'),
+                    color: item.leaveColor || (item.leaveType === '公假' ? 'sky' : item.leaveType === '事假' ? 'amber' : item.leaveType === '病假' ? 'rose' : item.leaveType === '喪假' ? 'slate' : 'amber')
                 };
             }
-            return detectLeaveTypeClient(item.rawScore || item.score);
+            return detectLeaveTypeClient(item.rawScore || item.score || item.gradeLabel);
         }
 
         function getLeaveBadgeStyle(color) {
@@ -1793,6 +1799,8 @@
                     ? s.pillars
                     : (s.pillars ? Object.values(s.pillars) : [])).map(p => ({
                     ...p,
+                    count: p.count !== undefined ? p.count : 0,
+                    leaveCount: p.leaveCount !== undefined ? p.leaveCount : 0,
                     assessmentType: p.assessmentType || (p.key === 'quiz' ? '考試' : '作業')
                 }));
 
@@ -1813,30 +1821,48 @@
                 const rawItems = (s.items || []).map(it => {
                     const itemName = it.name || it.title || it.shortTitle || '平時評量';
                     const catKey = it.category || it.pillarKey || 'workbook';
+                    const leaveInfo = it.isLeave ? {
+                        type: it.leaveType,
+                        short: it.leaveShort,
+                        icon: it.leaveIcon,
+                        color: it.leaveColor || (it.leaveType === '公假' ? 'sky' : it.leaveType === '事假' ? 'amber' : it.leaveType === '病假' ? 'rose' : it.leaveType === '喪假' ? 'slate' : 'amber')
+                    } : detectLeaveTypeClient(it.rawScore || it.score || it.gradeLabel || it.gradeInfo?.label);
+                    const isLeave = Boolean(it.isLeave || leaveInfo);
+
                     return {
+                        ...it,
                         name: itemName,
                         unit: it.unit || it.unitCode || '平時',
                         category: catKey,
                         categoryLabel: it.categoryLabel || it.pillarShort || '平時',
                         categoryIcon: it.categoryIcon || '📊',
                         assessmentType: it.assessmentType || inferAssessmentTypeClient(itemName, catKey),
-                        score: it.score,
+                        score: isLeave ? null : it.score,
+                        rawScore: it.rawScore !== undefined ? it.rawScore : (it.score !== null && it.score !== undefined ? String(it.score) : ''),
+                        isLeave: isLeave,
+                        leaveType: it.leaveType || (leaveInfo ? leaveInfo.type : null),
+                        leaveShort: it.leaveShort || (leaveInfo ? leaveInfo.short : null),
+                        leaveIcon: it.leaveIcon || (leaveInfo ? leaveInfo.icon : null),
+                        leaveColor: it.leaveColor || (leaveInfo ? leaveInfo.color : null),
                         classAvg: it.classAvg,
-                        diffFromClass: it.diffFromClass,
-                        gradeLabel: it.gradeLabel || getScoreBadgeInfo(it.score).label,
-                        gradeLevel: it.gradeLevel || getScoreBadgeInfo(it.score).level
+                        diffFromClass: isLeave ? null : it.diffFromClass,
+                        gradeLabel: it.gradeLabel || (isLeave ? `${leaveInfo.icon} ${leaveInfo.type}` : getScoreBadgeInfo(it.score).label),
+                        gradeLevel: it.gradeLevel || (isLeave ? 'leave' : getScoreBadgeInfo(it.score).level)
                     };
                 });
 
                 if (s.teacherAdvice) adviceList.push(s.teacherAdvice);
 
                 return {
+                    ...s,
                     subject: s.sheetName || s.subject || s.subjectShortName || '平時',
                     overallAverage: s.overallAverage,
                     classOverallAverage: s.classOverallAverage,
                     diffFromClassAvg: s.diffFromClassAvg,
                     prValue: s.prValue || 80,
                     totalItems: s.totalItems || s.totalScoresCount || rawItems.length,
+                    leaveCount: s.leaveCount || rawItems.filter(it => it.isLeave).length,
+                    leaves: s.leaves || rawItems.filter(it => it.isLeave).map(it => ({ name: it.name, type: it.leaveType, icon: it.leaveIcon })),
                     pillars: rawPillars,
                     unitTimeline: rawTimeline,
                     items: rawItems
@@ -1899,7 +1925,7 @@
                                /Android/i.test(navigator.userAgent) ? 'Android 手機' :
                                /Macintosh/i.test(navigator.userAgent) ? 'Mac 電腦' :
                                /Windows/i.test(navigator.userAgent) ? 'Windows 電腦' : '行動裝置';
-                const res = await fetch(`${apiUrl}${sep}token=${encodeURIComponent(cleanToken)}&device=${encodeURIComponent(device)}&t=${Date.now()}`, { redirect: 'follow' });
+                const res = await fetch(`${apiUrl}${sep}token=${encodeURIComponent(cleanToken)}&device=${encodeURIComponent(device)}&nocache=1&v=7&t=${Date.now()}`, { redirect: 'follow', cache: 'no-store' });
                 const data = await res.json();
                 if (data && (data.status === 'success' || data.success === true) && data.student) {
                     renderPortfolio(normalizeCloudPayload(data));
