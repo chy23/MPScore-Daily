@@ -20,6 +20,7 @@ function onOpen() {
     .addItem('📥 從目前成績分頁匯入名單至「學生名冊」', 'syncStudentsFromSheet')
     .addItem('🔑 為全班產生「家長查詢代碼」', 'generateTokensForStudents')
     .addSeparator()
+    .addItem('🛡️ 設定/查看「教師安全金鑰 (PIN)」', 'manageTeacherAdminKeyMenu')
     .addItem('📱 查看【家長閱覽紀錄】日誌分頁', 'openAccessLogsSheet')
     .addItem('🗑️ 清空全班【家長閱覽紀錄】與次數歸零', 'clearAllAccessLogsMenu')
     .addItem('📊 查看全班各科平時總均與分項平均統計', 'previewClassStatistics')
@@ -102,6 +103,102 @@ function clearAccessLogs_(ss, scope, targetToken) {
   }
 
   return { success: true };
+}
+
+/**
+ * 取得當前教師安全金鑰 (PIN)
+ */
+function getTeacherAdminKey_() {
+  var props = PropertiesService.getScriptProperties();
+  var key = props.getProperty('TEACHER_ADMIN_KEY');
+  if (key && key.trim()) return key.trim();
+
+  // 若屬性尚未設定，檢查【學生名冊】之 J1 儲存格
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sSheet = ss.getSheetByName('學生名冊');
+    if (sSheet && sSheet.getLastRow() >= 1) {
+      var val = (sSheet.getRange(1, 10).getValue() || '').toString().trim();
+      if (val && val !== '【教師安全金鑰】') {
+        props.setProperty('TEACHER_ADMIN_KEY', val);
+        return val;
+      }
+    }
+  } catch (e) {}
+
+  // 預設金鑰（初次使用無痛過渡）
+  return '8888';
+}
+
+/**
+ * 寫入/更新教師安全金鑰 (PIN)
+ */
+function setTeacherAdminKey_(newKey) {
+  if (!newKey || !newKey.toString().trim()) return false;
+  var k = newKey.toString().trim();
+  PropertiesService.getScriptProperties().setProperty('TEACHER_ADMIN_KEY', k);
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sSheet = ss.getSheetByName('學生名冊');
+    if (sSheet) {
+      sSheet.getRange(1, 9).setValue('【教師安全金鑰】').setFontWeight('bold').setBackground('#f1f5f9').setFontColor('#334155').setHorizontalAlignment('center');
+      sSheet.getRange(1, 10).setValue(k).setFontWeight('bold').setBackground('#e0f2fe').setFontColor('#0369a1').setHorizontalAlignment('center');
+    }
+  } catch (e) {}
+  return true;
+}
+
+/**
+ * 驗證傳入之請求是否具備合法教師安全金鑰
+ */
+function verifyTeacherAuth_(e) {
+  var params = e ? e.parameter : {};
+  var clientKey = (params.key || params.adminKey || params.teacherKey || params.pin || '').toString().trim();
+  var serverKey = getTeacherAdminKey_();
+
+  // 支援教師在 J1 儲存格直接修改試算表
+  var sheetKey = '';
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sSheet = ss.getSheetByName('學生名冊');
+    if (sSheet && sSheet.getLastRow() >= 1) {
+      sheetKey = (sSheet.getRange(1, 10).getValue() || '').toString().trim();
+    }
+  } catch (e) {}
+
+  if (!clientKey) return false;
+  if (clientKey === serverKey) return true;
+  if (sheetKey && clientKey === sheetKey) {
+    PropertiesService.getScriptProperties().setProperty('TEACHER_ADMIN_KEY', sheetKey);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * 🛡️ 設定/查看「教師安全金鑰 (PIN)」選單對話框
+ */
+function manageTeacherAdminKeyMenu() {
+  var ui = SpreadsheetApp.getUi();
+  var currentKey = getTeacherAdminKey_();
+  var isDefault = (currentKey === '8888');
+
+  var msg = '【目前教師安全金鑰 (PIN)】: ' + currentKey + (isDefault ? '（⚠️ 目前為預設值 8888，建議自訂）' : '（✅ 已啟用自訂防護）') +
+            '\n\n💡 說明：\n此金鑰用於保護全班成績與名冊，防止未經授權者透過 API 批次讀取。網頁端列印小卡或匯入成績時需輸入此 PIN 碼。\n\n如欲修改金鑰，請在下方輸入 4～10 位自訂英數密碼（若留空並按確定則維持原金鑰）：';
+
+  var res = ui.prompt('🛡️ 管理教師安全金鑰 (PIN)', msg, ui.ButtonSet.OK_CANCEL);
+  if (res.getSelectedButton() === ui.Button.OK) {
+    var input = res.getResponseText().trim();
+    if (input) {
+      if (input.length < 4) {
+        ui.alert('⚠️ 金鑰長度至少需 4 碼！未做變更。');
+        return;
+      }
+      setTeacherAdminKey_(input);
+      clearSystemCache();
+      ui.alert('✅ 設定成功！\n\n新教師安全金鑰已設為：' + input + '\n您可在【學生名冊】第 1 列 J1 查看，亦請在網頁教師端輸入此 PIN 碼以同步資料。');
+    }
+  }
 }
 
 /**
@@ -253,6 +350,14 @@ function setupStandardSheets() {
     .setHorizontalAlignment('center');
   sSheet.setColumnWidth(6, 150);
   sSheet.setColumnWidth(7, 110);
+
+  // 初始化或顯示【教師安全金鑰】於第 1 列 I1:J1
+  var currentKey = getTeacherAdminKey_();
+  sSheet.getRange(1, 9).setValue('【教師安全金鑰】').setFontWeight('bold').setBackground('#f1f5f9').setFontColor('#334155').setHorizontalAlignment('center');
+  sSheet.getRange(1, 10).setValue(currentKey).setFontWeight('bold').setBackground('#e0f2fe').setFontColor('#0369a1').setHorizontalAlignment('center');
+  sSheet.setColumnWidth(8, 30);
+  sSheet.setColumnWidth(9, 130);
+  sSheet.setColumnWidth(10, 100);
 
   var defaultSampleRoster = [
     ['501', '01', '王小華', 'DEMO01', true],
@@ -522,16 +627,6 @@ function doGet(e) {
       output = checkSystemStatus();
     } else if (action === 'query') {
       output = getStudentDailyPortfolioByToken(params.token, params.device, (params.nocache === '1' || params.reload === '1'));
-    } else if (action === 'getStudentsForPrint' || action === 'getRoster') {
-      output = getStudentListForTeacher();
-    } else if (action === 'getAccessLogs') {
-      var ss = SpreadsheetApp.getActiveSpreadsheet();
-      output = {
-        status: 'success',
-        success: true,
-        updatedAt: Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'Asia/Taipei', 'yyyy-MM-dd HH:mm'),
-        accessLogs: getRecentAccessLogs_(ss, 100)
-      };
     } else if (action === 'getStudentLogs') {
       var ss = SpreadsheetApp.getActiveSpreadsheet();
       var studentToken = (params.token || '').toString().trim().toUpperCase();
@@ -542,23 +637,55 @@ function doGet(e) {
         token: studentToken,
         recentViews: historyMap[studentToken] || []
       };
-    } else if (action === 'clearAccessLogs') {
-      var ss = SpreadsheetApp.getActiveSpreadsheet();
-      var scope = (params.scope || 'all').toString().trim();
-      var studentToken = (params.token || '').toString().trim().toUpperCase();
-      clearAccessLogs_(ss, scope, studentToken);
-      output = {
-        status: 'success',
-        success: true,
-        message: scope === 'all' ? '全班閱覽紀錄已清空歸零' : '該生閱覽紀錄已清除',
-        scope: scope,
-        token: studentToken
-      };
-    } else if (action === 'appendDailyScores') {
-      var body = params.payload || (e && e.postData && e.postData.contents ? e.postData.contents : '');
-      output = appendDailyScores(body);
     } else {
-      output = { status: 'error', success: false, message: '未知的操作請求: ' + action };
+      // 🔒 安全升級：所有管理端資料操作皆強制實施「教師安全金鑰 (PIN)」驗證
+      if (!verifyTeacherAuth_(e)) {
+        return ContentService.createTextOutput(JSON.stringify({
+          status: 'error',
+          success: false,
+          code: 'AUTH_FAILED',
+          message: '🔒 存取遭拒：教師管理安全金鑰 (PIN) 錯誤或未提供！此操作僅限授權教師執行。'
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+
+      if (action === 'verifyKey' || action === 'checkAuth') {
+        output = { status: 'success', success: true, message: '教師金鑰驗證通過' };
+      } else if (action === 'getStudentsForPrint' || action === 'getRoster') {
+        output = getStudentListForTeacher();
+      } else if (action === 'getAccessLogs') {
+        var ss = SpreadsheetApp.getActiveSpreadsheet();
+        output = {
+          status: 'success',
+          success: true,
+          updatedAt: Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'Asia/Taipei', 'yyyy-MM-dd HH:mm'),
+          accessLogs: getRecentAccessLogs_(ss, 100)
+        };
+      } else if (action === 'clearAccessLogs') {
+        var ss = SpreadsheetApp.getActiveSpreadsheet();
+        var scope = (params.scope || 'all').toString().trim();
+        var studentToken = (params.token || '').toString().trim().toUpperCase();
+        clearAccessLogs_(ss, scope, studentToken);
+        output = {
+          status: 'success',
+          success: true,
+          message: scope === 'all' ? '全班閱覽紀錄已清空歸零' : '該生閱覽紀錄已清除',
+          scope: scope,
+          token: studentToken
+        };
+      } else if (action === 'appendDailyScores') {
+        var body = params.payload || (e && e.postData && e.postData.contents ? e.postData.contents : '');
+        output = appendDailyScores(body);
+      } else if (action === 'setTeacherKey') {
+        var newKey = (params.newKey || '').toString().trim();
+        if (newKey && newKey.length >= 4) {
+          setTeacherAdminKey_(newKey);
+          output = { status: 'success', success: true, message: '教師安全金鑰已成功更新！' };
+        } else {
+          output = { status: 'error', success: false, message: '新金鑰長度至少需 4 碼！' };
+        }
+      } else {
+        output = { status: 'error', success: false, message: '未知的操作請求: ' + action };
+      }
     }
   } catch (err) {
     output = { status: 'error', success: false, message: '系統處理錯誤: ' + err.toString() };
@@ -1502,7 +1629,9 @@ function checkSystemStatus() {
     message: '連線成功！已載入 ' + studentCount + ' 位學生名冊與 ' + subjectNames.length + ' 個平時成績分頁。',
     spreadsheetName: ss.getName(),
     studentCount: studentCount,
-    subjectList: subjectNames
+    subjectList: subjectNames,
+    authRequired: true,
+    isCustomPinSet: getTeacherAdminKey_() !== '8888'
   };
 }
 
@@ -2221,6 +2350,9 @@ var MPScoreDailyEngine = {
   autoFormatAndResizeAllSheets: autoFormatAndResizeAllSheets,
   openAccessLogsSheet: openAccessLogsSheet,
   clearAllAccessLogsMenu: clearAllAccessLogsMenu,
+  manageTeacherAdminKeyMenu: manageTeacherAdminKeyMenu,
+  getTeacherAdminKey: getTeacherAdminKey_,
+  setTeacherAdminKey: setTeacherAdminKey_,
   clearAccessLogs: clearAccessLogs_,
   getRecentAccessLogs: getRecentAccessLogs_,
   getStudentAccessHistoryMap: getStudentAccessHistoryMap_,

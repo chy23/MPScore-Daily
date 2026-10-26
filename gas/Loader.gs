@@ -44,6 +44,7 @@ function onOpen() {
     .addItem('📥 從目前成績分頁匯入名單至「學生名冊」', 'syncStudentsFromSheet')
     .addItem('🔑 為全班產生「家長查詢代碼」', 'generateTokensForStudents')
     .addSeparator()
+    .addItem('🛡️ 設定/查看「教師安全金鑰 (PIN)」', 'manageTeacherAdminKeyMenu')
     .addItem('📱 查看【家長閱覽紀錄】日誌分頁', 'openAccessLogsSheet')
     .addItem('🗑️ 清空全班【家長閱覽紀錄】與次數歸零', 'clearAllAccessLogsMenu')
     .addItem('📊 查看全班各科平時總均與分項平均統計', 'previewClassStatistics')
@@ -60,6 +61,7 @@ function createNewSubjectSheetFromRoster() { getEngine().createNewSubjectSheetFr
 function syncRosterToSubjectSheets() { getEngine().syncRosterToSubjectSheets(false); }
 function syncStudentsFromSheet() { getEngine().syncStudentsFromSheet(); }
 function generateTokensForStudents() { getEngine().generateTokensForStudents(); }
+function manageTeacherAdminKeyMenu() { getEngine().manageTeacherAdminKeyMenu(); }
 function openAccessLogsSheet() { getEngine().openAccessLogsSheet(); }
 function clearAllAccessLogsMenu() { getEngine().clearAllAccessLogsMenu(); }
 function previewClassStatistics() { getEngine().previewClassStatistics(); }

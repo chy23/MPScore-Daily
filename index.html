@@ -557,11 +557,34 @@
                             於 Apps Script 右上角點選「部署 ➔ 新增部署 ➔ 網頁應用程式」（誰可以存取選「所有人」），將取得的 <code class="font-mono text-sky-700">https://script.google.com/.../exec</code> 貼在下方：
                         </p>
 
-                        <div class="space-y-2 pt-1">
-                            <label for="apiUrlInput" class="block text-xs font-extrabold text-slate-700">🔗 試算表 Web App API 網址：</label>
-                            <input id="apiUrlInput" type="url" placeholder="https://script.google.com/macros/s/.../exec"
-                                class="min-h-[42px] w-full px-3.5 py-2.5 rounded-xl border border-sky-300 text-xs font-mono text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500">
-                            <p id="apiStatusMsg" class="text-xs text-slate-600">貼上網址後點選下方按鈕，系統將自動記住網址並同步試算表內的真實學生與科目成績。</p>
+                        <div class="space-y-3 pt-1">
+                            <div>
+                                <label for="apiUrlInput" class="block text-xs font-extrabold text-slate-700">🔗 試算表 Web App API 網址：</label>
+                                <input id="apiUrlInput" type="url" placeholder="https://script.google.com/macros/s/.../exec"
+                                    class="min-h-[42px] w-full px-3.5 py-2.5 rounded-xl border border-sky-300 text-xs font-mono text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                            </div>
+
+                            <div class="p-3 rounded-2xl bg-sky-50/80 border border-sky-200/80 space-y-1.5">
+                                <div class="flex items-center justify-between">
+                                    <label for="teacherKeyInput" class="block text-xs font-black text-sky-900 flex items-center gap-1.5">
+                                        <span>🛡️ 教師管理安全金鑰 (PIN)：</span>
+                                    </label>
+                                    <span class="text-[10.5px] font-bold text-sky-700 bg-white px-2 py-0.5 rounded-md border border-sky-200">初次預設 8888</span>
+                                </div>
+                                <div class="relative">
+                                    <input id="teacherKeyInput" type="password" value="8888" placeholder="預設 8888（或試算表名冊自訂 PIN）"
+                                        class="min-h-[38px] w-full pl-3 pr-10 py-2 rounded-xl border border-sky-300 text-xs font-mono text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                                    <button type="button" onclick="toggleTeacherKeyVisibility()" title="顯示/隱藏金鑰"
+                                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-800 text-xs cursor-pointer">
+                                        <span id="teacherKeyEyeIcon">👁️</span>
+                                    </button>
+                                </div>
+                                <p class="text-[11px] text-slate-600 leading-normal">
+                                    🔒 <b>資安保護升級</b>：防止未經授權者批次讀取全班名單與成績。第一次輸入後瀏覽器會自動記住，<b>印給家長的小卡 QR Code 絕不包含此金鑰</b>。
+                                </p>
+                            </div>
+
+                            <p id="apiStatusMsg" class="text-xs text-slate-600">貼上網址與金鑰後點選下方按鈕，系統將自動記住連線並同步試算表內的全班平時成績。</p>
                         </div>
                     </div>
 
@@ -1705,7 +1728,9 @@ function onOpen() {
     .addItem('📥 從目前成績分頁匯入名單至「學生名冊」', 'syncStudentsFromSheet')
     .addItem('🔑 為全班產生「家長查詢代碼」', 'generateTokensForStudents')
     .addSeparator()
+    .addItem('🛡️ 設定/查看「教師安全金鑰 (PIN)」', 'manageTeacherAdminKeyMenu')
     .addItem('📱 查看【家長閱覽紀錄】日誌分頁', 'openAccessLogsSheet')
+    .addItem('🗑️ 清空全班【家長閱覽紀錄】與次數歸零', 'clearAllAccessLogsMenu')
     .addItem('📊 查看全班各科平時總均與分項平均統計', 'previewClassStatistics')
     .addItem('📐 自動整理欄寬與表格排版', 'autoFormatAndResizeAllSheets')
     .addItem('🚀 立即更新雲端資料（改完分數點此）', 'clearSystemCache')
@@ -1720,10 +1745,15 @@ function createNewSubjectSheetFromRoster() { getEngine().createNewSubjectSheetFr
 function syncRosterToSubjectSheets() { getEngine().syncRosterToSubjectSheets(false); }
 function syncStudentsFromSheet() { getEngine().syncStudentsFromSheet(); }
 function generateTokensForStudents() { getEngine().generateTokensForStudents(); }
+function manageTeacherAdminKeyMenu() { getEngine().manageTeacherAdminKeyMenu(); }
 function openAccessLogsSheet() { getEngine().openAccessLogsSheet(); }
+function clearAllAccessLogsMenu() { getEngine().clearAllAccessLogsMenu(); }
 function previewClassStatistics() { getEngine().previewClassStatistics(); }
 function autoFormatAndResizeAllSheets() { getEngine().autoFormatAndResizeAllSheets(); }
-function clearSystemCache() { getEngine().clearSystemCache(); }
+function clearSystemCache() {
+  _cachedEngine = null;
+  getEngine(true).clearSystemCache();
+}
 
 // Web API 入口點 (附完整錯誤捕捉保護，絕不回傳 HTML 當機頁面)
 function doGet(e) {
@@ -1830,11 +1860,29 @@ function testGitHubConnection() {
             });
         }
 
+        function getTeacherKey() {
+            return (document.getElementById('teacherKeyInput')?.value || localStorage.getItem('mpdaily_teacher_key') || '8888').trim();
+        }
+
+        function toggleTeacherKeyVisibility() {
+            const input = document.getElementById('teacherKeyInput');
+            const icon = document.getElementById('teacherKeyEyeIcon');
+            if (!input) return;
+            if (input.type === 'password') {
+                input.type = 'text';
+                if (icon) icon.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                if (icon) icon.textContent = '👁️';
+            }
+        }
+
         let isConnectingCloud = false;
 
         async function connectCloudGradebook() {
             if (isConnectingCloud) return;
             const inputUrl = (document.getElementById('apiUrlInput').value.trim() || localStorage.getItem('mpdaily_api_url') || '').trim();
+            const teacherKey = getTeacherKey();
             const statusMsg = document.getElementById('apiStatusMsg');
             const badgeSource = document.getElementById('rosterBadgeSource');
             if (!inputUrl) {
@@ -1851,6 +1899,9 @@ function testGitHubConnection() {
 
             isConnectingCloud = true;
             document.getElementById('apiUrlInput').value = inputUrl;
+            if (teacherKey) {
+                localStorage.setItem('mpdaily_teacher_key', teacherKey);
+            }
             statusMsg.textContent = '⏳ 正在從 Google 試算表同步全班各科平時成績與分項平均...';
             statusMsg.className = 'text-xs text-sky-700 font-bold';
             if (badgeSource) badgeSource.textContent = '⏳ 正在同步雲端試算表...';
@@ -1861,7 +1912,7 @@ function testGitHubConnection() {
                 let rawHtmlErr = '';
 
                 for (let attempt = 1; attempt <= 2; attempt++) {
-                    const res = await fetch(`${inputUrl}${sep}action=getStudentsForPrint&nocache=1&v=7&t=${Date.now()}`, { redirect: 'follow', cache: 'no-store' });
+                    const res = await fetch(`${inputUrl}${sep}action=getStudentsForPrint&key=${encodeURIComponent(teacherKey)}&nocache=1&v=7&t=${Date.now()}`, { redirect: 'follow', cache: 'no-store' });
                     const text = await res.text();
                     try {
                         data = JSON.parse(text);
@@ -1881,6 +1932,14 @@ function testGitHubConnection() {
                         : '⚠️ Apps Script 回傳非 JSON 頁面。請確認：(1) 已在 Apps Script 點選「執行 ➔ setup」完成授權；(2) 部署權限為「所有人 (Anyone)」。';
                     statusMsg.className = 'text-xs text-rose-600 font-bold';
                     if (badgeSource) badgeSource.textContent = '⚠️ 請重試同步';
+                    return;
+                }
+
+                if (data && data.code === 'AUTH_FAILED') {
+                    statusMsg.innerHTML = `🔒 <b>連線遭拒：教師管理安全金鑰 (PIN) 錯誤</b><br>請確認輸入的 PIN 碼（預設為 8888，或至試算表【學生名冊】第 1 列 J1 查看自訂金鑰）。`;
+                    statusMsg.className = 'text-xs text-rose-600 font-bold';
+                    if (badgeSource) badgeSource.textContent = '🔒 金鑰驗證失敗';
+                    document.getElementById('teacherKeyInput')?.focus();
                     return;
                 }
 
@@ -2235,8 +2294,13 @@ function testGitHubConnection() {
             }
             try {
                 const sep = apiUrl.includes('?') ? '&' : '?';
-                const res = await fetch(`${apiUrl}${sep}action=getAccessLogs&t=${Date.now()}`, { redirect: 'follow' });
+                const teacherKey = getTeacherKey();
+                const res = await fetch(`${apiUrl}${sep}action=getAccessLogs&key=${encodeURIComponent(teacherKey)}&t=${Date.now()}`, { redirect: 'follow' });
                 const data = await res.json();
+                if (data && data.code === 'AUTH_FAILED') {
+                    alert('🔒 存取遭拒：教師管理安全金鑰 (PIN) 錯誤！請至上方設定確認 PIN 碼。');
+                    return;
+                }
                 if (data && data.accessLogs) {
                     currentAccessLogs = data.accessLogs;
                     renderAccessLogsTable(document.getElementById('accessLogSearchInput')?.value);
@@ -2301,8 +2365,13 @@ function testGitHubConnection() {
             }
             try {
                 const sep = apiUrl.includes('?') ? '&' : '?';
-                const res = await fetch(`${apiUrl}${sep}action=clearAccessLogs&scope=all&t=${Date.now()}`, { redirect: 'follow' });
+                const teacherKey = getTeacherKey();
+                const res = await fetch(`${apiUrl}${sep}action=clearAccessLogs&scope=all&key=${encodeURIComponent(teacherKey)}&t=${Date.now()}`, { redirect: 'follow' });
                 const data = await res.json();
+                if (data && data.code === 'AUTH_FAILED') {
+                    alert('🔒 存取遭拒：教師管理安全金鑰 (PIN) 錯誤！請至上方設定確認 PIN 碼。');
+                    return;
+                }
                 if (data && (data.status === 'success' || data.success === true)) {
                     currentAccessLogs = [];
                     currentRoster.forEach(st => {
@@ -2492,8 +2561,13 @@ function testGitHubConnection() {
             }
             try {
                 const sep = apiUrl.includes('?') ? '&' : '?';
-                const res = await fetch(`${apiUrl}${sep}action=clearAccessLogs&scope=single&token=${encodeURIComponent(st.token)}&t=${Date.now()}`, { redirect: 'follow' });
+                const teacherKey = getTeacherKey();
+                const res = await fetch(`${apiUrl}${sep}action=clearAccessLogs&scope=single&token=${encodeURIComponent(st.token)}&key=${encodeURIComponent(teacherKey)}&t=${Date.now()}`, { redirect: 'follow' });
                 const data = await res.json();
+                if (data && data.code === 'AUTH_FAILED') {
+                    alert('🔒 存取遭拒：教師管理安全金鑰 (PIN) 錯誤！請至上方設定確認 PIN 碼。');
+                    return;
+                }
                 if (data && (data.status === 'success' || data.success === true)) {
                     st.lastViewedAt = '';
                     st.viewCount = 0;
@@ -3384,6 +3458,15 @@ function testGitHubConnection() {
             document.getElementById('loaderCodePreview').textContent = LOADER_GS_SOURCE;
             loadPrintLayoutSettings();
             loadSlipCustomTexts();
+
+            const savedKey = (localStorage.getItem('mpdaily_teacher_key') || '8888').trim();
+            const keyInput = document.getElementById('teacherKeyInput');
+            if (keyInput) keyInput.value = savedKey;
+
+            document.getElementById('teacherKeyInput')?.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') connectCloudGradebook();
+            });
+
             const savedUrl = (localStorage.getItem('mpdaily_api_url') || ((typeof CONFIG !== 'undefined' && CONFIG.API_URL) ? CONFIG.API_URL : '')).trim();
             if (savedUrl) {
                 document.getElementById('apiUrlInput').value = savedUrl;
