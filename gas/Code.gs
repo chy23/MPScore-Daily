@@ -311,7 +311,21 @@ function clearSystemCache() {
       }
     } catch (ignore) {}
     cache.removeAll(keys);
-    ui.alert('✨ 雲端快取清除成功！', '家長端與查詢系統現已載入試算表最新平時成績與統計分析結果。', ui.ButtonSet.OK);
+
+    // 確保【學生名冊】第 1 列 I1:J1 具備【教師安全金鑰】
+    var currentKey = getTeacherAdminKey_();
+    var sSheet = ss.getSheetByName('學生名冊');
+    if (sSheet && sSheet.getLastRow() >= 1) {
+      if ((sSheet.getRange(1, 9).getValue() || '').toString().trim() !== '【教師安全金鑰】') {
+        sSheet.getRange(1, 9).setValue('【教師安全金鑰】').setFontWeight('bold').setBackground('#f1f5f9').setFontColor('#334155').setHorizontalAlignment('center');
+        sSheet.getRange(1, 10).setValue(currentKey).setFontWeight('bold').setBackground('#e0f2fe').setFontColor('#0369a1').setHorizontalAlignment('center');
+        sSheet.setColumnWidth(8, 30);
+        sSheet.setColumnWidth(9, 130);
+        sSheet.setColumnWidth(10, 100);
+      }
+    }
+
+    ui.alert('✨ 雲端快取清除成功！', '家長端與查詢系統現已載入試算表最新平時成績。\n\n🛡️【教師安全金鑰防護已就緒】\n目前金鑰為：' + currentKey + '\n已登記於【學生名冊】第 1 列 J1（您可隨時直接在 J1 儲存格修改密碼）。', ui.ButtonSet.OK);
   } catch (err) {
     ui.alert('提示', '快取已同步重置。' + err.toString(), ui.ButtonSet.OK);
   }
