@@ -942,84 +942,98 @@
 
                 <div class="pt-1 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
                     <span class="font-extrabold text-slate-700 bg-white/90 px-2.5 py-1 rounded-lg border border-sky-200">*難易度以班級成績估計。</span>
-                    <a href="#sectionMethodologyFooter" class="font-bold text-sky-700 hover:underline">查看下方完整統計方法與計算公式說明 ⬇️</a>
+                    <button type="button" onclick="expandAndScrollToMethodology()" class="font-bold text-sky-700 hover:underline cursor-pointer">查看下方完整統計方法與計算公式說明 ⬇️</button>
                 </div>
             </section>
         </div>
 
         <!-- ========================================================================= -->
-        <!-- 區塊：📐 本站選用之統計方法與計算方式說明（置於網頁最下方） -->
+        <!-- 區塊：📐 本站選用之統計方法與計算方式說明（置於網頁最下方，可收折、預設收起） -->
         <!-- ========================================================================= -->
-        <section id="sectionMethodologyFooter" class="mt-8 rounded-3xl bg-white/90 border border-slate-200/90 p-5 sm:p-6 shadow-xs space-y-4 text-slate-700">
-            <div class="flex items-center justify-between gap-2 border-b border-slate-200/80 pb-3 flex-wrap">
-                <div class="flex items-center gap-2">
-                    <span class="w-8 h-8 rounded-xl bg-sky-100 text-sky-800 flex items-center justify-center font-black text-base">📐</span>
-                    <div>
-                        <h3 class="text-sm sm:text-base font-black text-slate-900">本站選用之統計方法與計算方式說明</h3>
-                        <p class="text-[11px] text-slate-500">MPScore-Daily 教育測驗與平時評量統計模型規範（親師雙端一致標準）</p>
-                    </div>
-                </div>
-                <span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-sky-50 text-sky-800 border border-sky-200">統計透明化公開標準</span>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 text-xs leading-relaxed">
-                <!-- 方法 1：試卷難易度評估 -->
-                <div class="p-3.5 rounded-2xl bg-[#F5FAFD] border border-sky-200/80 space-y-2">
-                    <div class="flex items-center justify-between gap-2 flex-wrap">
-                        <span class="font-black text-sky-950 text-xs sm:text-sm">1. 試卷難易度評估（Test Difficulty Index, P*）</span>
-                        <span class="px-2 py-0.5 rounded-md bg-sky-100 text-sky-800 font-bold text-[11px]">方法三：抗極端值校正</span>
-                    </div>
-                    <p class="text-slate-600">
-                        為避免單一極端低分或高分扭曲全班試卷難度判斷，系統同時計算班級有效成績之平均得分率与中位數得分率：
-                    </p>
-                    <div class="p-2.5 rounded-xl bg-white border border-sky-100 font-mono text-[11px] text-slate-800 space-y-1">
-                        <div>• 平均得分率：<span class="font-bold text-sky-800">P_mean = X̄ / 100</span>（X̄ 為班級算術平均數）</div>
-                        <div>• 中位數得分率：<span class="font-bold text-teal-800">P_med = Median / 100</span>（Median 為班級中位數）</div>
-                        <div>• 偏態檢定與抗極端值加權：</div>
-                        <div class="pl-2 text-slate-700">
-                            - 當 <span class="font-bold text-amber-800">|X̄ - Median| &gt; 3</span>（遇偏態）時：<br>
-                            &nbsp;&nbsp;<span class="font-bold text-slate-900">P* = 0.6 × P_mean + 0.4 × P_med</span><br>
-                            - 當 <span class="font-bold text-emerald-800">|X̄ - Median| ≤ 3</span>（常態分佈）時：<br>
-                            &nbsp;&nbsp;<span class="font-bold text-slate-900">P* = P_mean</span>
+        <section id="sectionMethodologyFooter" class="mt-8 rounded-3xl bg-white/90 border border-slate-200/90 shadow-xs text-slate-700 overflow-hidden transition-all">
+            <details id="methodologyDetails" class="group">
+                <summary class="list-none [&::-webkit-details-marker]:hidden cursor-pointer select-none p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-sky-50/50 transition">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-8 h-8 rounded-xl bg-sky-100 text-sky-800 flex items-center justify-center font-black text-base shrink-0">📐</span>
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h3 class="text-sm sm:text-base font-black text-slate-900">本站選用之統計方法與計算方式說明</h3>
+                                <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-sky-800 border border-sky-200">統計透明化公開標準</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 mt-0.5">點擊展開查看：試卷難易度評估（P* 方法三抗極端值校正）、分項平均、常模差值與走勢內插公式</p>
                         </div>
                     </div>
-                    <div class="space-y-1 pt-0.5">
-                        <div class="font-bold text-slate-800">📊 難易度四級標準（依 P* × 100 百分制換算）：</div>
-                        <div class="flex flex-wrap gap-1.5 text-[11px]">
-                            <span class="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold">≥ 80 分：🟢 偏易</span>
-                            <span class="px-2 py-0.5 rounded-md bg-sky-50 text-sky-800 border border-sky-200 font-bold">65 ~ 79.9 分：🎯 適中</span>
-                            <span class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 font-bold">50 ~ 64.9 分：🔥 偏難</span>
-                            <span class="px-2 py-0.5 rounded-md bg-rose-50 text-rose-800 border border-rose-200 font-bold">&lt; 50 分：⚡ 極具挑戰</span>
+                    <div class="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                        <span class="group-open:hidden text-xs font-extrabold text-sky-800 bg-sky-50 border border-sky-200 px-3 py-1.5 rounded-xl shadow-2xs flex items-center gap-1">
+                            <span>展開計算方式說明</span>
+                            <span class="text-[10px]">▼</span>
+                        </span>
+                        <span class="hidden group-open:inline-flex text-xs font-extrabold text-slate-700 bg-slate-100 border border-slate-300 px-3 py-1.5 rounded-xl shadow-2xs items-center gap-1">
+                            <span>收起說明</span>
+                            <span class="text-[10px]">▲</span>
+                        </span>
+                    </div>
+                </summary>
+
+                <div class="px-5 pb-5 sm:px-6 sm:pb-6 pt-3 border-t border-slate-200/80 grid grid-cols-1 md:grid-cols-2 gap-3.5 text-xs leading-relaxed">
+                    <!-- 方法 1：試卷難易度評估 -->
+                    <div class="p-3.5 rounded-2xl bg-[#F5FAFD] border border-sky-200/80 space-y-2">
+                        <div class="flex items-center justify-between gap-2 flex-wrap">
+                            <span class="font-black text-sky-950 text-xs sm:text-sm">1. 試卷難易度評估（Test Difficulty Index, P*）</span>
+                            <span class="px-2 py-0.5 rounded-md bg-sky-100 text-sky-800 font-bold text-[11px]">方法三：抗極端值校正</span>
                         </div>
-                        <div class="text-[11px] font-extrabold text-slate-600 pt-1">*難易度以班級成績估計。</div>
+                        <p class="text-slate-600">
+                            為避免單一極端低分或高分扭曲全班試卷難度判斷，系統同時計算班級有效成績之平均得分率與中位數得分率：
+                        </p>
+                        <div class="p-2.5 rounded-xl bg-white border border-sky-100 font-mono text-[11px] text-slate-800 space-y-1">
+                            <div>• 平均得分率：<span class="font-bold text-sky-800">P_mean = X̄ / 100</span>（X̄ 為班級算術平均數）</div>
+                            <div>• 中位數得分率：<span class="font-bold text-teal-800">P_med = Median / 100</span>（Median 為班級中位數）</div>
+                            <div>• 偏態檢定與抗極端值加權：</div>
+                            <div class="pl-2 text-slate-700">
+                                - 當 <span class="font-bold text-amber-800">|X̄ - Median| &gt; 3</span>（遇偏態）時：<br>
+                                &nbsp;&nbsp;<span class="font-bold text-slate-900">P* = 0.6 × P_mean + 0.4 × P_med</span><br>
+                                - 當 <span class="font-bold text-emerald-800">|X̄ - Median| ≤ 3</span>（常態分佈）時：<br>
+                                &nbsp;&nbsp;<span class="font-bold text-slate-900">P* = P_mean</span>
+                            </div>
+                        </div>
+                        <div class="space-y-1 pt-0.5">
+                            <div class="font-bold text-slate-800">📊 難易度四級標準（依 P* × 100 百分制換算）：</div>
+                            <div class="flex flex-wrap gap-1.5 text-[11px]">
+                                <span class="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold">≥ 80 分：🟢 偏易</span>
+                                <span class="px-2 py-0.5 rounded-md bg-sky-50 text-sky-800 border border-sky-200 font-bold">65 ~ 79.9 分：🎯 適中</span>
+                                <span class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 font-bold">50 ~ 64.9 分：🔥 偏難</span>
+                                <span class="px-2 py-0.5 rounded-md bg-rose-50 text-rose-800 border border-rose-200 font-bold">&lt; 50 分：⚡ 極具挑戰</span>
+                            </div>
+                            <div class="text-[11px] font-extrabold text-slate-600 pt-1">*難易度以班級成績估計。</div>
+                        </div>
+                    </div>
+
+                    <!-- 方法 2 ~ 4：分項平均、請假免計、班級常模與折線插補 -->
+                    <div class="space-y-3">
+                        <div class="p-3.5 rounded-2xl bg-[#F4FAF6] border border-emerald-200/80 space-y-1.5">
+                            <div class="font-black text-emerald-950 text-xs sm:text-sm">2. 個人分項平均、各科總均與請假免計分機制</div>
+                            <p class="text-slate-600">
+                                採用<strong>算術平均數（Arithmetic Mean）</strong>：<span class="font-mono bg-white px-1.5 py-0.5 rounded border border-emerald-200">X̄ = (∑ 有效得分) / N_有效</span>。凡登記為「公假、事假、病假、喪假」之項目依法免計分，<strong>不以 0 分計算，亦不納入個人與班級平均之除數分母（N_有效）</strong>。
+                            </p>
+                        </div>
+
+                        <div class="p-3.5 rounded-2xl bg-[#F5FAFD] border border-sky-200/80 space-y-1.5">
+                            <div class="font-black text-sky-950 text-xs sm:text-sm">3. 班級常模對比差值（Δ）與百分等級（PR 值）</div>
+                            <p class="text-slate-600">
+                                • <strong>班均差值</strong>：<span class="font-mono bg-white px-1.5 py-0.5 rounded border border-sky-200">Δ = 個人得分 - 班級平均 X̄</span>，正值代表高於班級常模。<br>
+                                • <strong>百分等級（PR）</strong>：依學生個人總均於全班有效總均分佈中之相對位置換算（PR99 代表領先全班 99% 同儕，僅供內部學習定位參考）。
+                            </p>
+                        </div>
+
+                        <div class="p-3.5 rounded-2xl bg-[#F4FAF6] border border-emerald-200/80 space-y-1.5">
+                            <div class="font-black text-emerald-950 text-xs sm:text-sm">4. 學習走勢圖之請假點視覺線性插補法</div>
+                            <p class="text-slate-600">
+                                為維持學習曲線連續性，折線圖遇請假項目時採用<strong>前後有效評量線性插補（Linear Interpolation）</strong>繪製過渡軌跡點並標示假別徽章；該插補值僅供圖表視覺連線，<strong>絕不計入任何實際平均分數</strong>。
+                            </p>
+                        </div>
                     </div>
                 </div>
-
-                <!-- 方法 2 ~ 4：分項平均、請假免計、班級常模與折線插補 -->
-                <div class="space-y-3">
-                    <div class="p-3.5 rounded-2xl bg-[#F4FAF6] border border-emerald-200/80 space-y-1.5">
-                        <div class="font-black text-emerald-950 text-xs sm:text-sm">2. 個人分項平均、各科總均與請假免計分機制</div>
-                        <p class="text-slate-600">
-                            採用<strong>算術平均數（Arithmetic Mean）</strong>：<span class="font-mono bg-white px-1.5 py-0.5 rounded border border-emerald-200">X̄ = (∑ 有效得分) / N_有效</span>。凡登記為「公假、事假、病假、喪假」之項目依法免計分，<strong>不以 0 分計算，亦不納入個人與班級平均之除數分母（N_有效）</strong>。
-                        </p>
-                    </div>
-
-                    <div class="p-3.5 rounded-2xl bg-[#F5FAFD] border border-sky-200/80 space-y-1.5">
-                        <div class="font-black text-sky-950 text-xs sm:text-sm">3. 班級常模對比差值（Δ）與百分等級（PR 值）</div>
-                        <p class="text-slate-600">
-                            • <strong>班均差值</strong>：<span class="font-mono bg-white px-1.5 py-0.5 rounded border border-sky-200">Δ = 個人得分 - 班級平均 X̄</span>，正值代表高於班級常模。<br>
-                            • <strong>百分等級（PR）</strong>：依學生個人總均於全班有效總均分佈中之相對位置換算（PR99 代表領先全班 99% 同儕，僅供內部學習定位參考）。
-                        </p>
-                    </div>
-
-                    <div class="p-3.5 rounded-2xl bg-[#F4FAF6] border border-emerald-200/80 space-y-1.5">
-                        <div class="font-black text-emerald-950 text-xs sm:text-sm">4. 學習走勢圖之請假點視覺線性插補法</div>
-                        <p class="text-slate-600">
-                            為維持學習曲線連續性，折線圖遇請假項目時採用<strong>前後有效評量線性插補（Linear Interpolation）</strong>繪製過渡軌跡點並標示假別徽章；該插補值僅供圖表視覺連線，<strong>絕不計入任何實際平均分數</strong>。
-                        </p>
-                    </div>
-                </div>
-            </div>
+            </details>
         </section>
 
     </main>
@@ -2917,6 +2931,13 @@ function testGitHubConnection() {
                 case 'rose': return 'bg-rose-50 text-rose-800 border-rose-300';
                 default: return 'bg-slate-100 text-slate-700 border-slate-300';
             }
+        }
+
+        function expandAndScrollToMethodology() {
+            const details = document.getElementById('methodologyDetails');
+            if (details) details.open = true;
+            const sec = document.getElementById('sectionMethodologyFooter');
+            if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         function renderTeacherDifficultyOverview() {
