@@ -478,6 +478,7 @@
                                 <th class="py-3 px-3 text-center whitespace-nowrap">分項類別</th>
                                 <th class="py-3 px-3 text-center whitespace-nowrap">個人得分</th>
                                 <th class="py-3 px-3 text-center whitespace-nowrap">全班平均</th>
+                                <th class="py-3 px-3 text-center whitespace-nowrap">試卷難易度*</th>
                                 <th class="py-3 px-4 text-right whitespace-nowrap">與班均比較</th>
                             </tr>
                         </thead>
@@ -485,6 +486,21 @@
                             <!-- JS 動態填入各次評量項目列 -->
                         </tbody>
                     </table>
+                </div>
+
+                <!-- 難易度分級標準與強制附註列 -->
+                <div class="pt-2.5 border-t border-sky-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-600">
+                    <div class="flex items-center gap-1.5 font-extrabold text-slate-700">
+                        <span>📊</span>
+                        <span>*難易度以班級成績估計。</span>
+                        <span class="text-slate-500 font-normal">（點擊項目上之難易度標籤可查看 P* 抗極端值校正詳情）</span>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-1.5 text-[11px] font-bold">
+                        <span class="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">≥80 🟢 偏易</span>
+                        <span class="px-2 py-0.5 rounded-md bg-sky-50 text-sky-800 border border-sky-200">65~79.9 🎯 適中</span>
+                        <span class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200">50~64.9 🔥 偏難</span>
+                        <span class="px-2 py-0.5 rounded-md bg-rose-50 text-rose-800 border border-rose-200">&lt;50 ⚡ 極具挑戰</span>
+                    </div>
                 </div>
             </section>
 
@@ -507,7 +523,105 @@
             </section>
 
         </div>
+
+        <!-- ========================================================================= -->
+        <!-- 📐 網頁最底部：全站選用之統計方法與計算方式說明專區 -->
+        <!-- ========================================================================= -->
+        <section id="sectionMethodologyFooter" class="mt-6 card-cream-green rounded-3xl p-5 sm:p-6 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-200/90 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-8 h-8 rounded-xl bg-teal-600 text-white flex items-center justify-center text-base font-black shrink-0">📐</span>
+                    <div>
+                        <h3 class="font-black text-slate-800 text-sm sm:text-base">本站選用之統計方法與計算方式說明</h3>
+                        <p class="text-xs text-slate-600">公開透明呈現各次平時評量難易度、分項平均、常模對比與走勢圖之數學計算標準</p>
+                    </div>
+                </div>
+                <span class="text-xs font-extrabold text-teal-900 bg-teal-100/90 border border-teal-200 px-2.5 py-1 rounded-full self-start sm:self-auto">教育測驗與統計規範</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 text-xs text-slate-700 leading-relaxed">
+                <!-- 方法 1：考卷難易度指數 P* -->
+                <div class="p-4 rounded-2xl subcard-cream-blue space-y-2">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="font-black text-sky-950 text-xs sm:text-sm">1. 考卷難易度指數（Difficulty Index, P*，方法三抗極端值校正）</span>
+                        <span class="px-2 py-0.5 rounded-md bg-sky-100 text-sky-800 font-bold text-[11px] shrink-0">試卷難易度評估</span>
+                    </div>
+                    <ul class="list-disc list-inside space-y-1 text-slate-700">
+                        <li><b>基本得分率</b>：平均得分率 <code class="font-mono font-bold text-sky-900 bg-white/80 px-1 rounded">P_mean = X̄ / 100</code>，中位數得分率 <code class="font-mono font-bold text-sky-900 bg-white/80 px-1 rounded">P_med = Median / 100</code>（排除請假與缺考樣本）。</li>
+                        <li><b>抗極端值偏態校正</b>：當班級分數出現偏態（<code class="font-mono font-bold text-rose-700 bg-white/80 px-1 rounded">|X̄ − Median| &gt; 3</code>）時，自動啟用抗極端值加權：<br>
+                            <code class="inline-block mt-1 font-mono font-black text-sky-950 bg-white px-2 py-0.5 rounded-lg border border-sky-200">P* = 0.6 × P_mean + 0.4 × P_med</code><br>
+                            <span class="text-[11px] text-slate-600">（若 <code class="font-mono">|X̄ − Median| ≤ 3</code> 分佈對稱，則 <code class="font-mono">P* = P_mean</code>，換算百分制指數為 <code class="font-mono">P* × 100</code>）。</span>
+                        </li>
+                        <li><b>分級標準</b>：<code class="font-mono font-bold">≥ 80</code> 分 🟢 偏易、<code class="font-mono font-bold">65 ~ 79.9</code> 分 🎯 適中、<code class="font-mono font-bold">50 ~ 64.9</code> 分 🔥 偏難、<code class="font-mono font-bold">&lt; 50</code> 分 ⚡ 極具挑戰。</li>
+                    </ul>
+                    <div class="pt-1 text-[11px] font-extrabold text-slate-700 border-t border-sky-200/60">
+                        *難易度以班級成績估計。
+                    </div>
+                </div>
+
+                <!-- 方法 2：平時分項平均與請假免計原則 -->
+                <div class="p-4 rounded-2xl subcard-cream-green space-y-2">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="font-black text-emerald-950 text-xs sm:text-sm">2. 平時分項平均與請假免計分算術平均法</span>
+                        <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-[11px] shrink-0">分項與總均結算</span>
+                    </div>
+                    <ul class="list-disc list-inside space-y-1 text-slate-700">
+                        <li><b>動態分項歸納</b>：依試算表評量性質（📝 作業 / 🎯 考試）與欄位名稱，自動歸納為「📘 習作」、「📝 作業卷」、「🔤 語詞/基礎」、「🎯 單元測驗卷」，計算算術平均 <code class="font-mono font-bold text-emerald-900 bg-white/80 px-1 rounded">X̄ = (∑x_i) / n</code>。</li>
+                        <li><b>公、事、病、喪請假免計分</b>：成績格登記為公假、事假、病假、喪假時，依法免計分，<b>自動從個人與班級平均之計算分母 <code class="font-mono">n</code> 中排除</b>，絕不當作 0 分拉低平均。</li>
+                    </ul>
+                </div>
+
+                <!-- 方法 3：班級平均常模比較與差值 / PR 常模 -->
+                <div class="p-4 rounded-2xl subcard-cream-green space-y-2">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="font-black text-emerald-950 text-xs sm:text-sm">3. 班級常模相對差值與百分等級（PR 值）推估</span>
+                        <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-[11px] shrink-0">常模落點分析</span>
+                    </div>
+                    <ul class="list-disc list-inside space-y-1 text-slate-700">
+                        <li><b>與班均差值</b>：<code class="font-mono font-bold text-emerald-900 bg-white/80 px-1 rounded">Diff = 個人得分 − 班級該項平均</code>，並搭配色覺無障礙符號（<code class="font-mono">▲</code> 高於班均、<code class="font-mono">▼</code> 低於班均、<code class="font-mono">＝</code> 與班均持平）。</li>
+                        <li><b>量尺視覺對位</b>：分項卡片中「長方形色條」代表學生個人平均，「立體圓點（●▲）」代表班級該項平均，直覺對比相對位置。</li>
+                    </ul>
+                </div>
+
+                <!-- 方法 4：折線走勢圖請假點平滑線性內插法 -->
+                <div class="p-4 rounded-2xl subcard-cream-blue space-y-2">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="font-black text-sky-950 text-xs sm:text-sm">4. 學習走勢圖請假節點線性內插法（Linear Interpolation）</span>
+                        <span class="px-2 py-0.5 rounded-md bg-sky-100 text-sky-800 font-bold text-[11px] shrink-0">視覺連續性演算法</span>
+                    </div>
+                    <ul class="list-disc list-inside space-y-1 text-slate-700">
+                        <li><b>折線平滑過渡</b>：當某次評量為請假免計分時，為避免折線斷裂或誤繪為 0 分，圖表座標以相鄰前後有效評量分數進行線性內插：<code class="font-mono font-bold text-sky-900 bg-white/80 px-1 rounded">Y = S_prev + [(i − i_prev)/(i_next − i_prev)] × (S_next − S_prev)</code>。</li>
+                        <li><b>嚴格標記免計</b>：內插值僅供維持折線視覺連貫與點擊定位，提示框與卡片均嚴格顯示假別（如 <code class="font-mono">💊 病假（請假不計分）</code>）。</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
     </main>
+
+    <!-- ========================================================================= -->
+    <!-- 📊 試卷難易度評估詳情彈窗 Modal (Difficulty Index P* Detail Modal) -->
+    <!-- ========================================================================= -->
+    <div id="difficultyDetailModal" onclick="if(event.target === this) closeDifficultyDetailModal()" class="hidden fixed inset-0 z-50 bg-slate-900/65 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 transition-all">
+        <div class="bg-white rounded-t-[28px] sm:rounded-3xl shadow-2xl max-w-lg w-full border border-sky-200 overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-4 sm:p-5 bg-gradient-to-r from-sky-700 via-teal-700 to-slate-900 text-white flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center text-lg">📊</span>
+                    <div>
+                        <h4 id="diffModalTitle" class="font-black text-sm sm:text-base text-white">試卷難易度評估（Test Difficulty Index）</h4>
+                        <p id="diffModalSubtitle" class="text-xs text-sky-100 mt-0.5">方法三：抗極端值偏態校正（P*）</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeDifficultyDetailModal()" class="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center font-bold text-sm cursor-pointer">✕</button>
+            </div>
+            <div id="diffModalBody" class="p-4 sm:p-5 overflow-y-auto space-y-3.5 text-xs text-slate-700">
+                <!-- JS 動態渲染難易度詳情 -->
+            </div>
+            <div class="px-5 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs">
+                <span class="font-extrabold text-slate-700">*難易度以班級成績估計。</span>
+                <button type="button" onclick="closeDifficultyDetailModal()" class="px-4 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold cursor-pointer">了解</button>
+            </div>
+        </div>
+    </div>
 
     <!-- 頁尾 -->
     <footer class="border-t border-teal-200/70 bg-[#EFF7F4]/80 py-5 px-4 text-center text-xs text-slate-600">
@@ -638,6 +752,190 @@
                         pillClass: 'bg-slate-100 text-slate-700 border-slate-300 font-extrabold'
                     };
             }
+        }
+
+        // =========================================================================
+        // 1.5 試卷難易度評估（Test Difficulty Index, P*，方法三抗極端值校正）前端輔助函式
+        // =========================================================================
+        function resolveItemDifficulty(item) {
+            if (!item) return null;
+            if (item.difficulty && item.difficulty.indexScore !== null && item.difficulty.indexScore !== undefined) {
+                return item.difficulty;
+            }
+            // 若舊快取尚未包含 difficulty 物件，但具有 classAvg，以方法三規則即時推算回退值
+            const avg = (item.classAvg !== null && item.classAvg !== undefined && !isNaN(item.classAvg)) ? Number(item.classAvg) : null;
+            if (avg === null) return null;
+            const med = (item.median !== null && item.median !== undefined && !isNaN(item.median)) ? Number(item.median) : avg;
+            const skewDiff = Number(Math.abs(avg - med).toFixed(1));
+            const isSkewed = skewDiff > 3;
+            const pMean = Number((avg / 100).toFixed(4));
+            const pMed = Number((med / 100).toFixed(4));
+            const rawPStar = isSkewed ? (0.6 * pMean + 0.4 * pMed) : pMean;
+            const pStar = Number(rawPStar.toFixed(4));
+            const indexScore = Number((rawPStar * 100).toFixed(1));
+
+            let level = 'moderate', icon = '🎯', shortLabel = '適中', label = '🎯 適中', color = 'sky';
+            if (indexScore >= 80) {
+                level = 'easy'; icon = '🟢'; shortLabel = '偏易'; label = '🟢 偏易'; color = 'emerald';
+            } else if (indexScore >= 65) {
+                level = 'moderate'; icon = '🎯'; shortLabel = '適中'; label = '🎯 適中'; color = 'sky';
+            } else if (indexScore >= 50) {
+                level = 'hard'; icon = '🔥'; shortLabel = '偏難'; label = '🔥 偏難'; color = 'amber';
+            } else {
+                level = 'challenging'; icon = '⚡'; shortLabel = '極具挑戰'; label = '⚡ 極具挑戰'; color = 'rose';
+            }
+
+            return {
+                mean: avg,
+                median: med,
+                skewDiff: skewDiff,
+                isSkewed: isSkewed,
+                pMean: pMean,
+                pMed: pMed,
+                pStar: pStar,
+                indexScore: indexScore,
+                level: level,
+                icon: icon,
+                shortLabel: shortLabel,
+                label: label,
+                color: color,
+                sampleCount: null,
+                note: '*難易度以班級成績估計。'
+            };
+        }
+
+        function getDifficultyBadgeStyle(color) {
+            switch (color) {
+                case 'emerald':
+                    return 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100';
+                case 'sky':
+                    return 'bg-sky-50 text-sky-800 border-sky-300 hover:bg-sky-100';
+                case 'amber':
+                    return 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100';
+                case 'rose':
+                    return 'bg-rose-50 text-rose-800 border-rose-300 hover:bg-rose-100';
+                default:
+                    return 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200';
+            }
+        }
+
+        function formatDifficultyBadgeHtml(item, isCompact = false) {
+            const diff = resolveItemDifficulty(item);
+            if (!diff) return '<span class="text-slate-400 text-xs">--</span>';
+            const styleClass = getDifficultyBadgeStyle(diff.color);
+            const encodedName = encodeURIComponent(item.name || '');
+            const skewMark = diff.isSkewed ? '⚖️' : '';
+            if (isCompact) {
+                return `
+                    <button type="button" onclick="openDifficultyDetailModal('${encodedName}')"
+                        title="點擊查看試卷難易度評估計算明細（*難易度以班級成績估計。）"
+                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-extrabold border shadow-2xs transition active:scale-95 cursor-pointer ${styleClass}">
+                        <span>${diff.icon}</span>
+                        <span>${diff.shortLabel}*</span>
+                        <span class="font-mono text-[11px] opacity-85">(${diff.indexScore})</span>
+                    </button>
+                `;
+            }
+            return `
+                <button type="button" onclick="openDifficultyDetailModal('${encodedName}')"
+                    title="點擊查看試卷難易度評估計算明細（*難易度以班級成績估計。）"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-extrabold border transition active:scale-95 cursor-pointer ${styleClass}">
+                    <span>${diff.icon}</span>
+                    <span>難易度:${diff.shortLabel}*</span>
+                    <span class="font-mono opacity-85">(P* ${diff.indexScore}${skewMark ? ' ' + skewMark : ''})</span>
+                </button>
+            `;
+        }
+
+        function openDifficultyDetailModal(encodedItemName) {
+            if (!currentPortfolio || !currentPortfolio.student || !currentPortfolio.student.subjects) return;
+            const subj = currentPortfolio.student.subjects[currentSubjectIdx];
+            if (!subj || !Array.isArray(subj.items)) return;
+            const itemName = decodeURIComponent(encodedItemName);
+            const item = subj.items.find(it => it.name === itemName) || subj.items[0];
+            if (!item) return;
+
+            const diff = resolveItemDifficulty(item);
+            if (!diff) return;
+
+            const modal = document.getElementById('difficultyDetailModal');
+            const body = document.getElementById('difficultyDetailModalBody');
+            if (!modal || !body) return;
+
+            const styleClass = getDifficultyBadgeStyle(diff.color);
+            const leaveInfo = resolveItemLeave(item);
+            const studentScoreStr = leaveInfo
+                ? `${leaveInfo.icon} ${leaveInfo.type}（請假免計分）`
+                : (item.score !== null && item.score !== undefined ? `${item.score} 分` : '尚無成績');
+
+            body.innerHTML = `
+                <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3">
+                    <div>
+                        <div class="text-xs font-bold text-slate-500">${subj.subject} ‧ ${item.categoryLabel || '平時評量'}</div>
+                        <div class="text-base font-black text-slate-900 mt-0.5 flex items-center gap-2 flex-wrap">
+                            <span>${item.name}</span>
+                            ${formatAssessmentTypeBadge(item.assessmentType)}
+                        </div>
+                    </div>
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-black border shadow-xs ${styleClass}">
+                        <span>${diff.icon}</span>
+                        <span>${diff.shortLabel}</span>
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2.5 text-center">
+                    <div class="p-2.5 rounded-xl bg-sky-50/70 border border-sky-200/80">
+                        <div class="text-[11px] font-bold text-slate-500">班級平均 X̄</div>
+                        <div class="text-base font-black font-mono text-sky-900 mt-0.5">${diff.mean !== null ? diff.mean.toFixed(1) : '--'}<span class="text-xs font-normal ml-0.5">分</span></div>
+                        <div class="text-[10px] font-mono text-slate-500">P_mean = ${diff.pMean !== null ? diff.pMean.toFixed(3) : '--'}</div>
+                    </div>
+                    <div class="p-2.5 rounded-xl bg-teal-50/70 border border-teal-200/80">
+                        <div class="text-[11px] font-bold text-slate-500">班級中位數 Med</div>
+                        <div class="text-base font-black font-mono text-teal-900 mt-0.5">${diff.median !== null ? diff.median.toFixed(1) : '--'}<span class="text-xs font-normal ml-0.5">分</span></div>
+                        <div class="text-[10px] font-mono text-slate-500">P_med = ${diff.pMed !== null ? diff.pMed.toFixed(3) : '--'}</div>
+                    </div>
+                    <div class="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200/80">
+                        <div class="text-[11px] font-bold text-slate-500">難易度指數 P*</div>
+                        <div class="text-base font-black font-mono text-amber-900 mt-0.5">${diff.indexScore}<span class="text-xs font-normal ml-0.5">分</span></div>
+                        <div class="text-[10px] font-mono text-slate-500">P* = ${diff.pStar !== null ? diff.pStar.toFixed(3) : '--'}</div>
+                    </div>
+                </div>
+
+                <div class="p-3.5 rounded-xl bg-white border border-slate-200 space-y-2 text-xs text-slate-700 leading-relaxed">
+                    <div class="font-extrabold text-slate-900 flex items-center justify-between">
+                        <span>🧮 方法三：抗極端值校正檢定</span>
+                        <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${diff.isSkewed ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-emerald-100 text-emerald-800 border border-emerald-300'}">
+                            ${diff.isSkewed ? '⚖️ 已啟動偏態加權校正' : '✅ 常態分佈（無須偏態加權）'}
+                        </span>
+                    </div>
+                    <div class="font-mono text-[11px] bg-slate-50 p-2.5 rounded-lg border border-slate-200/80 space-y-1">
+                        <div>• 偏態檢定差值：|X̄ - Median| = |${diff.mean.toFixed(1)} - ${diff.median.toFixed(1)}| = <b>${diff.skewDiff.toFixed(1)} 分</b> ${diff.isSkewed ? '(&gt; 3 分，遇偏態)' : '(≤ 3 分，未偏態)'}</div>
+                        ${diff.isSkewed
+                            ? `<div>• 抗極端值加權公式：P* = 0.6 × ${diff.pMean.toFixed(3)} + 0.4 × ${diff.pMed.toFixed(3)} = <b>${diff.pStar.toFixed(3)}</b>（換算百分制 <b>${diff.indexScore} 分</b>）</div>`
+                            : `<div>• 標準難易度公式：P* = P_mean = <b>${diff.pStar.toFixed(3)}</b>（換算百分制 <b>${diff.indexScore} 分</b>）</div>`
+                        }
+                    </div>
+                    <div class="flex items-center justify-between pt-1 text-xs">
+                        <span class="text-slate-500">學生個人本次表現：<b class="text-slate-800">${studentScoreStr}</b></span>
+                        ${diff.sampleCount ? `<span class="text-slate-500">有效採計人數：<b>${diff.sampleCount} 人</b></span>` : ''}
+                    </div>
+                </div>
+
+                <div class="text-xs font-extrabold text-slate-600 bg-slate-100 px-3 py-2 rounded-xl border border-slate-200 flex items-center justify-between">
+                    <span>${diff.note || '*難易度以班級成績估計。'}</span>
+                    <a href="#sectionMethodologyFooter" onclick="closeDifficultyDetailModal()" class="text-sky-700 hover:underline font-bold">查看完整統計說明 ⬇️</a>
+                </div>
+            `;
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeDifficultyDetailModal() {
+            const modal = document.getElementById('difficultyDetailModal');
+            if (!modal) return;
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
         }
 
         // =========================================================================
@@ -1155,6 +1453,32 @@
             if (noticeEl) noticeEl.classList.add('hidden');
         }
 
+        function showChartPointDifficultyBanner(itemObj, diffInfo) {
+            const noticeEl = document.getElementById('chartLeaveNotice');
+            if (!noticeEl || !diffInfo) return;
+            const styleClass = getDifficultyBadgeStyle(diffInfo.color);
+            const encodedName = encodeURIComponent(itemObj.name || '');
+            noticeEl.className = `p-3.5 rounded-2xl border shadow-sm flex items-center justify-between gap-3 bg-white border-sky-200`;
+            noticeEl.innerHTML = `
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <span class="text-2xl shrink-0">${diffInfo.icon}</span>
+                    <div class="min-w-0">
+                        <div class="text-xs font-black flex items-center gap-2 flex-wrap text-slate-900">
+                            <span>${itemObj.name}</span>
+                            <span class="px-2 py-0.5 rounded-full text-xs font-black border ${styleClass}">試卷難易度：${diffInfo.shortLabel}* (P* ${diffInfo.indexScore} 分)</span>
+                        </div>
+                        <div class="text-xs text-slate-600 mt-0.5">
+                            班級平均 <b>${diffInfo.mean.toFixed(1)}</b> 分、中位數 <b>${diffInfo.median.toFixed(1)}</b> 分${diffInfo.isSkewed ? '（⚖️ 已啟動抗極端值加權校正）' : ''}。<span class="text-slate-500 font-bold">*難易度以班級成績估計。</span>
+                        </div>
+                    </div>
+                </div>
+                <button onclick="openDifficultyDetailModal('${encodedName}')" class="shrink-0 text-xs font-bold px-3 py-1.5 rounded-xl bg-sky-50 text-sky-800 border border-sky-200 shadow-xs hover:bg-sky-100 transition active:scale-95 cursor-pointer">
+                    計算明細 📐
+                </button>
+            `;
+            noticeEl.classList.remove('hidden');
+        }
+
         function scrollToItemCard(encodedItemName) {
             const name = decodeURIComponent(encodedItemName);
             const cards = Array.from(document.querySelectorAll('#scoreItemsGrid > div'));
@@ -1414,7 +1738,12 @@
                         if (leaveInfo) {
                             showLeaveNoticeBanner(itemObj, leaveInfo);
                         } else {
-                            hideLeaveNoticeBanner();
+                            const diffInfo = resolveItemDifficulty(itemObj);
+                            if (diffInfo) {
+                                showChartPointDifficultyBanner(itemObj, diffInfo);
+                            } else {
+                                hideLeaveNoticeBanner();
+                            }
                         }
                     },
                     plugins: {
@@ -1432,6 +1761,8 @@
                             backgroundColor: 'rgba(15, 23, 42, 0.94)',
                             titleFont: { family: '"Noto Sans TC", sans-serif', size: 13, weight: 'bold' },
                             bodyFont: { family: '"JetBrains Mono", "Noto Sans TC", monospace', size: 12 },
+                            footerFont: { family: '"Noto Sans TC", sans-serif', size: 11, weight: 'normal' },
+                            footerColor: '#94A3B8',
                             padding: 12,
                             cornerRadius: 12,
                             caretPadding: 14,
@@ -1459,6 +1790,27 @@
                                         const val = context.parsed.y;
                                         return ` ${context.dataset.label}: ${val !== null && val !== undefined ? val.toFixed(1) + ' 分' : '無資料'}`;
                                     }
+                                },
+                                afterBody: function (itemsCtx) {
+                                    if (!itemsCtx || !itemsCtx.length) return [];
+                                    const idx = itemsCtx[0].dataIndex;
+                                    const itemObj = filteredItems[idx];
+                                    const diff = resolveItemDifficulty(itemObj);
+                                    if (!diff) return [];
+                                    const lines = [
+                                        ` 試卷難易度: ${diff.label}* (P* ${diff.indexScore} 分${diff.isSkewed ? ' ‧ 偏態校正' : ''})`
+                                    ];
+                                    if (diff.median !== null && diff.median !== undefined) {
+                                        lines.push(` 班級中位數: ${diff.median.toFixed(1)} 分`);
+                                    }
+                                    return lines;
+                                },
+                                footer: function (itemsCtx) {
+                                    if (!itemsCtx || !itemsCtx.length) return '';
+                                    const idx = itemsCtx[0].dataIndex;
+                                    const itemObj = filteredItems[idx];
+                                    const diff = resolveItemDifficulty(itemObj);
+                                    return diff ? (diff.note || '*難易度以班級成績估計。') : '';
                                 },
                                 labelColor: function (context) {
                                     const idx = context.dataIndex;
@@ -1591,7 +1943,7 @@
             const tbody = document.getElementById('unitMatrixTableBody');
             const filtered = getFilteredSubjectItems(subj);
             if (filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-600">尚無平時成績資料</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-600">尚無平時成績資料</td></tr>`;
                 return;
             }
 
@@ -1609,6 +1961,7 @@
                 const diffHtml = isLeave
                     ? '<span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-slate-100 text-slate-500 border border-slate-200">請假免計</span>'
                     : (hasScore ? formatDiffTag(item.diffFromClass) : '<span class="text-slate-400">--</span>');
+                const difficultyBadgeHtml = formatDifficultyBadgeHtml(item, true);
                 const typeBadge = formatAssessmentTypeBadge(item.assessmentType);
                 const rowBg = idx % 2 === 0 ? 'bg-[#F2F8FC] hover:bg-[#E5F1FA]' : 'bg-[#F1F8F4] hover:bg-[#E3F3EA]';
 
@@ -1638,6 +1991,9 @@
                         </td>
                         <td class="py-3 px-3 text-center font-mono text-xs text-slate-600 whitespace-nowrap">
                             ${classAvgStr}
+                        </td>
+                        <td class="py-3 px-3 text-center whitespace-nowrap">
+                            ${difficultyBadgeHtml}
                         </td>
                         <td class="py-3 px-4 text-right whitespace-nowrap">
                             ${diffHtml}
@@ -1736,6 +2092,7 @@
                 const classNormText = (displayFlags.showClassNorm && item.classAvg !== null)
                     ? `班級平均 ${item.classAvg.toFixed(1)} 分`
                     : `${item.categoryLabel}`;
+                const difficultyBadgeHtml = formatDifficultyBadgeHtml(item, false);
                 const typeBadgeHtml = formatAssessmentTypeBadge(item.assessmentType);
                 const itemCardClass = idx % 2 === 0
                     ? 'subcard-cream-blue hover:border-sky-400/90'
@@ -1764,9 +2121,10 @@
                                 <span class="font-extrabold text-slate-800 text-sm break-words">${item.name}</span>
                                 ${typeBadgeHtml}
                             </div>
-                            <div class="flex items-center gap-2 text-xs text-slate-600 font-mono">
+                            <div class="flex items-center gap-1.5 text-xs text-slate-600 font-mono flex-wrap">
                                 <span>${classNormText}</span>
                                 ${diffHtml}
+                                ${difficultyBadgeHtml}
                             </div>
                         </div>
                         ${scoreBoxHtml}
@@ -2051,6 +2409,8 @@
                         leaveIcon: it.leaveIcon || (leaveInfo ? leaveInfo.icon : null),
                         leaveColor: it.leaveColor || (leaveInfo ? leaveInfo.color : null),
                         classAvg: it.classAvg,
+                        median: it.median !== undefined ? it.median : (it.difficulty ? it.difficulty.median : null),
+                        difficulty: it.difficulty || null,
                         diffFromClass: isLeave ? null : it.diffFromClass,
                         gradeLabel: it.gradeLabel || (isLeave ? `${leaveInfo.icon} ${leaveInfo.type}` : getScoreBadgeInfo(it.score).label),
                         gradeLevel: it.gradeLevel || (isLeave ? 'leave' : getScoreBadgeInfo(it.score).level)
@@ -2131,7 +2491,7 @@
                                /Android/i.test(navigator.userAgent) ? 'Android 手機' :
                                /Macintosh/i.test(navigator.userAgent) ? 'Mac 電腦' :
                                /Windows/i.test(navigator.userAgent) ? 'Windows 電腦' : '行動裝置';
-                const res = await fetch(`${apiUrl}${sep}token=${encodeURIComponent(cleanToken)}&device=${encodeURIComponent(device)}&nocache=1&v=7&t=${Date.now()}`, { redirect: 'follow', cache: 'no-store' });
+                const res = await fetch(`${apiUrl}${sep}token=${encodeURIComponent(cleanToken)}&device=${encodeURIComponent(device)}&nocache=1&v=8&t=${Date.now()}`, { redirect: 'follow', cache: 'no-store' });
                 const data = await res.json();
                 if (data && (data.status === 'success' || data.success === true) && data.student) {
                     renderPortfolio(normalizeCloudPayload(data));

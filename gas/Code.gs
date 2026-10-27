@@ -281,11 +281,12 @@ function clearSystemCache() {
       'mpdaily_print_summary_v4',
       'mpdaily_print_summary_v5',
       'mpdaily_print_summary_v6',
-      'mpdaily_print_summary_v7'
+      'mpdaily_print_summary_v7',
+      'mpdaily_print_summary_v8'
     ];
     for (var i = 1; i <= 60; i++) {
       var s = i < 10 ? '0' + i : '' + i;
-      ['v2', 'v3', 'v4', 'v5', 'v6', 'v7'].forEach(function(ver) {
+      ['v2', 'v3', 'v4', 'v5', 'v6', 'v7', 'v8'].forEach(function(ver) {
         keys.push('mpdaily_score_' + ver + '_DEMO' + s);
         keys.push('mpdaily_score_' + ver + '_' + s);
       });
@@ -303,7 +304,7 @@ function clearSystemCache() {
         for (var r = 1; r < sData.length; r++) {
           var tok = (sData[r][3] || '').toString().trim().toUpperCase();
           if (tok) {
-            ['v2', 'v3', 'v4', 'v5', 'v6', 'v7'].forEach(function(ver) {
+            ['v2', 'v3', 'v4', 'v5', 'v6', 'v7', 'v8'].forEach(function(ver) {
               keys.push('mpdaily_score_' + ver + '_' + tok);
             });
           }
@@ -1187,6 +1188,97 @@ function detectLeaveType(val) {
 }
 
 /**
+ * 計算考卷難易度指數（Test Difficulty Index, P*，方法三抗極端值校正）
+ * 公式：
+ *   平均得分率 P_mean = X_bar / 100
+ *   中位數得分率 P_med = Median / 100
+ *   遇偏態（|X_bar - Median| > 3）時採抗極端值加權：P* = 0.6 * P_mean + 0.4 * P_med
+ *   無偏態（|X_bar - Median| <= 3）時：P* = P_mean
+ * 分級標準（以 P* 換算百分制分數 indexScore 判定）：
+ *   >= 80 分：🟢 偏易
+ *   65 ~ 79.9 分：🎯 適中
+ *   50 ~ 64.9 分：🔥 偏難
+ *   < 50 分：⚡ 極具挑戰
+ * 強制附註：*難易度以班級成績估計。
+ */
+function computeTestDifficultyIndex_(scores) {
+  if (!scores || scores.length === 0) return null;
+  var valid = [];
+  var sum = 0;
+  for (var i = 0; i < scores.length; i++) {
+    var v = Number(scores[i]);
+    if (!isNaN(v)) {
+      valid.push(v);
+      sum += v;
+    }
+  }
+  var n = valid.length;
+  if (n === 0) return null;
+
+  valid.sort(function(a, b) { return a - b; });
+  var rawMean = sum / n;
+  var rawMedian = (n % 2 === 1)
+    ? valid[Math.floor(n / 2)]
+    : (valid[n / 2 - 1] + valid[n / 2]) / 2;
+
+  var mean = Number(rawMean.toFixed(1));
+  var median = Number(rawMedian.toFixed(1));
+  var skewDiff = Number(Math.abs(rawMean - rawMedian).toFixed(1));
+  var isSkewed = Math.abs(rawMean - rawMedian) > 3;
+
+  var pMean = rawMean / 100;
+  var pMed = rawMedian / 100;
+  var pStarRaw = isSkewed ? (0.6 * pMean + 0.4 * pMed) : pMean;
+  var indexScore = Number((pStarRaw * 100).toFixed(1));
+  var pStar = Number(pStarRaw.toFixed(3));
+
+  var level = 'moderate';
+  var icon = '🎯';
+  var shortLabel = '適中';
+  var color = 'sky';
+
+  if (indexScore >= 80) {
+    level = 'easy';
+    icon = '🟢';
+    shortLabel = '偏易';
+    color = 'emerald';
+  } else if (indexScore >= 65) {
+    level = 'moderate';
+    icon = '🎯';
+    shortLabel = '適中';
+    color = 'sky';
+  } else if (indexScore >= 50) {
+    level = 'hard';
+    icon = '🔥';
+    shortLabel = '偏難';
+    color = 'amber';
+  } else {
+    level = 'challenging';
+    icon = '⚡';
+    shortLabel = '極具挑戰';
+    color = 'rose';
+  }
+
+  return {
+    pStar: pStar,
+    indexScore: indexScore,
+    mean: mean,
+    median: median,
+    pMean: Number(pMean.toFixed(3)),
+    pMed: Number(pMed.toFixed(3)),
+    skewDiff: skewDiff,
+    isSkewed: isSkewed,
+    level: level,
+    icon: icon,
+    shortLabel: shortLabel,
+    label: icon + ' ' + shortLabel,
+    color: color,
+    sampleCount: n,
+    note: '*難易度以班級成績估計。'
+  };
+}
+
+/**
  * 解析單一平時成績工作表（自動確保「作業／考試」列存在，並僅回傳該試算表實際存在的評量分項！）
  */
 function parseDailySubjectSheet(sheet) {
@@ -1251,10 +1343,12 @@ function parseDailySubjectSheet(sheet) {
   var rawStudents = [];
   var colSums = {};
   var colCounts = {};
+  var colScoresList = {};
 
   for (var i = 0; i < itemCols.length; i++) {
     colSums[itemCols[i].colIdx] = 0;
     colCounts[itemCols[i].colIdx] = 0;
+    colScoresList[itemCols[i].colIdx] = [];
   }
 
   for (var rIdx = dataStartRowIdx; rIdx < data.length; rIdx++) {
@@ -1278,18 +1372,36 @@ function parseDailySubjectSheet(sheet) {
     for (var j = 0; j < itemCols.length; j++) {
       var ic = itemCols[j];
       var cellVal = row[ic.colIdx];
-      var num = (cellVal !== '' && cellVal !== null && !isNaN(Number(cellVal))) ? Number(cellVal) : null;
+      var isLeaveCell = detectLeaveType(cellVal) !== null;
+      var num = (!isLeaveCell && cellVal !== '' && cellVal !== null && !isNaN(Number(cellVal))) ? Number(cellVal) : null;
       if (num !== null) {
         colSums[ic.colIdx] += num;
         colCounts[ic.colIdx] += 1;
+        colScoresList[ic.colIdx].push(num);
       }
     }
   }
 
   var colClassAvgs = {};
+  var colDifficulties = {};
+  var subjectAssessments = [];
   for (var k = 0; k < itemCols.length; k++) {
     var cIdx = itemCols[k].colIdx;
     colClassAvgs[cIdx] = colCounts[cIdx] > 0 ? Number((colSums[cIdx] / colCounts[cIdx]).toFixed(1)) : null;
+    colDifficulties[cIdx] = computeTestDifficultyIndex_(colScoresList[cIdx]);
+    if (colCounts[cIdx] > 0 && colDifficulties[cIdx]) {
+      subjectAssessments.push({
+        name: itemCols[k].title,
+        unit: itemCols[k].unitCode || '平時',
+        assessmentType: itemCols[k].assessmentType,
+        category: itemCols[k].pillarKey,
+        categoryLabel: itemCols[k].pillarShort,
+        categoryIcon: itemCols[k].pillarIcon,
+        classAvg: colClassAvgs[cIdx],
+        median: colDifficulties[cIdx].median,
+        difficulty: colDifficulties[cIdx]
+      });
+    }
   }
 
   var studentMap = {};
@@ -1361,6 +1473,7 @@ function parseDailySubjectSheet(sheet) {
         unitMap[uKey].classByPillar[colMeta.pillarKey].push(classAvg);
       }
 
+      var diffInfo = colDifficulties[colMeta.colIdx] || null;
       items.push({
         name: colMeta.title,
         title: colMeta.title,
@@ -1381,6 +1494,8 @@ function parseDailySubjectSheet(sheet) {
         leaveShort: isLeave ? leaveInfo.short : null,
         leaveIcon: isLeave ? leaveInfo.icon : null,
         classAvg: classAvg,
+        median: diffInfo ? diffInfo.median : null,
+        difficulty: diffInfo,
         diffFromClass: diffVal,
         gradeLevel: gradeInfo.level,
         gradeLabel: gradeInfo.label,
@@ -1504,6 +1619,7 @@ function parseDailySubjectSheet(sheet) {
       pillars: pillarsArray,
       pillarsMap: pillarsSummaryObj,
       unitTimeline: unitTimeline,
+      assessmentsDifficulty: subjectAssessments,
       items: items
     };
     studentMap[st.seat] = stDataObj;
@@ -1547,6 +1663,7 @@ function parseDailySubjectSheet(sheet) {
     subjectTitle: sheetTitle,
     subjectShortName: inferSubjectShortName(sheetName, sheetTitle),
     classOverallAverage: subjectClassAvg,
+    assessments: subjectAssessments,
     studentMap: studentMap
   };
 }
@@ -1602,6 +1719,21 @@ function buildDailyScoreDiagnosticAdvice(stRecord) {
     });
     if (highestUnit && lowestUnit && highestUnit.unit !== lowestUnit.unit && (highestUnit.val - lowestUnit.val >= 8)) {
       parts.push('在單元歷程走勢中，' + highestUnit.unit + '（均分 ' + highestUnit.val + '分）表現最佳；而 ' + lowestUnit.unit + '（均分 ' + lowestUnit.val + '分）相對偏低，建議期中/期末考前優先複習 ' + lowestUnit.unit + '！');
+    }
+  }
+
+  if (stRecord.items && stRecord.items.length > 0) {
+    var hardTestsWellDone = [];
+    for (var hi = 0; hi < stRecord.items.length; hi++) {
+      var it = stRecord.items[hi];
+      if (!it.isLeave && it.score !== null && it.difficulty && (it.difficulty.level === 'hard' || it.difficulty.level === 'challenging')) {
+        if (it.classAvg !== null && it.score >= it.classAvg) {
+          hardTestsWellDone.push(it.name + '（難度' + it.difficulty.label + '，得分 ' + it.score + ' 分高於班均）');
+        }
+      }
+    }
+    if (hardTestsWellDone.length > 0) {
+      parts.push('值得一提的是，在難度較高的評量如「' + hardTestsWellDone.slice(0, 2).join('、') + '」中仍能保持超越班均的表現，抗壓與融會貫通能力值得肯定！（*難易度以班級成績估計。）');
     }
   }
 
@@ -1698,7 +1830,7 @@ function getStudentDailyPortfolioByToken(token, clientDevice, skipCacheOpt) {
 
   var skipCache = Boolean(skipCacheOpt);
   var cache = CacheService.getScriptCache();
-  var cacheKey = 'mpdaily_score_v7_' + cleanToken;
+  var cacheKey = 'mpdaily_score_v8_' + cleanToken;
   var cachedJson = !skipCache ? cache.get(cacheKey) : null;
   if (cachedJson) {
     try {
@@ -1950,6 +2082,7 @@ function getStudentListForTeacher() {
 
   var sheets = ss.getSheets();
   var subjectList = [];
+  var subjectAssessmentsMap = {};
 
   for (var i = 0; i < sheets.length; i++) {
     var sh = sheets[i];
@@ -1957,6 +2090,7 @@ function getStudentListForTeacher() {
     var parsed = parseDailySubjectSheet(sh);
     if (!parsed) continue;
     subjectList.push(parsed.sheetName);
+    subjectAssessmentsMap[parsed.sheetName] = parsed.assessments || [];
 
     for (var s = 0; s < students.length; s++) {
       var st = students[s];
@@ -1975,6 +2109,7 @@ function getStudentListForTeacher() {
     updatedAt: nowStr,
     students: students,
     subjectList: subjectList,
+    subjectAssessmentsMap: subjectAssessmentsMap,
     accessLogs: getRecentAccessLogs_(ss, 100)
   };
 }
