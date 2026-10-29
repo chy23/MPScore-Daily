@@ -2905,12 +2905,40 @@ function executeLineScorePushNotifications_(params) {
     }
   }
 
+  // 支援個別指定學生發送（傳入 token 或 tokens 逗號分隔列表）
+  var filterTokens = [];
+  if (params.token) {
+    filterTokens.push(params.token.toString().trim().toUpperCase());
+  }
+  if (params.tokens) {
+    var splitToks = params.tokens.toString().split(',');
+    for (var tk = 0; tk < splitToks.length; tk++) {
+      var itemTok = splitToks[tk].trim().toUpperCase();
+      if (itemTok && filterTokens.indexOf(itemTok) === -1) {
+        filterTokens.push(itemTok);
+      }
+    }
+  }
+
+  if (filterTokens.length > 0) {
+    studentsToNotify = studentsToNotify.filter(function(st) {
+      return filterTokens.indexOf(st.token.toUpperCase()) !== -1;
+    });
+    totalBoundParents = 0;
+    for (var bi = 0; bi < studentsToNotify.length; bi++) {
+      totalBoundParents += studentsToNotify[bi].userIds.length;
+    }
+  }
+
   if (studentsToNotify.length === 0) {
+    var notFoundMsg = (filterTokens.length > 0)
+      ? '所選的學生尚未綁定 LINE 家長，或查無此學生。'
+      : '尚未偵測到已綁定 LINE 的家長。請確認原專案試算表網址是否已在 O1 正確填寫，且兩試算表具備讀取權限。';
     return {
       status: 'error',
       success: false,
       code: 'NO_BOUND_PARENTS',
-      message: '尚未偵測到已綁定 LINE 的家長。請確認原專案試算表網址是否已在 O1 正確填寫，且兩試算表具備讀取權限。',
+      message: notFoundMsg,
       totalStudents: rData.length - 1,
       boundCount: 0
     };
@@ -2969,7 +2997,7 @@ function executeLineScorePushNotifications_(params) {
 }
 
 /**
- * 📢 發送【平時成績已更新】LINE 通知給已綁定家長（選單呼叫）
+ * 📢 發送【平時成績已更新】LINE 通知給已綁定家長（選單呼叫，支援全班或個別發送）
  * 一次性聚合發送，每位家長只跳一則，不洩漏細項名稱與分數
  */
 function sendLineScoreUpdateNotificationMenu() {
@@ -2997,16 +3025,62 @@ function sendLineScoreUpdateNotificationMenu() {
     return;
   }
 
-  var confirmMsg = '📢【發送成績更新通知確認】\n\n' +
-    '• 全班學生人數：' + status.totalStudents + ' 人\n' +
-    '• 已成功綁定 LINE 家長：' + status.boundParentsCount + ' 位（涵蓋 ' + status.boundStudentsCount + ' 位學生）\n' +
-    '• 推播訊息格式：簡潔提醒有新成績登錄，不洩漏細項名稱與分數，每位家長僅發送 1 則通知。\n\n' +
-    '確定要立即發送 LINE 成績更新通知嗎？';
+  // 詢問發送範圍：全班 vs 個別學生
+  var askPrompt = ui.prompt(
+    '📢 發送【平時成績已更新】LINE 通知',
+    '請選擇發送對象：\n' +
+    '•【全班發送】：直接按「確定」（或輸入 ALL）\n' +
+    '•【個別學生發送】：請輸入學生的「座號」（例如：5）或「查詢代碼」\n\n' +
+    '目前全班已綁定：' + status.boundParentsCount + ' 位家長（涵蓋 ' + status.boundStudentsCount + ' 位學生）',
+    ui.ButtonSet.OK_CANCEL
+  );
 
-  var askConfirm = ui.alert('📢 確認發送 LINE 通知', confirmMsg, ui.ButtonSet.YES_NO);
-  if (askConfirm !== ui.Button.YES) return;
+  if (askPrompt.getSelectedButton() !== ui.Button.OK) return;
 
-  var result = executeLineScorePushNotifications_();
+  var targetInput = askPrompt.getResponseText().trim().toUpperCase();
+  var params = {};
+
+  if (targetInput && targetInput !== 'ALL' && targetInput !== '全班') {
+    var targetStudent = null;
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sSheet = ss.getSheetByName('學生名冊');
+    var rData = sSheet.getDataRange().getValues();
+    for (var r = 1; r < rData.length; r++) {
+      var sSeat = normalizeSeatNumber(rData[r][1]);
+      var sTok = (rData[r][3] || '').toString().trim().toUpperCase();
+      if (sSeat === targetInput || normalizeSeatNumber(targetInput) === sSeat || sTok === targetInput) {
+        targetStudent = { seat: sSeat, name: rData[r][2], token: sTok };
+        break;
+      }
+    }
+
+    if (!targetStudent) {
+      ui.alert('⚠️ 查無座號或代碼為「' + targetInput + '」的學生！');
+      return;
+    }
+
+    params.token = targetStudent.token;
+
+    var confirmSingleMsg = '📢【個別發送成績更新通知確認】\n\n' +
+      '• 推播對象：' + targetStudent.seat + '號 ' + targetStudent.name + '\n' +
+      '• 查詢代碼：' + targetStudent.token + '\n' +
+      '• 推播訊息格式：簡潔提醒有新成績登錄，不洩漏細項名稱與分數，每位家長僅發送 1 則通知。\n\n' +
+      '確定要立即發送通知給該生家長嗎？';
+
+    var askConfirm = ui.alert('📢 確認發送 LINE 通知', confirmSingleMsg, ui.ButtonSet.YES_NO);
+    if (askConfirm !== ui.Button.YES) return;
+  } else {
+    var confirmMsg = '📢【全班發送成績更新通知確認】\n\n' +
+      '• 全班學生人數：' + status.totalStudents + ' 人\n' +
+      '• 已成功綁定 LINE 家長：' + status.boundParentsCount + ' 位（涵蓋 ' + status.boundStudentsCount + ' 位學生）\n' +
+      '• 推播訊息格式：簡潔提醒有新成績登錄，不洩漏細項名稱與分數，每位家長僅發送 1 則通知。\n\n' +
+      '確定要立即發送全班 LINE 成績更新通知嗎？';
+
+    var askConfirm = ui.alert('📢 確認發送 LINE 通知', confirmMsg, ui.ButtonSet.YES_NO);
+    if (askConfirm !== ui.Button.YES) return;
+  }
+
+  var result = executeLineScorePushNotifications_(params);
   if (result.success) {
     var resultMsg = '🎉【LINE 推播發送完畢】\n\n' +
       '• 成功發送：' + result.successCount + ' 則訊息\n' +

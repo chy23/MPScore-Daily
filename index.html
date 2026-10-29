@@ -1421,7 +1421,7 @@
                     <div>
                         <div class="flex items-center gap-2">
                             <h3 class="text-base md:text-lg font-black tracking-tight text-white">MPScore-Daily 系統詳細更新紀錄</h3>
-                            <span class="text-[10px] bg-indigo-500 text-white font-black px-2 py-0.5 rounded-full">v3.3.0 最新版</span>
+                            <span class="text-[10px] bg-emerald-500 text-white font-black px-2 py-0.5 rounded-full">v3.4.0 最新版</span>
                         </div>
                         <p class="text-xs text-sky-100 mt-0.5">平時成績無痛結算 ‧ 親師雲端即時溝通 ‧ 國中小專用智慧平台</p>
                     </div>
@@ -1434,11 +1434,34 @@
             <!-- 更新日誌內容滾動區 -->
             <div class="p-5 md:p-8 overflow-y-auto space-y-6 text-xs text-slate-700 bg-slate-50/50 leading-relaxed">
 
-                <!-- v3.3.0 最新版里程碑 -->
-                <div class="bg-white p-5 rounded-3xl border border-indigo-300 shadow-sm space-y-4 relative overflow-hidden ring-2 ring-indigo-400/20">
+                <!-- v3.4.0 最新版里程碑 -->
+                <div class="bg-white p-5 rounded-3xl border border-emerald-300 shadow-sm space-y-4 relative overflow-hidden ring-2 ring-emerald-400/20">
                     <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                         <div class="flex items-center gap-2">
-                            <span class="text-xs font-black bg-indigo-600 text-white px-2.5 py-1 rounded-xl shadow-xs">v3.3.0 最新版</span>
+                            <span class="text-xs font-black bg-emerald-600 text-white px-2.5 py-1 rounded-xl shadow-xs">v3.4.0 最新版</span>
+                            <span class="text-sm font-black text-slate-900">💬 支援個別指定學生發送 LINE 成績通知 ‧ 多模式推播與名冊一鍵直發</span>
+                        </div>
+                        <span class="text-[11px] text-slate-400 font-mono font-bold">2026-10-29</span>
+                    </div>
+
+                    <div class="space-y-3.5">
+                        <div class="p-3.5 bg-emerald-50/80 rounded-2xl border border-emerald-200/80 text-[11px] text-emerald-950 font-bold space-y-1.5">
+                            <div>🎯 <b>本次核心功能更新說明</b>：</div>
+                            <ul class="list-disc list-inside font-normal text-slate-700 pl-1 space-y-1.5">
+                                <li><b>全班與個別學生雙推播模式</b>：LINE 推播中心全面升級，提供「📢 全班推播」與「👤 個別 / 勾選指定學生」雙模式。支援快速搜尋、一鍵全選已綁定家長學生，並顯示勾選人次。</li>
+                                <li><b>名冊表格個別一鍵直發</b>：成績總表名冊各學生列右側直接提供專屬「💬 推播」按鈕（已綁定顯示亮綠色，未綁定顯示灰階），單一學生補考或更正成績後可即時單獨發送！</li>
+                                <li><b>手機即時模擬器聯動直發</b>：在擬真手機模擬器中預覽該生畫面確認無誤後，頂部工具列可直接點擊「💬 推播此生家長」，精準發送。</li>
+                                <li><b>GAS 後端個別目標過濾</b>：後端 <code class="bg-emerald-100 px-1 py-0.5 rounded font-mono">executeLineScorePushNotifications_</code> 支援指定單生或多生 token；試算表選單亦支援輸入座號個別發送。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- v3.3.0 里程碑 -->
+                <div class="bg-white p-5 rounded-3xl border border-indigo-200 shadow-xs space-y-4 relative overflow-hidden">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-lg">v3.3.0</span>
                             <span class="text-sm font-black text-slate-900">📱 家長端手機即時畫面模擬器 ‧ Apple HIG 機身外框 ‧ 閱覽紀錄零污染保護</span>
                         </div>
                         <span class="text-[11px] text-slate-400 font-mono font-bold">2026-10-29</span>
@@ -2179,6 +2202,48 @@
                     </div>
                 </div>
 
+                <!-- 推播對象模式切換（全班 vs 個別/勾選特定學生） -->
+                <div class="p-4 rounded-2xl bg-white border border-emerald-200 shadow-2xs space-y-3">
+                    <div class="flex items-center justify-between flex-wrap gap-2">
+                        <span class="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                            <span>🎯 選擇發送對象模式：</span>
+                        </span>
+                        <div class="inline-flex rounded-xl bg-slate-100 p-0.5 text-xs font-bold border border-slate-200">
+                            <button type="button" onclick="setLinePushTargetMode('all')" id="btnLinePushModeAll" class="px-3 py-1 rounded-lg bg-emerald-600 text-white font-black cursor-pointer shadow-2xs">
+                                📢 全班推播
+                            </button>
+                            <button type="button" onclick="setLinePushTargetMode('custom')" id="btnLinePushModeCustom" class="px-3 py-1 rounded-lg text-slate-600 hover:text-slate-900 cursor-pointer">
+                                👤 個別 / 勾選指定學生
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 全班推播說明提示 -->
+                    <div id="linePushModeAllInfo" class="text-xs text-slate-600 bg-emerald-50/60 p-2.5 rounded-xl border border-emerald-100 flex items-center justify-between">
+                        <span>向目前全班所有已綁定 LINE 的家長發送最新成績通知（每位家長 1 則）。</span>
+                        <span class="text-emerald-800 font-bold shrink-0">全班群發</span>
+                    </div>
+
+                    <!-- 個別學生選擇清單面板（預設隱藏） -->
+                    <div id="linePushModeCustomPanel" class="hidden space-y-2.5 pt-1">
+                        <div class="flex items-center justify-between gap-2 flex-wrap">
+                            <input type="text" id="lineCustomStudentSearch" oninput="filterLineCustomStudentList(this.value)" placeholder="🔍 搜尋座號或姓名..."
+                                class="px-3 py-1.5 rounded-xl border border-slate-300 text-xs text-slate-800 bg-[#F9FBFA] focus:outline-none focus:ring-2 focus:ring-emerald-500 w-44">
+                            <div class="flex items-center gap-1.5 text-xs font-bold text-slate-600">
+                                <button type="button" onclick="selectAllBoundStudentsForPush(true)" class="text-emerald-700 hover:underline cursor-pointer">全選已綁定</button>
+                                <span>‧</span>
+                                <button type="button" onclick="selectAllBoundStudentsForPush(false)" class="text-slate-500 hover:underline cursor-pointer">取消全選</button>
+                                <span id="lineSelectedCountBadge" class="ml-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-mono font-bold text-[11px]">已勾選 0 人</span>
+                            </div>
+                        </div>
+
+                        <!-- 學生勾選列表容器 -->
+                        <div id="lineCustomStudentList" class="max-h-52 overflow-y-auto space-y-1.5 p-2 rounded-xl border border-slate-200 bg-slate-50/60 text-xs divide-y divide-slate-200/60">
+                            <!-- JS 動態渲染各生勾選方塊與個別發送按鈕 -->
+                        </div>
+                    </div>
+                </div>
+
                 <!-- 家長收到訊息預覽泡泡 (LINE 擬真卡片) -->
                 <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-2.5">
                     <div class="flex items-center justify-between flex-wrap gap-2">
@@ -2275,6 +2340,11 @@
                         <button type="button" onclick="setSimulatorDeviceWidth('393')" id="btnSimWidth393" class="px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-black cursor-pointer">iPhone</button>
                         <button type="button" onclick="setSimulatorDeviceWidth('360')" id="btnSimWidth360" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-white cursor-pointer">Android</button>
                     </div>
+
+                    <button type="button" onclick="triggerSimulatorCurrentStudentLinePush()" class="min-h-[32px] px-2.5 py-1 rounded-xl bg-[#06C755] hover:bg-[#05b34c] text-white font-extrabold text-xs transition flex items-center gap-1 shadow-xs active:scale-95 cursor-pointer" title="單獨發送 LINE 成績通知給目前預覽之學生家長">
+                        <span>💬</span>
+                        <span class="hidden sm:inline">推播此生家長</span>
+                    </button>
 
                     <button type="button" onclick="refreshSimulatorFrame()" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 flex items-center justify-center text-sm font-bold transition cursor-pointer" title="重新整理模擬畫面">
                         🔄
@@ -2918,17 +2988,50 @@ function testGitHubConnection() {
         }
 
         // =========================================================================
-        // 4.3 LINE 官方帳號家長成績更新推播系統 (Web 一鍵觸發與狀態同步)
+        // 4.3 LINE 官方帳號家長成績更新推播系統 (Web 一鍵觸發與狀態同步，支援全班與個別發送)
         // =========================================================================
         let currentLinePushStatus = null;
         let isCheckingLinePushStatus = false;
         let isSendingLinePush = false;
+        let currentLinePushTargetMode = 'all'; // 'all' | 'custom'
+        let selectedTokensForLinePush = new Set();
+        let lineStudentBindingMap = {};
 
-        function openLinePushModal() {
+        function getStudentBoundParentsCount(token) {
+            return lineStudentBindingMap[String(token || '').toUpperCase()] || 0;
+        }
+
+        function getStudentLinePushActionBtn(token, name) {
+            const count = getStudentBoundParentsCount(token);
+            if (count > 0) {
+                return `
+                    <button type="button" onclick="triggerSingleStudentLinePush('${token}', '${name}', ${count})" class="min-h-[34px] px-2.5 py-1.5 rounded-xl bg-[#06C755] hover:bg-[#05b34c] text-white font-black text-xs shadow-xs transition flex items-center gap-1 active:scale-95 cursor-pointer" title="單獨發送 LINE 成績通知給 ${name} 的已綁定家長（已綁定 ${count} 位）">
+                        <span>💬</span>
+                        <span>推播</span>
+                    </button>
+                `;
+            }
+            return `
+                <button type="button" onclick="triggerSingleStudentLinePush('${token}', '${name}', 0)" class="min-h-[34px] px-2 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold text-xs transition flex items-center gap-0.5 active:scale-95 cursor-pointer" title="單獨發送 LINE 成績通知給 ${name} 的家長">
+                    <span>💬</span>
+                </button>
+            `;
+        }
+
+        function openLinePushModal(defaultMode = 'all', focusToken = '') {
             const modal = document.getElementById('linePushModal');
             if (modal) {
                 modal.classList.remove('hidden');
                 document.body.style.overflow = 'hidden';
+                if (focusToken) {
+                    selectedTokensForLinePush.clear();
+                    selectedTokensForLinePush.add(focusToken);
+                    setLinePushTargetMode('custom');
+                } else if (defaultMode === 'custom') {
+                    setLinePushTargetMode('custom');
+                } else {
+                    setLinePushTargetMode('all');
+                }
                 checkLinePushStatusFromCloud();
             }
         }
@@ -2941,6 +3044,192 @@ function testGitHubConnection() {
             }
         }
 
+        function setLinePushTargetMode(mode) {
+            currentLinePushTargetMode = mode;
+            const btnAll = document.getElementById('btnLinePushModeAll');
+            const btnCustom = document.getElementById('btnLinePushModeCustom');
+            const infoAll = document.getElementById('linePushModeAllInfo');
+            const panelCustom = document.getElementById('linePushModeCustomPanel');
+
+            if (mode === 'custom') {
+                if (btnAll) btnAll.className = 'px-3 py-1 rounded-lg text-slate-600 hover:text-slate-900 cursor-pointer';
+                if (btnCustom) btnCustom.className = 'px-3 py-1 rounded-lg bg-emerald-600 text-white font-black cursor-pointer shadow-2xs';
+                if (infoAll) infoAll.classList.add('hidden');
+                if (panelCustom) panelCustom.classList.remove('hidden');
+                renderLineCustomStudentList();
+            } else {
+                if (btnAll) btnAll.className = 'px-3 py-1 rounded-lg bg-emerald-600 text-white font-black cursor-pointer shadow-2xs';
+                if (btnCustom) btnCustom.className = 'px-3 py-1 rounded-lg text-slate-600 hover:text-slate-900 cursor-pointer';
+                if (infoAll) infoAll.classList.remove('hidden');
+                if (panelCustom) panelCustom.classList.add('hidden');
+            }
+            updateExecuteLinePushBtnState();
+        }
+
+        function renderLineCustomStudentList(filterText = '') {
+            const container = document.getElementById('lineCustomStudentList');
+            if (!container) return;
+            const q = String(filterText || '').trim().toLowerCase();
+            const list = currentRoster || [];
+
+            let filtered = list;
+            if (q) {
+                filtered = list.filter(s => 
+                    String(s.seatNo).includes(q) ||
+                    String(s.name).toLowerCase().includes(q) ||
+                    String(s.token).toLowerCase().includes(q)
+                );
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="py-4 text-center text-slate-400 text-xs">查無相符學生</div>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(s => {
+                const count = getStudentBoundParentsCount(s.token);
+                const isBound = count > 0;
+                const isChecked = selectedTokensForLinePush.has(s.token);
+                const badgeHtml = isBound
+                    ? `<span class="px-2 py-0.5 rounded-full text-[10.5px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">🟢 已綁定 ${count} 位家長</span>`
+                    : `<span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-slate-100 text-slate-400 border border-slate-200">⚪ 未綁定</span>`;
+
+                return `
+                    <div class="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-white transition ${isChecked ? 'bg-emerald-50/70' : ''}">
+                        <label class="flex items-center gap-2 cursor-pointer flex-1 min-w-0">
+                            <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleSelectStudentForLinePush('${s.token}', this.checked)"
+                                class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer">
+                            <div class="flex items-center gap-2 truncate">
+                                <span class="font-mono font-black text-slate-700 w-6 text-center">${s.seatNo}</span>
+                                <span class="font-black text-slate-800 truncate">${s.name}</span>
+                                <span class="font-mono text-[11px] text-slate-400">(${s.token})</span>
+                            </div>
+                        </label>
+                        <div class="flex items-center gap-2 shrink-0">
+                            ${badgeHtml}
+                            <button type="button" onclick="triggerSingleStudentLinePush('${s.token}', '${s.name}', ${count})" class="px-2.5 py-1 rounded-lg ${isBound ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'} font-extrabold text-[11px] shadow-2xs transition active:scale-95 cursor-pointer" title="單獨發送給 ${s.name} 的家長">
+                                💬 單獨發送
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            updateExecuteLinePushBtnState();
+        }
+
+        function filterLineCustomStudentList(val) {
+            renderLineCustomStudentList(val);
+        }
+
+        function toggleSelectStudentForLinePush(token, checked) {
+            if (checked) {
+                selectedTokensForLinePush.add(token);
+            } else {
+                selectedTokensForLinePush.delete(token);
+            }
+            const badge = document.getElementById('lineSelectedCountBadge');
+            if (badge) badge.textContent = `已勾選 ${selectedTokensForLinePush.size} 人`;
+            updateExecuteLinePushBtnState();
+        }
+
+        function selectAllBoundStudentsForPush(selectBound) {
+            if (selectBound) {
+                (currentRoster || []).forEach(s => {
+                    if (getStudentBoundParentsCount(s.token) > 0) {
+                        selectedTokensForLinePush.add(s.token);
+                    }
+                });
+            } else {
+                selectedTokensForLinePush.clear();
+            }
+            const badge = document.getElementById('lineSelectedCountBadge');
+            if (badge) badge.textContent = `已勾選 ${selectedTokensForLinePush.size} 人`;
+            renderLineCustomStudentList(document.getElementById('lineCustomStudentSearch')?.value);
+            updateExecuteLinePushBtnState();
+        }
+
+        function updateExecuteLinePushBtnState() {
+            const executeBtn = document.getElementById('btnExecuteLinePush');
+            const textEl = document.getElementById('linePushBtnText');
+            if (!executeBtn || !textEl) return;
+
+            const hasToken = currentLinePushStatus && currentLinePushStatus.hasToken;
+            if (!hasToken) {
+                executeBtn.disabled = true;
+                textEl.textContent = '⚠️ 請先在試算表 M1 填寫 Token';
+                return;
+            }
+
+            if (currentLinePushTargetMode === 'custom') {
+                const count = selectedTokensForLinePush.size;
+                if (count === 0) {
+                    executeBtn.disabled = true;
+                    textEl.textContent = '⚠️ 請至少勾選 1 位學生';
+                } else {
+                    executeBtn.disabled = false;
+                    textEl.textContent = `📢 確認發送所選 ${count} 位學生家長`;
+                }
+            } else {
+                const boundCount = (currentLinePushStatus && currentLinePushStatus.boundParentsCount) || 0;
+                if (boundCount === 0) {
+                    executeBtn.disabled = true;
+                    textEl.textContent = '⚠️ 尚未偵測到已綁定家長（0人）';
+                } else {
+                    executeBtn.disabled = false;
+                    textEl.textContent = `📢 確認發送全班 LINE 通知（共 ${boundCount} 位家長）`;
+                }
+            }
+        }
+
+        async function triggerSingleStudentLinePush(token, studentName, pCount) {
+            const apiUrl = (localStorage.getItem('mpdaily_api_url') || (document.getElementById('apiUrlInput') ? document.getElementById('apiUrlInput').value.trim() : '')).trim();
+            const teacherKey = getTeacherKey();
+
+            if (!apiUrl) {
+                alert('⚠️ 尚未設定試算表 API 網址！');
+                return;
+            }
+
+            const name = studentName || '該學生';
+            const count = pCount !== undefined ? pCount : getStudentBoundParentsCount(token);
+            const boundDesc = count > 0 ? `（共 ${count} 位已綁定家長）` : '（若尚未綁定將無法送達）';
+            const confirmMsg = `📢【確認單獨發送 LINE 成績更新通知】\n\n` +
+                `• 推播對象：${name} 的家長 ${boundDesc}\n` +
+                `• 訊息內容：簡潔提醒有新成績登錄，不洩漏任何科目或細項分數，保護隱私\n\n` +
+                `確定要立即單獨發送通知給該生家長嗎？`;
+
+            if (!confirm(confirmMsg)) return;
+
+            try {
+                const sep = apiUrl.includes('?') ? '&' : '?';
+                const parentBaseUrl = window.location.href.replace(/\/[^\/]*$/, '/parent.html');
+                const url = `${apiUrl}${sep}action=sendLineNotification&key=${encodeURIComponent(teacherKey)}&token=${encodeURIComponent(token)}&gasUrl=${encodeURIComponent(apiUrl)}&parentBaseUrl=${encodeURIComponent(parentBaseUrl)}&nocache=1&t=${Date.now()}`;
+
+                const res = await fetch(url, { redirect: 'follow', cache: 'no-store' });
+                const data = await res.json();
+
+                if (data.status === 'success' || data.success === true) {
+                    alert(`🎉【發送成功】\n\n已成功將【平時成績已更新】通知推送至 ${name} 的家長 LINE（共送達 ${data.successCount} 則訊息）！`);
+                } else {
+                    alert(`⚠️【發送失敗】\n\n${data.message || '無法送達訊息，可能家長尚未綁定或已封鎖官方帳號。'}`);
+                }
+            } catch (err) {
+                alert(`⚠️【連線失敗】\n\n${err.message || '網路異常，無法連接至 Google 試算表'}`);
+            }
+        }
+
+        function triggerSimulatorCurrentStudentLinePush() {
+            if (!currentSimulatorToken) {
+                alert('⚠️ 尚未選定模擬學生！');
+                return;
+            }
+            const student = (currentRoster || []).find(s => s.token === currentSimulatorToken);
+            const sName = student ? `${student.seatNo}號 ${student.name}` : '目前學生';
+            const count = getStudentBoundParentsCount(currentSimulatorToken);
+            triggerSingleStudentLinePush(currentSimulatorToken, sName, count);
+        }
+
         async function checkLinePushStatusFromCloud() {
             if (isCheckingLinePushStatus) return;
             const apiUrl = (localStorage.getItem('mpdaily_api_url') || (document.getElementById('apiUrlInput') ? document.getElementById('apiUrlInput').value.trim() : '')).trim();
@@ -2951,7 +3240,6 @@ function testGitHubConnection() {
             const coverageEl = document.getElementById('lineModalStudentCoverage');
             const helpBox = document.getElementById('lineSettingsHelpBox');
             const alertBox = document.getElementById('linePushAlertBox');
-            const executeBtn = document.getElementById('btnExecuteLinePush');
             const cardBadge = document.getElementById('lineCardStatusBadge');
             const quickBadge = document.getElementById('linePushQuickBadge');
 
@@ -2966,10 +3254,7 @@ function testGitHubConnection() {
                 if (boundCountEl) boundCountEl.textContent = '0';
                 if (coverageEl) coverageEl.textContent = '請先於 STEP 3 貼上網址並連線';
                 if (helpBox) helpBox.classList.remove('hidden');
-                if (executeBtn) {
-                    executeBtn.disabled = true;
-                    document.getElementById('linePushBtnText').textContent = '⚠️ 請先連線試算表 Web App';
-                }
+                updateExecuteLinePushBtnState();
                 return;
             }
 
@@ -2989,11 +3274,21 @@ function testGitHubConnection() {
                         alertBox.className = 'p-3 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-bold block';
                         alertBox.innerHTML = '🔒 <b>存取遭拒：教師安全金鑰 (PIN) 錯誤</b><br>請在上方或 STEP 3 確認教師 PIN 碼（預設為 8888）。';
                     }
-                    if (executeBtn) executeBtn.disabled = true;
+                    updateExecuteLinePushBtnState();
                     return;
                 }
 
                 currentLinePushStatus = data;
+
+                // 更新個別綁定字典
+                lineStudentBindingMap = {};
+                (data.students || []).forEach(st => {
+                    lineStudentBindingMap[st.token.toUpperCase()] = st.boundParentsCount || 0;
+                });
+                renderTeacherRosterTable();
+                if (currentLinePushTargetMode === 'custom') {
+                    renderLineCustomStudentList(document.getElementById('lineCustomStudentSearch')?.value);
+                }
 
                 // 更新 Token 狀態
                 if (data.hasToken) {
@@ -3039,19 +3334,7 @@ function testGitHubConnection() {
                     if (helpBox) helpBox.classList.add('hidden');
                 }
 
-                // 按鈕啟用狀態
-                if (executeBtn) {
-                    if (!data.hasToken) {
-                        executeBtn.disabled = true;
-                        document.getElementById('linePushBtnText').textContent = '⚠️ 請先在試算表 M1 填寫 Token';
-                    } else if (boundCount === 0) {
-                        executeBtn.disabled = true;
-                        document.getElementById('linePushBtnText').textContent = '⚠️ 尚未偵測到已綁定家長（0人）';
-                    } else {
-                        executeBtn.disabled = false;
-                        document.getElementById('linePushBtnText').textContent = `📢 確認發送 LINE 通知（共 ${boundCount} 位家長）`;
-                    }
-                }
+                updateExecuteLinePushBtnState();
             } catch (err) {
                 if (tokenBadge) { tokenBadge.textContent = '連線失敗'; tokenBadge.className = 'inline-block px-2 py-0.5 rounded-md font-extrabold text-[11px] bg-rose-100 text-rose-700'; }
                 if (sourceBadge) { sourceBadge.textContent = '連線失敗'; sourceBadge.className = 'inline-block px-2 py-0.5 rounded-md font-extrabold text-[11px] bg-rose-100 text-rose-700'; }
@@ -3076,10 +3359,26 @@ function testGitHubConnection() {
                 return;
             }
 
-            const confirmMsg = `📢【確認發送平時成績更新 LINE 通知】\n\n` +
-                `• 即將發送給：${boundCount} 位已綁定家長（涵蓋 ${boundStudents} 位學生）\n` +
-                `• 訊息內容：簡潔告知有新平時成績登錄，每位家長僅發送 1 則通知，不透露評量細項與分數\n\n` +
-                `確定要立即推播嗎？`;
+            let targetTokensParam = '';
+            let confirmMsg = '';
+
+            if (currentLinePushTargetMode === 'custom') {
+                if (selectedTokensForLinePush.size === 0) {
+                    alert('⚠️ 請至少勾選一位要發送 LINE 通知的學生！');
+                    return;
+                }
+                const tokensArr = Array.from(selectedTokensForLinePush);
+                targetTokensParam = `&tokens=${encodeURIComponent(tokensArr.join(','))}`;
+                confirmMsg = `📢【確認發送所選學生平時成績 LINE 通知】\n\n` +
+                    `• 即將發送給：所勾選的 ${tokensArr.length} 位學生家長\n` +
+                    `• 訊息內容：簡潔提醒有新成績登錄，每位家長僅發送 1 則通知，不透露細項分數\n\n` +
+                    `確定要立即推播嗎？`;
+            } else {
+                confirmMsg = `📢【確認發送全班平時成績更新 LINE 通知】\n\n` +
+                    `• 即將發送給：${boundCount} 位已綁定家長（涵蓋 ${boundStudents} 位學生）\n` +
+                    `• 訊息內容：簡潔告知有新平時成績登錄，每位家長僅發送 1 則通知，不透露評量細項與分數\n\n` +
+                    `確定要立即推播嗎？`;
+            }
 
             if (!confirm(confirmMsg)) return;
 
@@ -3100,7 +3399,7 @@ function testGitHubConnection() {
             try {
                 const sep = apiUrl.includes('?') ? '&' : '?';
                 const parentBaseUrl = window.location.href.replace(/\/[^\/]*$/, '/parent.html');
-                const url = `${apiUrl}${sep}action=sendLineNotification&key=${encodeURIComponent(teacherKey)}&gasUrl=${encodeURIComponent(apiUrl)}&parentBaseUrl=${encodeURIComponent(parentBaseUrl)}&nocache=1&t=${Date.now()}`;
+                const url = `${apiUrl}${sep}action=sendLineNotification&key=${encodeURIComponent(teacherKey)}${targetTokensParam}&gasUrl=${encodeURIComponent(apiUrl)}&parentBaseUrl=${encodeURIComponent(parentBaseUrl)}&nocache=1&t=${Date.now()}`;
 
                 const res = await fetch(url, { redirect: 'follow', cache: 'no-store' });
                 const data = await res.json();
@@ -3770,6 +4069,7 @@ function testGitHubConnection() {
                                     <span>📱</span>
                                     <span>手機模擬</span>
                                 </button>
+                                ${getStudentLinePushActionBtn(st.token, st.name)}
                                 <a href="${parentUrl}&sim=1" target="_blank" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition text-xs" title="在新分頁開啟模擬 (含 sim=1 保護)">
                                     ↗
                                 </a>
