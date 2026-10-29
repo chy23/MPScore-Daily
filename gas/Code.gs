@@ -2684,8 +2684,10 @@ function generateStudentScoreSummary_(studentToken, studentSeat, studentName) {
       if (parsed) {
         var sSeat = normalizeSeatNumber(studentSeat);
         var stSubj = parsed.studentMap[sSeat] || parsed.studentMap['NAME_' + studentName];
-        if (stSubj && stSubj.overallAverage !== null && stSubj.totalScoresCount > 0) {
-          summaryLines.push('• ' + stSubj.subject + '：均分 ' + stSubj.overallAverage + ' 分 (已評量 ' + stSubj.totalScoresCount + ' 次)');
+        if (stSubj && stSubj.totalScoresCount > 0) {
+          summaryLines.push('• ' + stSubj.subject + '：有（ ' + stSubj.totalScoresCount + ' ）項成績更新');
+        } else if (stSubj) {
+          summaryLines.push('• ' + stSubj.subject + '：有（ 1 ）項成績更新');
         }
       }
     }
@@ -2694,7 +2696,7 @@ function generateStudentScoreSummary_(studentToken, studentSeat, studentName) {
   }
 
   if (summaryLines.length === 0) {
-    return '最新平時評量成績已完成登錄，歡迎點擊下方專屬手札連結查閱學習歷程。';
+    return '目前平時評量成績摘要：\n• 平時成績：有（ 1 ）項成績更新';
   }
 
   return '目前平時評量成績摘要：\n' + summaryLines.join('\n');
