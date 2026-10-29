@@ -24,13 +24,85 @@ function onOpen() {
     .addItem('📱 查看【家長閱覽紀錄】日誌分頁', 'openAccessLogsSheet')
     .addItem('🗑️ 清空全班【家長閱覽紀錄】與次數歸零', 'clearAllAccessLogsMenu')
     .addSeparator()
-    .addItem('⚙️ 設定 LINE 推播與原專案連線（Token/試算表）', 'setupLinePushSettingsMenu')
+    .addItem('📝 查看【成績異動日誌】分頁', 'openScoreUpdateLogsSheet')
+    .addItem('🗑️ 清空【成績異動日誌】', 'clearScoreUpdateLogsMenu')
+    .addSeparator()
+    .addItem('⚙️ 設定 School LINE Hub 中樞連線', 'setupLinePushSettingsMenu')
     .addItem('📢 發送【平時成績已更新】LINE 通知給已綁定家長', 'sendLineScoreUpdateNotificationMenu')
     .addSeparator()
     .addItem('📊 查看全班各科平時總均與分項平均統計', 'previewClassStatistics')
-    .addItem('📐 自動整理欄寬與表格排版', 'autoFormatAndResizeAllSheets')
+    .addItem('📐 自動整理欄寬與表格排版（方案 C 版面）', 'autoFormatAndResizeAllSheets')
+    .addItem('🔄 將現有成績分頁轉換為「方案 C 版面」', 'convertAllSubjectSheetsToSchemeC')
     .addItem('🚀 立即更新雲端資料（改完分數點此）', 'clearSystemCache')
     .addToUi();
+}
+
+/**
+ * 導向至成績異動日誌分頁（方案 B）
+ */
+function openScoreUpdateLogsSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var logSheet = ss.getSheetByName('成績異動日誌');
+  if (logSheet) {
+    ss.setActiveSheet(logSheet);
+  } else {
+    SpreadsheetApp.getUi().alert('提示', '目前尚無成績異動紀錄。當有成績登記、上傳或修改時，系統將自動建立【成績異動日誌】分頁！', SpreadsheetApp.getUi().ButtonSet.OK);
+  }
+}
+
+/**
+ * 清空成績異動日誌（方案 B 選單呼叫）
+ */
+function clearScoreUpdateLogsMenu() {
+  var ui = SpreadsheetApp.getUi();
+  var res = ui.alert('確認清空成績異動日誌', '確定要清空【成績異動日誌】的所有紀錄嗎？', ui.ButtonSet.YES_NO);
+  if (res === ui.Button.YES) {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var logSheet = ss.getSheetByName('成績異動日誌');
+    if (logSheet && logSheet.getLastRow() > 1) {
+      logSheet.getRange(2, 1, logSheet.getLastRow() - 1, 6).clearContent();
+    }
+    ui.alert('成功', '✅ 【成績異動日誌】紀錄已清空！', ui.ButtonSet.OK);
+  }
+}
+
+/**
+ * 寫入成績異動日誌（方案 B 核心紀錄）
+ */
+function logScoreUpdateRecord_(subjectName, assessmentName, updateType, studentInfo, remark) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var logSheet = ss.getSheetByName('成績異動日誌');
+    if (!logSheet) {
+      logSheet = ss.insertSheet('成績異動日誌');
+      var headers = [['時間戳記', '科目分頁', '評量項目', '異動類型', '影響學生/數值', '操作來源/備註']];
+      logSheet.getRange(1, 1, 1, 6).setValues(headers)
+        .setBackground('#0f172a')
+        .setFontColor('#f8fafc')
+        .setFontWeight('bold')
+        .setHorizontalAlignment('center');
+      logSheet.setColumnWidth(1, 160); // 時間戳記
+      logSheet.setColumnWidth(2, 120); // 科目分頁
+      logSheet.setColumnWidth(3, 140); // 評量項目
+      logSheet.setColumnWidth(4, 110); // 異動類型
+      logSheet.setColumnWidth(5, 140); // 影響學生/數值
+      logSheet.setColumnWidth(6, 200); // 操作來源/備註
+      safeFreezeSheet_(logSheet, 1, 0);
+    }
+
+    var tz = Session.getScriptTimeZone() || 'Asia/Taipei';
+    var nowStr = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd HH:mm:ss');
+    logSheet.appendRow([
+      nowStr,
+      subjectName || '',
+      assessmentName || '',
+      updateType || '成績登記',
+      studentInfo || '',
+      remark || '系統自動紀錄'
+    ]);
+  } catch (err) {
+    Logger.log('寫入成績異動日誌失敗: ' + err.toString());
+  }
 }
 
 /**
@@ -518,121 +590,144 @@ function setupStandardSheets() {
 }
 
 /**
- * 格式化平時成績科目分頁（包含：第 1 列標題、第 2 列項目名稱、第 3 列「作業／考試」類別下拉列、第 4 列起學生成績）
+ * 格式化平時成績科目分頁（方案 C 專用規格）
+ * - 第 1 列：評量登記/更新日期（A1:B1 為「📌 登記日期」，C1.. 為各項目的日期 YYYY/MM/DD）
+ * - 第 2 列：考試或作業的選項（評量類別：作業 / 考試 / 不計分 下拉選單）
+ * - 第 3 列：項目名稱標題列（座號、姓名、國習L1、作業卷L1...）
+ * - 第 4 列起：學生成績資料列
  */
 function formatDailySubjectSheet(sheet, titleText, headers, rowsData) {
   sheet.clear();
   var numCols = Math.max(3, headers.length);
+  var tz = Session.getScriptTimeZone() || 'Asia/Taipei';
+  var todayDateStr = Utilities.formatDate(new Date(), tz, 'yyyy/MM/dd');
 
-  // 第 1 列：將左側凍結欄 (A1:B1) 與右側成績標題欄 (C1:最後一欄) 分開合併，避免 Google 試算表凍結欄時發生合併衝突！
+  // --- 第 1 列：日期列 ---
+  // A1:B1 合併顯示「📌 登記日期」
   sheet.getRange(1, 1, 1, 2).merge()
-    .setValue('📌 學生名單')
-    .setBackground('#451a03')
-    .setFontColor('#fde68a')
+    .setValue('📌 登記日期')
+    .setBackground('#1e293b')
+    .setFontColor('#e2e8f0')
     .setFontWeight('bold')
-    .setFontSize(11)
+    .setFontSize(10)
     .setHorizontalAlignment('center')
     .setVerticalAlignment('middle');
 
-  if (numCols > 2) {
-    sheet.getRange(1, 3, 1, numCols - 2).merge()
-      .setValue(titleText)
-      .setBackground('#78350f')
-      .setFontColor('#ffffff')
+  // C1 到最後一欄：設定各評量欄位的初始日期（預設為今天 YYYY/MM/DD）
+  var dateValues = [];
+  var dateBgs = [];
+  var dateFontColors = [];
+  for (var dc = 3; dc <= numCols; dc++) {
+    var headerTitle = (headers[dc - 1] || '').toString().trim();
+    var parsedD = extractDateFromTitle_(headerTitle);
+    var dStr = parsedD ? Utilities.formatDate(parsedD, tz, 'yyyy/MM/dd') : todayDateStr;
+    dateValues.push(dStr);
+    dateBgs.push('#f0fdf4');
+    dateFontColors.push('#166534');
+  }
+  if (dateValues.length > 0) {
+    sheet.getRange(1, 3, 1, dateValues.length)
+      .setValues([dateValues])
+      .setBackgrounds([dateBgs])
+      .setFontColors([dateFontColors])
       .setFontWeight('bold')
-      .setFontSize(12)
+      .setFontSize(10)
       .setHorizontalAlignment('center')
       .setVerticalAlignment('middle');
   }
+  sheet.setRowHeight(1, 26);
 
-  // 第 2 列：項目名稱標題列
-  sheet.getRange(2, 1, 1, headers.length).setValues([headers])
-    .setFontWeight('bold')
-    .setHorizontalAlignment('center');
+  // --- 第 2 列：作業 / 考試 選項列 ---
+  var typeRowValues = ['評量', '作業/考試'];
+  var typeBgColors = ['#475569', '#475569'];
+  var typeFontColors = ['#ffffff', '#ffffff'];
 
-  // 第 3 列：電腦初步判斷之「作業／考試」列（教師可手動下拉或直接修改）
-  var typeRowValues = [];
-  var typeBgColors = [];
-  var typeFontColors = [];
-
-  for (var c = 1; c <= headers.length; c++) {
-    var h = (headers[c - 1] || '').toString().trim();
-    var cell = sheet.getRange(2, c);
-    if (c === 1) {
-      cell.setBackground('#334155').setFontColor('#ffffff');
-      typeRowValues.push('評量');
-      typeBgColors.push('#475569');
-      typeFontColors.push('#ffffff');
-    } else if (c === 2) {
-      cell.setBackground('#334155').setFontColor('#ffffff');
-      typeRowValues.push('作業/考試');
-      typeBgColors.push('#475569');
-      typeFontColors.push('#ffffff');
+  for (var tc = 3; tc <= numCols; tc++) {
+    var rawH = (headers[tc - 1] || '').toString().trim();
+    var defaultType = inferDefaultAssessmentType(rawH);
+    typeRowValues.push(defaultType);
+    if (defaultType === '作業') {
+      typeBgColors.push('#fef3c7');
+      typeFontColors.push('#92400e');
+    } else if (defaultType === '考試') {
+      typeBgColors.push('#e0f2fe');
+      typeFontColors.push('#075985');
     } else {
-      var defaultType = inferDefaultAssessmentType(h);
-      typeRowValues.push(defaultType);
-      if (h.indexOf('習') !== -1) {
-        cell.setBackground('#d97706').setFontColor('#ffffff');
-      } else if (defaultType === '作業') {
-        cell.setBackground('#059669').setFontColor('#ffffff');
-      } else if (h.indexOf('語詞') !== -1 || h.indexOf('聽寫') !== -1 || h.indexOf('圈詞') !== -1) {
-        cell.setBackground('#0284c7').setFontColor('#ffffff');
-      } else {
-        cell.setBackground('#b45309').setFontColor('#ffffff');
-      }
-
-      if (defaultType === '作業') {
-        typeBgColors.push('#fef3c7');
-        typeFontColors.push('#92400e');
-      } else if (defaultType === '考試') {
-        typeBgColors.push('#e0f2fe');
-        typeFontColors.push('#075985');
-      } else {
-        typeBgColors.push('#f5f5f4');
-        typeFontColors.push('#78716c');
-      }
+      typeBgColors.push('#f5f5f4');
+      typeFontColors.push('#78716c');
     }
   }
 
-  sheet.getRange(3, 1, 1, headers.length)
+  sheet.getRange(2, 1, 1, numCols)
     .setValues([typeRowValues])
     .setBackgrounds([typeBgColors])
     .setFontColors([typeFontColors])
     .setFontWeight('bold')
     .setFontSize(10)
-    .setHorizontalAlignment('center');
+    .setHorizontalAlignment('center')
+    .setVerticalAlignment('middle');
+  sheet.setRowHeight(2, 26);
 
-  if (headers.length > 2) {
+  if (numCols > 2) {
     try {
-      var rule = SpreadsheetApp.newDataValidation()
+      var validationRule = SpreadsheetApp.newDataValidation()
         .requireValueInList(['作業', '考試', '不計分'], true)
         .setAllowInvalid(true)
         .build();
-      sheet.getRange(3, 3, 1, headers.length - 2).setDataValidation(rule);
+      sheet.getRange(2, 3, 1, numCols - 2).setDataValidation(validationRule);
     } catch (ignore) {}
   }
 
-  // 第 4 列起：學生成績資料
+  // --- 第 3 列：項目名稱標題列 ---
+  var itemHeaders = headers.slice(0, numCols);
+  sheet.getRange(3, 1, 1, numCols).setValues([itemHeaders])
+    .setFontWeight('bold')
+    .setFontSize(11)
+    .setHorizontalAlignment('center')
+    .setVerticalAlignment('middle');
+  sheet.setRowHeight(3, 32);
+
+  for (var c = 1; c <= numCols; c++) {
+    var h = (headers[c - 1] || '').toString().trim();
+    var itemCell = sheet.getRange(3, c);
+    if (c === 1 || c === 2) {
+      itemCell.setBackground('#334155').setFontColor('#ffffff');
+    } else {
+      var t = typeRowValues[c - 1];
+      if (h.indexOf('習') !== -1) {
+        itemCell.setBackground('#d97706').setFontColor('#ffffff');
+      } else if (t === '作業') {
+        itemCell.setBackground('#059669').setFontColor('#ffffff');
+      } else if (h.indexOf('語詞') !== -1 || h.indexOf('聽寫') !== -1 || h.indexOf('圈詞') !== -1) {
+        itemCell.setBackground('#0284c7').setFontColor('#ffffff');
+      } else {
+        itemCell.setBackground('#b45309').setFontColor('#ffffff');
+      }
+    }
+  }
+
+  // --- 第 4 列起：學生成績資料 ---
   if (rowsData && rowsData.length > 0) {
-    sheet.getRange(4, 1, rowsData.length, headers.length).setValues(rowsData)
-      .setHorizontalAlignment('center');
+    sheet.getRange(4, 1, rowsData.length, numCols).setValues(rowsData)
+      .setHorizontalAlignment('center')
+      .setVerticalAlignment('middle');
   }
 
   sheet.setColumnWidth(1, 70);  // 座號
   sheet.setColumnWidth(2, 110); // 姓名
-  for (var col = 3; col <= headers.length; col++) {
+  for (var col = 3; col <= numCols; col++) {
     sheet.setColumnWidth(col, 84);
   }
-  sheet.setRowHeight(1, 36);
-  sheet.setRowHeight(2, 32);
-  sheet.setRowHeight(3, 26);
   var lastRow = Math.max(3, sheet.getLastRow());
   for (var r = 4; r <= lastRow; r++) {
     sheet.setRowHeight(r, 28);
   }
-  sheet.getRange(1, 1, lastRow, headers.length).setVerticalAlignment('middle').setHorizontalAlignment('center');
+  sheet.getRange(1, 1, lastRow, numCols).setVerticalAlignment('middle').setHorizontalAlignment('center');
 
   safeFreezeSheet_(sheet, 3, 2);
+
+  // 方案 B：寫入成績異動日誌
+  logScoreUpdateRecord_(sheet.getName(), '全部分頁評量', '格式化建立分頁', (rowsData ? rowsData.length : 0) + ' 位學生', '方案 C 版面');
 }
 
 /**
@@ -803,8 +898,9 @@ function locateSubjectSheetRows_(data) {
   var result = {
     seatCol: 0,
     nameCol: 1,
-    itemHeaderRowIdx: -1,
+    dateRowIdx: -1,
     typeRowIdx: -1,
+    itemHeaderRowIdx: -1,
     firstStudentRowIdx: -1,
     misplacedRowIndices: []
   };
@@ -841,69 +937,68 @@ function locateSubjectSheetRows_(data) {
 
   var searchUpper = result.firstStudentRowIdx !== -1 ? result.firstStudentRowIdx : Math.min(data.length, 12);
 
-  // 2. 在第一位學生列上方，找出真正包含各次平時評量項目名稱（如：數習L1、L1測驗卷）的標題列
-  var bestItemCount = -1;
-  for (var hRow = 0; hRow < searchUpper; hRow++) {
-    if (isAssessmentTypeRow_(data[hRow], result.seatCol, result.nameCol)) continue;
-    var itemCount = 0;
-    for (var col = 0; col < data[hRow].length; col++) {
-      if (col === result.seatCol || col === result.nameCol) continue;
-      var v = (data[hRow][col] || '').toString().trim();
-      if (!v || v === '📌 學生名單') continue;
-      if (v === '作業' || v === '考試' || v === '不計分' || v === '略過') continue;
-      itemCount++;
-    }
-    if (itemCount > 0 && itemCount >= bestItemCount) {
-      bestItemCount = itemCount;
-      result.itemHeaderRowIdx = hRow;
+  // 2. 尋找項目名稱標題列 (包含座號、姓名及評量項目如數習L1、測驗卷)
+  if (headerCandidateRowIdx !== -1) {
+    result.itemHeaderRowIdx = headerCandidateRowIdx;
+  } else {
+    var bestItemCount = -1;
+    for (var hRow = 0; hRow < searchUpper; hRow++) {
+      if (isAssessmentTypeRow_(data[hRow], result.seatCol, result.nameCol)) continue;
+      var itemCount = 0;
+      for (var col = 0; col < data[hRow].length; col++) {
+        if (col === result.seatCol || col === result.nameCol) continue;
+        var v = (data[hRow][col] || '').toString().trim();
+        if (!v || v === '📌 學生名單' || v === '📌 登記日期') continue;
+        if (v === '作業' || v === '考試' || v === '不計分' || v === '略過') continue;
+        itemCount++;
+      }
+      if (itemCount > 0 && itemCount >= bestItemCount) {
+        bestItemCount = itemCount;
+        result.itemHeaderRowIdx = hRow;
+      }
     }
   }
 
-  if (result.itemHeaderRowIdx === -1 && headerCandidateRowIdx !== -1) {
-    result.itemHeaderRowIdx = headerCandidateRowIdx;
-  }
   if (result.itemHeaderRowIdx === -1) return result;
 
-  // 3. 檢查 itemHeaderRowIdx 上方是否有因垂直合併標題誤插入的空白列或錯位「作業/考試」列 (r >= 1 且 r < itemHeaderRowIdx)
-  for (var aboveRow = 1; aboveRow < result.itemHeaderRowIdx; aboveRow++) {
-    var isTypeAbove = isAssessmentTypeRow_(data[aboveRow], result.seatCol, result.nameCol);
-    var nonTypeCountAbove = 0;
-    for (var ac = 0; ac < data[aboveRow].length; ac++) {
-      if (ac === result.seatCol || ac === result.nameCol) continue;
-      var av = (data[aboveRow][ac] || '').toString().trim();
-      if (av && av !== '作業' && av !== '考試' && av !== '不計分' && av !== '略過') {
-        nonTypeCountAbove++;
+  // 3. 尋找「作業／考試」類別列 (支援方案 C 位於第 2 列，或傳統結構位於第 3 列)
+  for (var tRow = 0; tRow < searchUpper; tRow++) {
+    if (tRow === result.itemHeaderRowIdx) continue;
+    if (isAssessmentTypeRow_(data[tRow], result.seatCol, result.nameCol)) {
+      if (result.typeRowIdx === -1) {
+        result.typeRowIdx = tRow;
       }
-    }
-    if (isTypeAbove || nonTypeCountAbove === 0) {
-      result.misplacedRowIndices.push(aboveRow);
     }
   }
 
-  // 4. 在 itemHeaderRowIdx 與 firstStudentRowIdx 之間尋找正確的「作業／考試」列
-  for (var belowRow = result.itemHeaderRowIdx + 1; belowRow < searchUpper; belowRow++) {
-    if (isAssessmentTypeRow_(data[belowRow], result.seatCol, result.nameCol)) {
-      if (result.typeRowIdx === -1) {
-        result.typeRowIdx = belowRow;
-      } else {
-        result.misplacedRowIndices.push(belowRow);
+  // 4. 尋找「登記日期列」（方案 C 中位於第 1 列，通常含有「日期」字樣或日期格式）
+  for (var dRow = 0; dRow < searchUpper; dRow++) {
+    if (dRow === result.itemHeaderRowIdx || dRow === result.typeRowIdx) continue;
+    var dCell = (data[dRow][result.seatCol] || data[dRow][0] || '').toString().trim();
+    if (dCell.indexOf('日期') !== -1 || dRow === 0) {
+      result.dateRowIdx = dRow;
+      break;
+    }
+  }
+
+  // 5. 檢查是否有真正錯位的空白列 (排除 itemHeaderRowIdx, typeRowIdx, dateRowIdx)
+  for (var rCheck = 0; rCheck < searchUpper; rCheck++) {
+    if (rCheck === result.itemHeaderRowIdx || rCheck === result.typeRowIdx || rCheck === result.dateRowIdx) continue;
+    var isBlank = true;
+    for (var cK = 0; cK < data[rCheck].length; cK++) {
+      if ((data[rCheck][cK] || '').toString().trim() !== '') {
+        isBlank = false;
+        break;
       }
-    } else {
-      var anyContent = false;
-      for (var bc = 0; bc < data[belowRow].length; bc++) {
-        if ((data[belowRow][bc] || '').toString().trim() !== '') {
-          anyContent = true;
-          break;
-        }
-      }
-      if (!anyContent) {
-        result.misplacedRowIndices.push(belowRow);
-      }
+    }
+    if (isBlank) {
+      result.misplacedRowIndices.push(rCheck);
     }
   }
 
   if (result.firstStudentRowIdx === -1) {
-    result.firstStudentRowIdx = (result.typeRowIdx !== -1) ? (result.typeRowIdx + 1) : (result.itemHeaderRowIdx + 1);
+    var maxTopRow = Math.max(result.itemHeaderRowIdx, result.typeRowIdx, result.dateRowIdx);
+    result.firstStudentRowIdx = maxTopRow !== -1 ? (maxTopRow + 1) : 3;
   }
 
   return result;
@@ -1306,7 +1401,7 @@ function parseDailySubjectSheet(sheet) {
   if (loc.itemHeaderRowIdx > 0) {
     var titleCandidates = data[0].filter(function(cell) {
       var s = (cell || '').toString().trim();
-      return s && s !== '📌 學生名單' && s !== '座號' && s !== '姓名';
+      return s && s !== '📌 學生名單' && s !== '📌 登記日期' && s !== '座號' && s !== '姓名' && !extractDateFromTitle_(s);
     });
     if (titleCandidates.length > 0) sheetTitle = titleCandidates[0].toString().trim();
   }
@@ -1315,6 +1410,7 @@ function parseDailySubjectSheet(sheet) {
   var seatCol = loc.seatCol;
   var nameCol = loc.nameCol;
   var typeRow = (loc.typeRowIdx !== -1 && loc.typeRowIdx < data.length) ? data[loc.typeRowIdx] : null;
+  var dateRow = (loc.dateRowIdx !== -1 && loc.dateRowIdx < data.length) ? data[loc.dateRowIdx] : (data[0] || null);
   var dataStartRowIdx = loc.firstStudentRowIdx;
 
   var itemCols = [];
@@ -1338,6 +1434,8 @@ function parseDailySubjectSheet(sheet) {
     var unitCode = extractUnitCode(rawItemTitle);
     sheetPillarColCounts[catInfo.key] = (sheetPillarColCounts[catInfo.key] || 0) + 1;
 
+    var colDateVal = (dateRow && dateRow[col] !== undefined && dateRow[col] !== null) ? dateRow[col] : null;
+
     itemCols.push({
       colIdx: col,
       title: rawItemTitle,
@@ -1347,7 +1445,8 @@ function parseDailySubjectSheet(sheet) {
       pillarLabel: catInfo.label,
       pillarShort: catInfo.shortLabel,
       pillarIcon: catInfo.icon,
-      unitCode: unitCode
+      unitCode: unitCode,
+      date: colDateVal
     });
   }
 
@@ -1403,6 +1502,7 @@ function parseDailySubjectSheet(sheet) {
     if (colCounts[cIdx] > 0 && colDifficulties[cIdx]) {
       subjectAssessments.push({
         name: itemCols[k].title,
+        date: itemCols[k].date,
         unit: itemCols[k].unitCode || '平時',
         assessmentType: itemCols[k].assessmentType,
         category: itemCols[k].pillarKey,
@@ -2450,6 +2550,17 @@ function autoFormatAndResizeAllSheets() {
       sh.getRange(1, 1, lrLog, 6).setVerticalAlignment('middle').setHorizontalAlignment('center');
       safeFreezeSheet_(sh, 1, 0);
       count++;
+    } else if (sName === '成績異動日誌') {
+      sh.setColumnWidth(1, 160); // 時間戳記
+      sh.setColumnWidth(2, 120); // 科目分頁
+      sh.setColumnWidth(3, 140); // 評量項目
+      sh.setColumnWidth(4, 110); // 異動類型
+      sh.setColumnWidth(5, 140); // 影響學生/數值
+      sh.setColumnWidth(6, 200); // 操作來源/備註
+      var lrScoreLog = Math.max(2, sh.getLastRow());
+      sh.getRange(1, 1, lrScoreLog, 6).setVerticalAlignment('middle').setHorizontalAlignment('center');
+      safeFreezeSheet_(sh, 1, 0);
+      count++;
     } else {
       ensureAssessmentTypeRow_(sh);
       var maxCol = Math.max(2, sh.getLastColumn());
@@ -2457,7 +2568,13 @@ function autoFormatAndResizeAllSheets() {
       sh.setColumnWidth(1, 70);
       sh.setColumnWidth(2, 110);
       for (var c = 3; c <= maxCol; c++) {
-        sh.setColumnWidth(c, 82);
+        sh.setColumnWidth(c, 84);
+      }
+      sh.setRowHeight(1, 26);
+      if (maxRow >= 2) sh.setRowHeight(2, 26);
+      if (maxRow >= 3) sh.setRowHeight(3, 32);
+      for (var r = 4; r <= maxRow; r++) {
+        sh.setRowHeight(r, 28);
       }
       sh.getRange(1, 1, maxRow, maxCol).setVerticalAlignment('middle').setHorizontalAlignment('center');
       safeFreezeSheet_(sh, 3, 2);
@@ -2465,7 +2582,139 @@ function autoFormatAndResizeAllSheets() {
     }
   }
 
-  SpreadsheetApp.getUi().alert('🎉 排版完成！已為您將 ' + count + ' 個分頁的欄寬、列高與凍結窗格最佳化！');
+  SpreadsheetApp.getUi().alert('🎉 排版完成！已為您將 ' + count + ' 個分頁的欄寬、列高與凍結窗格最佳化（支援方案 C 版面）！');
+}
+
+/**
+ * 🔄 將現有成績分頁轉換為「方案 C 版面」
+ * 方案 C 規範：
+ * - 第 1 列：📌 登記日期（C1.. 填寫日期 YYYY/MM/DD，自動從項目標題/儲存格備註提取或預設今天）
+ * - 第 2 列：評量類別（作業 / 考試 / 不計分 下拉選單）
+ * - 第 3 列：項目名稱標題列（座號、姓名、國習L1、作業卷L1...）
+ * - 第 4 列起：學生成績資料列
+ * - 凍結：前 3 列、前 2 欄 (座號、姓名)
+ */
+function convertAllSubjectSheetsToSchemeC() {
+  var ui = SpreadsheetApp.getUi();
+  var confirm = ui.alert(
+    '🔄 轉換為「方案 C 版面」',
+    '此功能會將所有科目分頁重新整理為「方案 C 版面」：\n\n' +
+    '• 第 1 列：📌 登記日期（自動帶入 YYYY/MM/DD）\n' +
+    '• 第 2 列：評量類別（作業 / 考試 / 不計分 下拉選單）\n' +
+    '• 第 3 列：項目名稱（座號、姓名、評量名稱）\n' +
+    '• 第 4 列起：學生成績資料\n' +
+    '• 凍結前 3 列與前 2 欄\n\n' +
+    '確定要轉換所有科目成績分頁嗎？',
+    ui.ButtonSet.YES_NO
+  );
+  if (confirm !== ui.Button.YES) return;
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheets = ss.getSheets();
+  var convertedCount = 0;
+  var tz = Session.getScriptTimeZone() || 'Asia/Taipei';
+  var todayDateStr = Utilities.formatDate(new Date(), tz, 'yyyy/MM/dd');
+
+  for (var i = 0; i < sheets.length; i++) {
+    var sheet = sheets[i];
+    var sName = sheet.getName();
+    if (isSystemSheet(sName)) continue;
+
+    try {
+      var data = sheet.getDataRange().getValues();
+      if (!data || data.length < 2) continue;
+
+      var loc = locateSubjectSheetRows_(data);
+      if (loc.itemHeaderRowIdx === -1) continue;
+
+      var seatCol = loc.seatCol;
+      var nameCol = loc.nameCol;
+      var itemHeaderRow = data[loc.itemHeaderRowIdx];
+      var typeRow = (loc.typeRowIdx !== -1 && loc.typeRowIdx < data.length) ? data[loc.typeRowIdx] : null;
+      var dateRow = (loc.dateRowIdx !== -1 && loc.dateRowIdx < data.length) ? data[loc.dateRowIdx] : null;
+
+      var headers = ['座號', '姓名'];
+      var dateValues = [];
+      var typeValues = ['評量', '作業/考試'];
+      var colIndices = [];
+
+      for (var c = 0; c < itemHeaderRow.length; c++) {
+        if (c === seatCol || c === nameCol) continue;
+        var hName = (itemHeaderRow[c] || '').toString().trim();
+        if (!hName) continue;
+
+        headers.push(hName);
+        colIndices.push(c);
+
+        // 提取日期：優先 dateRow，次之 note，再次之標題，最後為今天
+        var colDateVal = '';
+        if (dateRow && dateRow[c]) {
+          var pD = extractDateFromTitle_(dateRow[c].toString());
+          if (pD) colDateVal = Utilities.formatDate(pD, tz, 'yyyy/MM/dd');
+        }
+        if (!colDateVal) {
+          try {
+            var note = sheet.getRange(loc.itemHeaderRowIdx + 1, c + 1).getNote();
+            if (note) {
+              var nD = extractDateFromTitle_(note);
+              if (nD) colDateVal = Utilities.formatDate(nD, tz, 'yyyy/MM/dd');
+            }
+          } catch (eNote) {}
+        }
+        if (!colDateVal) {
+          var tD = extractDateFromTitle_(hName);
+          if (tD) colDateVal = Utilities.formatDate(tD, tz, 'yyyy/MM/dd');
+        }
+        if (!colDateVal) {
+          colDateVal = todayDateStr;
+        }
+        dateValues.push(colDateVal);
+
+        // 提取評量類別
+        var aType = '';
+        if (typeRow && typeRow[c]) {
+          aType = (typeRow[c] || '').toString().trim();
+        }
+        if (!aType || (aType !== '作業' && aType !== '考試' && aType !== '不計分')) {
+          aType = inferDefaultAssessmentType(hName);
+        }
+        typeValues.push(aType);
+      }
+
+      // 提取學生成績列
+      var studentRows = [];
+      var firstStudentIdx = loc.firstStudentRowIdx !== -1 ? loc.firstStudentRowIdx : 3;
+      for (var r = firstStudentIdx; r < data.length; r++) {
+        var rSeat = (data[r][seatCol] || '').toString().trim();
+        var rName = (data[r][nameCol] || '').toString().trim();
+        if (!rSeat && !rName) continue;
+
+        var rowArr = [rSeat, rName];
+        for (var k = 0; k < colIndices.length; k++) {
+          var scoreVal = data[r][colIndices[k]];
+          rowArr.push(scoreVal !== undefined ? scoreVal : '');
+        }
+        studentRows.push(rowArr);
+      }
+
+      formatDailySubjectSheet(sheet, sName, headers, studentRows);
+
+      // 回填原先的自訂日期與類別
+      if (dateValues.length > 0) {
+        sheet.getRange(1, 3, 1, dateValues.length).setValues([dateValues]);
+      }
+      if (typeValues.length > 2) {
+        sheet.getRange(2, 1, 1, typeValues.length).setValues([typeValues]);
+      }
+
+      logScoreUpdateRecord_(sName, '全部分頁評量', '轉換為方案 C 版面', studentRows.length + ' 位學生', '選單一鍵轉換');
+      convertedCount++;
+    } catch (err) {
+      Logger.log('轉換科目分頁 ' + sName + ' 失敗: ' + err.toString());
+    }
+  }
+
+  ui.alert('完成', '🎉 已成功將 ' + convertedCount + ' 個科目分頁轉換為「方案 C 版面」！\n\n• 第 1 列：📌 登記日期\n• 第 2 列：作業 / 考試 選項\n• 第 3 列：項目名稱\n• 第 4 列起：學生成績', ui.ButtonSet.OK);
 }
 
 /**
@@ -2789,7 +3038,13 @@ function generateStudentScoreSummary_(studentToken, studentSeat, studentName, op
 }
 
 /**
- * 試算表即時編輯觸發器：記錄各欄位最後編輯時間戳記，供推播自動抓取試算表更新時間
+ * 試算表即時編輯觸發器（方案 B & 方案 C 核心連動）：
+ * 1. 當編輯第 4 列起之學生成績時：
+ *    - 主動將第 1 列登記日期更新為當天（YYYY/MM/DD）
+ *    - 於第 3 列項目名稱儲存格加入更新時間備註（最後更新：YYYY-MM-DD HH:mm:ss）
+ *    - 自動寫入【成績異動日誌】分頁（時間、科目、項目、類型、學生/數值、來源）
+ *    - 同步記錄至 DocumentProperties，供推播動態抓取試算表更新時間
+ * 2. 當修改評量類別（第 2 列）或登記日期（第 1 列）時，亦記錄至異動日誌
  */
 function onEdit(e) {
   try {
@@ -2800,22 +3055,65 @@ function onEdit(e) {
 
     var col = e.range.getColumn();
     var row = e.range.getRow();
-    if (col >= 3 && row >= 2) {
-      var tz = Session.getScriptTimeZone() || 'Asia/Taipei';
-      var nowStr = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd HH:mm:ss');
+    if (col < 3) return;
+
+    var tz = Session.getScriptTimeZone() || 'Asia/Taipei';
+    var now = new Date();
+    var nowStr = Utilities.formatDate(now, tz, 'yyyy-MM-dd HH:mm:ss');
+    var nowDateStr = Utilities.formatDate(now, tz, 'yyyy/MM/dd');
+
+    // 取得項目名稱（第 3 列）
+    var itemTitle = '';
+    try {
+      itemTitle = (sheet.getRange(3, col).getValue() || sheet.getRange(2, col).getValue() || ('項目' + (col - 2))).toString().trim();
+    } catch (tErr) {}
+
+    // 情況 A：編輯學生成績（第 4 列起）
+    if (row >= 4) {
+      // 1. 自動更新第 1 列登記日期為當天
+      try {
+        var dateCell = sheet.getRange(1, col);
+        var curDateVal = (dateCell.getValue() || '').toString().trim();
+        if (!curDateVal || curDateVal !== nowDateStr) {
+          dateCell.setValue(nowDateStr);
+        }
+      } catch (dErr) {}
+
+      // 2. 於項目標題儲存格（第 3 列）加入或更新備註
+      try {
+        var headerCell = sheet.getRange(3, col);
+        var oldNote = headerCell.getNote() || '';
+        var cleanNote = oldNote.replace(/最後更新：[^\n]+/g, '').trim();
+        headerCell.setNote((cleanNote ? cleanNote + '\n' : '') + '最後更新：' + nowStr);
+      } catch (notErr) {}
+
+      // 3. 記錄至 DocumentProperties
       try {
         var docProps = PropertiesService.getDocumentProperties();
         docProps.setProperty('EDIT_' + sheetName + '_' + col, nowStr);
       } catch (prpErr) {}
 
+      // 4. 方案 B：自動寫入【成績異動日誌】
       try {
-        var headerCell = sheet.getRange(2, col);
-        var oldNote = headerCell.getNote() || '';
-        var cleanNote = oldNote.replace(/最後更新：[^\n]+/g, '').trim();
-        headerCell.setNote((cleanNote ? cleanNote + '\n' : '') + '最後更新：' + nowStr);
-      } catch (notErr) {}
+        var studentSeat = (sheet.getRange(row, 1).getValue() || '').toString().trim();
+        var studentName = (sheet.getRange(row, 2).getValue() || '').toString().trim();
+        var studentDesc = (studentSeat ? (studentSeat + '號 ') : '') + studentName;
+        var editVal = e.value !== undefined ? e.value : sheet.getRange(row, col).getValue();
+        var scoreDesc = studentDesc ? (studentDesc + '（' + editVal + '分）') : ('數值：' + editVal);
+        logScoreUpdateRecord_(sheetName, itemTitle, '成績登錄/修改', scoreDesc, '試算表即時編輯');
+      } catch (logErr) {}
+    } else if (row === 1) {
+      // 情況 B：直接手動修改第 1 列「登記日期」
+      var newDate = e.value !== undefined ? e.value : sheet.getRange(row, col).getValue();
+      logScoreUpdateRecord_(sheetName, itemTitle, '變更評量日期', '設為 ' + newDate, '試算表即時編輯');
+    } else if (row === 2) {
+      // 情況 C：修改第 2 列「評量類別（作業/考試）」
+      var newType = e.value !== undefined ? e.value : sheet.getRange(row, col).getValue();
+      logScoreUpdateRecord_(sheetName, itemTitle, '變更評量類別', '設為 ' + newType, '試算表即時編輯');
     }
-  } catch (err) {}
+  } catch (err) {
+    Logger.log('onEdit 執行失敗: ' + err.toString());
+  }
 }
 
 /**
@@ -2944,17 +3242,31 @@ function getLinePushStatus_(params) {
           var colDate = null;
           var colDateStr = '';
 
-          // 1. 嘗試從欄位標題解析日期 (例如 10/24, 2026-10-28, 10月29日)
-          var titleDate = extractDateFromTitle_(item.name);
-          if (titleDate) {
-            colDate = titleDate;
+          // 0. 方案 C：優先自第 1 列登記日期 (item.date) 提取
+          if (item.date) {
+            var directDate = extractDateFromTitle_(item.date.toString());
+            if (directDate) {
+              colDate = directDate;
+            }
           }
 
-          // 2. 嘗試從儲存格備註 (Note) 抓取更新時間
+          // 1. 嘗試從欄位標題解析日期 (例如 10/24, 2026-10-28, 10月29日)
+          if (!colDate) {
+            var titleDate = extractDateFromTitle_(item.name);
+            if (titleDate) {
+              colDate = titleDate;
+            }
+          }
+
+          // 2. 嘗試從儲存格備註 (Note) 抓取更新時間（檢查第 3 列或第 2 列標題儲存格）
           if (!colDate) {
             try {
-              var headerCell = sh.getRange(2, colIdx);
+              var headerCell = sh.getRange(3, colIdx);
               var note = headerCell.getNote();
+              if (!note) {
+                headerCell = sh.getRange(2, colIdx);
+                note = headerCell.getNote();
+              }
               if (note) {
                 var noteDate = extractDateFromTitle_(note);
                 if (noteDate) colDate = noteDate;
@@ -3336,6 +3648,9 @@ var MPScoreDailyEngine = {
   autoFormatAndResizeAllSheets: autoFormatAndResizeAllSheets,
   openAccessLogsSheet: openAccessLogsSheet,
   clearAllAccessLogsMenu: clearAllAccessLogsMenu,
+  openScoreUpdateLogsSheet: openScoreUpdateLogsSheet,
+  clearScoreUpdateLogsMenu: clearScoreUpdateLogsMenu,
+  convertAllSubjectSheetsToSchemeC: convertAllSubjectSheetsToSchemeC,
   manageTeacherAdminKeyMenu: manageTeacherAdminKeyMenu,
   setupLinePushSettingsMenu: setupLinePushSettingsMenu,
   sendLineScoreUpdateNotificationMenu: sendLineScoreUpdateNotificationMenu,

@@ -48,11 +48,15 @@ function onOpen() {
     .addItem('📱 查看【家長閱覽紀錄】日誌分頁', 'openAccessLogsSheet')
     .addItem('🗑️ 清空全班【家長閱覽紀錄】與次數歸零', 'clearAllAccessLogsMenu')
     .addSeparator()
+    .addItem('📝 查看【成績異動日誌】分頁', 'openScoreUpdateLogsSheet')
+    .addItem('🗑️ 清空【成績異動日誌】', 'clearScoreUpdateLogsMenu')
+    .addSeparator()
     .addItem('⚙️ 設定 School LINE Hub 中樞連線', 'setupLinePushSettingsMenu')
     .addItem('📢 發送【平時成績已更新】LINE 通知給已綁定家長', 'sendLineScoreUpdateNotificationMenu')
     .addSeparator()
     .addItem('📊 查看全班各科平時總均與分項平均統計', 'previewClassStatistics')
-    .addItem('📐 自動整理欄寬與表格排版', 'autoFormatAndResizeAllSheets')
+    .addItem('📐 自動整理欄寬與表格排版（方案 C 版面）', 'autoFormatAndResizeAllSheets')
+    .addItem('🔄 將現有成績分頁轉換為「方案 C 版面」', 'convertAllSubjectSheetsToSchemeC')
     .addItem('🚀 立即更新雲端資料（改完分數點此）', 'clearSystemCache')
     .addSeparator()
     .addItem('📶 檢查系統連線狀態', 'testGitHubConnection')
@@ -68,6 +72,9 @@ function generateTokensForStudents() { getEngine().generateTokensForStudents(); 
 function manageTeacherAdminKeyMenu() { getEngine().manageTeacherAdminKeyMenu(); }
 function openAccessLogsSheet() { getEngine().openAccessLogsSheet(); }
 function clearAllAccessLogsMenu() { getEngine().clearAllAccessLogsMenu(); }
+function openScoreUpdateLogsSheet() { getEngine().openScoreUpdateLogsSheet(); }
+function clearScoreUpdateLogsMenu() { getEngine().clearScoreUpdateLogsMenu(); }
+function convertAllSubjectSheetsToSchemeC() { getEngine().convertAllSubjectSheetsToSchemeC(); }
 function setupLinePushSettingsMenu() { getEngine().setupLinePushSettingsMenu(); }
 function sendLineScoreUpdateNotificationMenu() { getEngine().sendLineScoreUpdateNotificationMenu(); }
 function previewClassStatistics() { getEngine().previewClassStatistics(); }

@@ -1421,7 +1421,7 @@
                     <div>
                         <div class="flex items-center gap-2">
                             <h3 class="text-base md:text-lg font-black tracking-tight text-white">MPScore-Daily 系統詳細更新紀錄</h3>
-                            <span class="text-[10px] bg-emerald-500 text-white font-black px-2 py-0.5 rounded-full">v3.6.0 最新版</span>
+                            <span class="text-[10px] bg-emerald-500 text-white font-black px-2 py-0.5 rounded-full">v3.7.0 最新版</span>
                         </div>
                         <p class="text-xs text-sky-100 mt-0.5">平時成績無痛結算 ‧ 親師雲端即時溝通 ‧ 國中小專用智慧平台</p>
                     </div>
@@ -1434,11 +1434,47 @@
             <!-- 更新日誌內容滾動區 -->
             <div class="p-5 md:p-8 overflow-y-auto space-y-6 text-xs text-slate-700 bg-slate-50/50 leading-relaxed">
 
-                <!-- v3.6.0 最新版里程碑 -->
-                <div class="bg-white p-5 rounded-3xl border border-emerald-300 shadow-sm space-y-4 relative overflow-hidden ring-2 ring-emerald-400/20">
+                <!-- v3.7.0 最新版里程碑 -->
+                <div class="bg-white p-5 rounded-3xl border border-indigo-300 shadow-sm space-y-4 relative overflow-hidden ring-2 ring-indigo-400/20">
                     <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                         <div class="flex items-center gap-2">
-                            <span class="text-xs font-black bg-emerald-600 text-white px-2.5 py-1 rounded-xl shadow-xs">v3.6.0 最新版</span>
+                            <span class="text-xs font-black bg-indigo-600 text-white px-2.5 py-1 rounded-xl shadow-xs">v3.7.0 最新版</span>
+                            <span class="text-sm font-black text-slate-900">📊 方案 C 表頭架構 ＆ 方案 B 成績異動主動日誌全面上線</span>
+                        </div>
+                        <span class="text-[11px] text-slate-400 font-mono font-bold">2026-10-29</span>
+                    </div>
+
+                    <div class="space-y-3.5">
+                        <div class="p-3.5 bg-indigo-50/80 rounded-2xl border border-indigo-200/80 text-[11px] text-indigo-950 font-bold space-y-1.5">
+                            <div>🎯 <b>本次核心功能更新說明</b>：</div>
+                            <ul class="list-disc list-inside font-normal text-slate-700 pl-1 space-y-1.5">
+                                <li><b>方案 C 全新表頭規格</b>：
+                                    <ul class="list-none pl-4 space-y-0.5 text-slate-600">
+                                        <li>• <b>第 1 列（登記日期）</b>：A1:B1 為「📌 登記日期」，C1 起填寫各項目登記/更新日期（YYYY/MM/DD）。</li>
+                                        <li>• <b>第 2 列（評量選項）</b>：A2 為「評量」，B2 為「作業/考試」，C2 起提供「作業 / 考試 / 不計分」下拉選單。</li>
+                                        <li>• <b>第 3 列（項目名稱）</b>：A3 為「座號」，B3 為「姓名」，C3 起為評量項目名稱（如：國習L1、測驗卷L1）。</li>
+                                        <li>• <b>第 4 列起（學生成績）</b>：學生成績資料列，自動凍結前 3 列與前 2 欄。</li>
+                                    </ul>
+                                </li>
+                                <li><b>方案 B 主動記錄成績上傳與修改日誌</b>：
+                                    <ul class="list-none pl-4 space-y-0.5 text-slate-600">
+                                        <li>• 自動建立並維護獨立<b>【成績異動日誌】</b>分頁（紀錄時間戳記、科目、項目、異動類型、學生數值與來源）。</li>
+                                        <li>• 老師於試算表編輯分數時，<code>onEdit</code> 自動更新第 1 列登記日期為當天，並自動追蹤記錄。</li>
+                                        <li>• 試算表選單新增「📝 查看【成績異動日誌】分頁」與「🗑️ 清空【成績異動日誌】」。</li>
+                                    </ul>
+                                </li>
+                                <li><b>一鍵轉換現有分頁</b>：選單新增「🔄 將現有成績分頁轉換為「方案 C 版面」」，無痛將舊有成績表升級至新版面架構！</li>
+                                <li><b>LINE 推播精準採計</b>：推播中心動態讀取第 1 列登記日期，依設定基準日期精準統計各科「有（ N ）項成績更新」。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- v3.6.0 里程碑 -->
+                <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-4 relative overflow-hidden">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-black bg-slate-600 text-white px-2.5 py-1 rounded-xl shadow-xs">v3.6.0</span>
                             <span class="text-sm font-black text-slate-900">📅 方案 B：成績更新採計基準 ‧ 自動追蹤前次推播時間 ‧ 各科項目微調</span>
                         </div>
                         <span class="text-[11px] text-slate-400 font-mono font-bold">2026-10-29</span>
@@ -2595,11 +2631,15 @@ function onOpen() {
     .addItem('📱 查看【家長閱覽紀錄】日誌分頁', 'openAccessLogsSheet')
     .addItem('🗑️ 清空全班【家長閱覽紀錄】與次數歸零', 'clearAllAccessLogsMenu')
     .addSeparator()
+    .addItem('📝 查看【成績異動日誌】分頁', 'openScoreUpdateLogsSheet')
+    .addItem('🗑️ 清空【成績異動日誌】', 'clearScoreUpdateLogsMenu')
+    .addSeparator()
     .addItem('⚙️ 設定 School LINE Hub 中樞連線', 'setupLinePushSettingsMenu')
     .addItem('📢 發送【平時成績已更新】LINE 通知給已綁定家長', 'sendLineScoreUpdateNotificationMenu')
     .addSeparator()
     .addItem('📊 查看全班各科平時總均與分項平均統計', 'previewClassStatistics')
-    .addItem('📐 自動整理欄寬與表格排版', 'autoFormatAndResizeAllSheets')
+    .addItem('📐 自動整理欄寬與表格排版（方案 C 版面）', 'autoFormatAndResizeAllSheets')
+    .addItem('🔄 將現有成績分頁轉換為「方案 C 版面」', 'convertAllSubjectSheetsToSchemeC')
     .addItem('🚀 立即更新雲端資料（改完分數點此）', 'clearSystemCache')
     .addSeparator()
     .addItem('📶 檢查系統連線狀態', 'testGitHubConnection')
@@ -2615,6 +2655,9 @@ function generateTokensForStudents() { getEngine().generateTokensForStudents(); 
 function manageTeacherAdminKeyMenu() { getEngine().manageTeacherAdminKeyMenu(); }
 function openAccessLogsSheet() { getEngine().openAccessLogsSheet(); }
 function clearAllAccessLogsMenu() { getEngine().clearAllAccessLogsMenu(); }
+function openScoreUpdateLogsSheet() { getEngine().openScoreUpdateLogsSheet(); }
+function clearScoreUpdateLogsMenu() { getEngine().clearScoreUpdateLogsMenu(); }
+function convertAllSubjectSheetsToSchemeC() { getEngine().convertAllSubjectSheetsToSchemeC(); }
 function setupLinePushSettingsMenu() { getEngine().setupLinePushSettingsMenu(); }
 function sendLineScoreUpdateNotificationMenu() { getEngine().sendLineScoreUpdateNotificationMenu(); }
 function previewClassStatistics() { getEngine().previewClassStatistics(); }
