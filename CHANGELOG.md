@@ -4,6 +4,24 @@
 
 ---
 
+## [v3.5.0] - 2026-10-29 🚀 接入 School LINE Hub 統一中樞 ‧ 免 Token、免跨表、自動發送各科成績摘要
+
+### 🎯 核心新功能與升級
+1. **接入 School LINE Hub 校園統一中樞 (`gas/Code.gs`, `gas/LineHubClient.gs`, `client-sdk/LineHubClient.js`)**：
+   - 徹底移除原本使用 `SpreadsheetApp.openById` / `openByUrl` 跨試算表讀取原專案 LINE 綁定之舊機制，消除跨 Google 帳號授權阻礙與個資暴露風險。
+   - 原生引入 `LineHubClient` SDK，以標準 RESTful API 與 School LINE Hub 連接。
+   - 預設連線中樞網址：`https://script.google.com/macros/s/AKfycbx3FmbjzzlZ0AsEe7CXFMxQeW5aJEfVjN7kTA7DnY7IJ8H909MgjPWRRB3kFgxDdtu5sg/exec`。
+   - 預設接入專案：`App ID: PROJECT_SCORE` / `Secret: sec_score_demo_7182934`。
+2. **自動產生各科平時成績摘要 (Score Summary)**：
+   - 推播發送時，系統自動掃描各科分頁，提取該生各科平時成績平均分數與已評量次數（如：`• 國語：均分 92.5 分 (已評量 5 次)`）。
+   - 將「學生座號、學生姓名、成績摘要與個人專屬手札連結」直接打包送給中樞，由中樞自動派發給所有已綁定之家長 LINE。
+3. **推播管理中心全面升級 (`#linePushModal`, `index.html`)**：
+   - 頂部連線指標全面轉型為「School LINE Hub」與「PROJECT_SCORE」中樞狀態即時檢測。
+   - 智能連線診斷面板無縫支援中樞狀態與綁定覆蓋率反饋。
+   - 試算表選單同步更新為中樞直連確認提示。
+
+---
+
 ## [v3.4.0] - 2026-10-29 💬 支援個別指定學生發送 LINE 成績通知 ‧ 多模式推播與名冊一鍵直發
 
 ### 🎯 核心新功能與升級

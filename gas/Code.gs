@@ -2502,425 +2502,223 @@ function previewClassScoreSummary() { return previewClassStatistics(); }
 function createDemoDailySheets() { return setupStandardSheets(); }
 
 // =========================================================================
-// 8. LINE 官方帳號新成績主動推播與原專案代碼跨表連線模組
+// =========================================================================
+// 8. School LINE Hub 中樞接入模組（免 Token、免跨表、統一推播與綁定管理）
 // =========================================================================
 
 /**
- * 於【學生名冊】第 1 列建立 LINE 相關設定儲存格
- * L1:M1 -> 【LINE Channel Token】
- * N1:O1 -> 【原QRcode專案試算表網址/ID】
+ * School LINE Hub 客戶端 SDK (若環境中尚未定義則初始化)
+ */
+var LineHubClient = this.LineHubClient || (function() {
+  function Client(config) {
+    if (!config || !config.hubUrl || !config.appId || !config.appSecret) {
+      throw new Error("LineHubClient 初始化失敗：必須提供 hubUrl, appId 與 appSecret！");
+    }
+    this.hubUrl = config.hubUrl.trim();
+    this.appId = config.appId.trim();
+    this.appSecret = config.appSecret.trim();
+    this.timeout = config.timeout || 30000;
+  }
+
+  Client.prototype._post = function(action, extraPayload) {
+    var payload = Object.assign({
+      action: action,
+      appId: this.appId,
+      appSecret: this.appSecret
+    }, extraPayload || {});
+
+    var jsonStr = JSON.stringify(payload);
+
+    if (typeof UrlFetchApp !== 'undefined') {
+      try {
+        var resp = UrlFetchApp.fetch(this.hubUrl, {
+          method: 'post',
+          contentType: 'application/json',
+          payload: jsonStr,
+          muteHttpExceptions: true
+        });
+        var code = resp.getResponseCode();
+        var body = resp.getContentText();
+        var parsed = {};
+        try {
+          parsed = JSON.parse(body);
+        } catch (e) {
+          parsed = { status: 'error', code: code, raw: body };
+        }
+        return parsed;
+      } catch (gasErr) {
+        return { status: 'error', message: gasErr.toString() };
+      }
+    }
+
+    if (typeof fetch !== 'undefined') {
+      return fetch(this.hubUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: jsonStr
+      }).then(function(res) {
+        return res.json();
+      }).catch(function(err) {
+        return { status: 'error', message: err.toString() };
+      });
+    }
+
+    throw new Error("找不到可用的 HTTP 客戶端 (UrlFetchApp 或 fetch)！");
+  };
+
+  Client.prototype.testConnection = function() {
+    return this._post('verify_client');
+  };
+
+  Client.prototype.getStudentBinding = function(target) {
+    return this._post('get_student_binding', { target: target });
+  };
+
+  Client.prototype.getAllBindingsSummary = function() {
+    return this._post('get_all_bindings_summary');
+  };
+
+  Client.prototype.registerStudents = function(studentsList) {
+    return this._post('register_students', { students: studentsList });
+  };
+
+  Client.prototype.sendPushNotification = function(options) {
+    return this._post('send_push', {
+      target: {
+        seatNo: options.seatNo,
+        studentId: options.studentId,
+        studentName: options.studentName,
+        token: options.token,
+        title: options.title,
+        body: options.body,
+        url: options.url,
+        customMessage: options.customMessage
+      }
+    });
+  };
+
+  Client.prototype.sendBatchPush = function(targets, messageTemplate) {
+    return this._post('send_push', {
+      targets: targets,
+      messageTemplate: messageTemplate
+    });
+  };
+
+  return Client;
+})();
+
+/**
+ * 預設 School LINE Hub 連線組態
+ */
+var SCHOOL_LINE_HUB_DEFAULT_CONFIG = {
+  hubUrl: 'https://script.google.com/macros/s/AKfycbx3FmbjzzlZ0AsEe7CXFMxQeW5aJEfVjN7kTA7DnY7IJ8H909MgjPWRRB3kFgxDdtu5sg/exec',
+  appId: 'PROJECT_SCORE',
+  appSecret: 'sec_score_demo_7182934'
+};
+
+/**
+ * 取得目前 School LINE Hub 連線組態（支援屬性覆寫，預設即為官方中樞）
+ */
+function getLineHubConfig_() {
+  var prop = PropertiesService.getScriptProperties();
+  var hubUrl = (prop.getProperty('LINE_HUB_URL') || '').trim() || SCHOOL_LINE_HUB_DEFAULT_CONFIG.hubUrl;
+  var appId = (prop.getProperty('LINE_HUB_APP_ID') || '').trim() || SCHOOL_LINE_HUB_DEFAULT_CONFIG.appId;
+  var appSecret = (prop.getProperty('LINE_HUB_APP_SECRET') || '').trim() || SCHOOL_LINE_HUB_DEFAULT_CONFIG.appSecret;
+
+  return {
+    hubUrl: hubUrl,
+    appId: appId,
+    appSecret: appSecret
+  };
+}
+
+/**
+ * 實例化 LineHubClient 客戶端
+ */
+function getLineHubClient_() {
+  return new LineHubClient(getLineHubConfig_());
+}
+
+/**
+ * 於【學生名冊】第 1 列建立 School LINE Hub 相關標籤儲存格
  */
 function initLineSettingsCellsOnRoster_(sSheet) {
   if (!sSheet) return;
   try {
     var l1Val = (sSheet.getRange(1, 12).getValue() || '').toString().trim();
-    if (l1Val !== '【LINE Token】' && l1Val !== '【LINE Channel Token】') {
-      sSheet.getRange(1, 12).setValue('【LINE Token】')
+    if (l1Val !== '【School LINE Hub】') {
+      sSheet.getRange(1, 12).setValue('【School LINE Hub】')
         .setFontWeight('bold').setBackground('#f1f5f9').setFontColor('#047857').setHorizontalAlignment('center');
-      var existingToken = getLineChannelAccessToken_();
-      if (existingToken) {
-        sSheet.getRange(1, 13).setValue(existingToken).setFontFamily('monospace').setFontSize(9);
-      }
+      sSheet.getRange(1, 13).setValue('PROJECT_SCORE (中樞管理)')
+        .setFontFamily('monospace').setFontSize(9).setHorizontalAlignment('center');
       sSheet.setColumnWidth(11, 25);
-      sSheet.setColumnWidth(12, 120);
+      sSheet.setColumnWidth(12, 140);
       sSheet.setColumnWidth(13, 160);
     }
 
     var n1Val = (sSheet.getRange(1, 14).getValue() || '').toString().trim();
-    if (n1Val !== '【原專案試算表】' && n1Val !== '【原QRcode試算表】') {
-      sSheet.getRange(1, 14).setValue('【原專案試算表】')
+    if (n1Val !== '【中樞連線狀態】') {
+      sSheet.getRange(1, 14).setValue('【中樞連線狀態】')
         .setFontWeight('bold').setBackground('#f1f5f9').setFontColor('#0369a1').setHorizontalAlignment('center');
-      var existingUrl = getSourceQrProjectSpreadsheetUrl_();
-      if (existingUrl) {
-        sSheet.getRange(1, 15).setValue(existingUrl).setFontFamily('monospace').setFontSize(9);
-      }
+      sSheet.getRange(1, 15).setValue('ACTIVE')
+        .setFontFamily('monospace').setFontSize(9).setHorizontalAlignment('center');
       sSheet.setColumnWidth(14, 130);
-      sSheet.setColumnWidth(15, 200);
+      sSheet.setColumnWidth(15, 120);
     }
   } catch (err) {}
 }
 
 /**
- * 取得 LINE Channel Access Token（優先順序：試算表 M1 > ScriptProperties）
+ * 依學生代碼與座號，自各科目成績分頁提取即時成績摘要 (Score Summary)
+ * 送出給 School LINE Hub 作為推播內文
  */
-function getLineChannelAccessToken_() {
+function generateStudentScoreSummary_(studentToken, studentSeat, studentName) {
+  var summaryLines = [];
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sSheet = ss.getSheetByName('學生名冊');
-    if (sSheet && sSheet.getLastRow() >= 1) {
-      var val = (sSheet.getRange(1, 13).getValue() || '').toString().trim();
-      if (val && val !== '【LINE Token】') return val;
+    var sheets = ss.getSheets();
+    for (var i = 0; i < sheets.length; i++) {
+      var sh = sheets[i];
+      if (isSystemSheet(sh.getName())) continue;
+      var parsed = parseDailySubjectSheet(sh);
+      if (parsed) {
+        var sSeat = normalizeSeatNumber(studentSeat);
+        var stSubj = parsed.studentMap[sSeat] || parsed.studentMap['NAME_' + studentName];
+        if (stSubj && stSubj.overallAverage !== null && stSubj.totalScoresCount > 0) {
+          summaryLines.push('• ' + stSubj.subject + '：均分 ' + stSubj.overallAverage + ' 分 (已評量 ' + stSubj.totalScoresCount + ' 次)');
+        }
+      }
     }
-  } catch (e) {}
+  } catch (e) {
+    Logger.log('計算成績摘要失敗: ' + e.toString());
+  }
 
-  var prop = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_ACCESS_TOKEN');
-  return (prop || '').trim();
+  if (summaryLines.length === 0) {
+    return '最新平時評量成績已完成登錄，歡迎點擊下方專屬手札連結查閱學習歷程。';
+  }
+
+  return '目前平時評量成績摘要：\n' + summaryLines.join('\n');
 }
 
 /**
- * 取得原 QRcode 專案的 Google 試算表網址或 ID（優先順序：試算表 O1/N1 > ScriptProperties）
- */
-function getSourceQrProjectSpreadsheetUrl_() {
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sSheet = ss.getSheetByName('學生名冊');
-    if (sSheet && sSheet.getLastRow() >= 1) {
-      // 優先讀取 O1 (第 15 欄)
-      var val15 = (sSheet.getRange(1, 15).getValue() || '').toString().trim();
-      if (val15 && val15 !== '【原專案試算表】' && val15 !== '【原QRcode試算表】') return val15;
-      // 容錯讀取 N1 (第 14 欄，避免使用者貼錯格)
-      var val14 = (sSheet.getRange(1, 14).getValue() || '').toString().trim();
-      if (val14 && (val14.indexOf('http') === 0 || val14.length > 25) && val14 !== '【原專案試算表】' && val14 !== '【原QRcode試算表】') return val14;
-    }
-  } catch (e) {}
-
-  var prop = PropertiesService.getScriptProperties().getProperty('SOURCE_QR_PROJECT_SPREADSHEET');
-  return (prop || '').trim();
-}
-
-/**
- * 從網址或字串提煉 Google 試算表 ID
- */
-function extractSpreadsheetId_(urlOrId) {
-  if (!urlOrId) return '';
-  var clean = urlOrId.toString().trim();
-  var match = clean.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-  if (match) return match[1];
-  return clean;
-}
-
-/**
- * ⚙️ 設定 LINE 推播與原專案連線（選單對話框）
- */
-function setupLinePushSettingsMenu() {
-  var ui = SpreadsheetApp.getUi();
-  var currentToken = getLineChannelAccessToken_();
-  var currentUrl = getSourceQrProjectSpreadsheetUrl_();
-
-  var tokenPrompt = '【步驟 1/2：設定 LINE Channel Access Token】\n\n' +
-    '目前 Token 狀態：' + (currentToken ? '✅ 已設定 (' + currentToken.slice(0, 10) + '...)' : '⚠️ 尚未設定') + '\n\n' +
-    '請輸入您原專案 LINE 官方帳號的「Channel Access Token」（從 LINE Developers 後台複製）：\n' +
-    '（若不修改請直接按「確定」）';
-
-  var res1 = ui.prompt('⚙️ 設定 LINE 推播 Token', tokenPrompt, ui.ButtonSet.OK_CANCEL);
-  if (res1.getSelectedButton() !== ui.Button.OK) return;
-  var newToken = res1.getResponseText().trim();
-  if (newToken) {
-    PropertiesService.getScriptProperties().setProperty('LINE_CHANNEL_ACCESS_TOKEN', newToken);
-    try {
-      var ss = SpreadsheetApp.getActiveSpreadsheet();
-      var sSheet = ss.getSheetByName('學生名冊');
-      if (sSheet) {
-        initLineSettingsCellsOnRoster_(sSheet);
-        sSheet.getRange(1, 13).setValue(newToken);
-      }
-    } catch (e) {}
-  }
-
-  var urlPrompt = '【步驟 2/2：設定原 QRcode 專案試算表網址/ID】\n\n' +
-    '目前試算表狀態：' + (currentUrl ? '✅ 已設定 (' + currentUrl.slice(0, 25) + '...)' : '⚠️ 尚未設定') + '\n\n' +
-    '請貼上原本 QRcode 專案（記錄家長 LINE 綁定）的 Google 試算表網址：\n' +
-    '系統將依「查詢代碼 (Token)」自動跨表比對家長 LINE userId！\n' +
-    '（若不修改請直接按「確定」）';
-
-  var res2 = ui.prompt('⚙️ 連線原專案試算表', urlPrompt, ui.ButtonSet.OK_CANCEL);
-  if (res2.getSelectedButton() !== ui.Button.OK) return;
-  var newUrl = res2.getResponseText().trim();
-  if (newUrl) {
-    PropertiesService.getScriptProperties().setProperty('SOURCE_QR_PROJECT_SPREADSHEET', newUrl);
-    try {
-      var ss = SpreadsheetApp.getActiveSpreadsheet();
-      var sSheet = ss.getSheetByName('學生名冊');
-      if (sSheet) {
-        initLineSettingsCellsOnRoster_(sSheet);
-        sSheet.getRange(1, 15).setValue(newUrl);
-      }
-    } catch (e) {}
-  }
-
-  ui.alert('✅ LINE 推播連線設定完成！\n\n' +
-    'Token：' + (getLineChannelAccessToken_() ? '已就緒' : '未設定') + '\n' +
-    '原專案試算表：' + (getSourceQrProjectSpreadsheetUrl_() ? '已連線' : '未設定') + '\n\n' +
-    '您現在可以在選單點選「📢 發送【平時成績已更新】LINE 通知給已綁定家長」進行測試或推播。');
-}
-
-/**
- * 讀取原專案試算表中的【查詢代碼 -> LINE User ID】綁定對照表
- * 具備強大容錯機制：
- * 1. 支援依【查詢代碼 Token】、【座號】或【學生姓名】三重交叉智慧比對。
- * 2. 智慧掃描所有工作表（包含 LINE綁定名冊、家長名冊、工作表1、Sheet1、表單回應等）。
- * 3. 啟發式自動辨識 LINE User ID 欄位（以 'U' 開頭長度 33 碼）。
- * 4. 支援回傳詳細除錯診斷資訊 (diagnosticInfo)。
- */
-function fetchSourceProjectLineBindingsMap_(diagnosticOut) {
-  var urlOrId = getSourceQrProjectSpreadsheetUrl_();
-  var bindings = {}; // { TOKEN: [userId1, userId2...] }
-  var diag = diagnosticOut || {};
-
-  diag.sourceUrlRaw = urlOrId;
-  diag.sheetsScanned = [];
-  diag.openSuccess = false;
-  diag.openError = '';
-  diag.matchedBy = [];
-
-  // 0. 建立本試算表【學生名冊】的比對字典（座號 -> Token、姓名 -> Token、有效 Token 表）
-  var seatToToken = {};
-  var nameToToken = {};
-  var knownTokens = {};
-  try {
-    var curSs = SpreadsheetApp.getActiveSpreadsheet();
-    var curSheet = curSs.getSheetByName('學生名冊');
-    if (curSheet && curSheet.getLastRow() > 1) {
-      var cData = curSheet.getDataRange().getValues();
-      for (var cr = 1; cr < cData.length; cr++) {
-        var cSeat = normalizeSeatNumber(cData[cr][1]);
-        var cName = (cData[cr][2] || '').toString().trim();
-        var cTok = (cData[cr][3] || '').toString().trim().toUpperCase();
-        if (cTok) {
-          knownTokens[cTok] = true;
-          if (cSeat) seatToToken[cSeat] = cTok;
-          if (cName) nameToToken[cName] = cTok;
-        }
-      }
-    }
-  } catch (e) {}
-
-  // 1. 若當前試算表【學生名冊】本身就包含 LINE_USER_ID 欄位
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sSheet = ss.getSheetByName('學生名冊');
-    if (sSheet && sSheet.getLastRow() > 1) {
-      var data = sSheet.getDataRange().getValues();
-      var headers = data[0] || [];
-      var lineColIdx = -1;
-      for (var c = 0; c < headers.length; c++) {
-        var hStr = (headers[c] || '').toString().trim();
-        if (/line.*id|line_user_id|userid|家長line/i.test(hStr)) {
-          lineColIdx = c;
-          break;
-        }
-      }
-      if (lineColIdx !== -1) {
-        for (var r = 1; r < data.length; r++) {
-          var tok = (data[r][3] || '').toString().trim().toUpperCase();
-          var uid = (data[r][lineColIdx] || '').toString().trim();
-          if (tok && uid && uid.indexOf('U') === 0) {
-            bindings[tok] = bindings[tok] || [];
-            if (bindings[tok].indexOf(uid) === -1) bindings[tok].push(uid);
-          }
-        }
-        if (Object.keys(bindings).length > 0) {
-          diag.matchedBy.push('當前學生名冊LINE欄位');
-        }
-      }
-    }
-  } catch (e) {}
-
-  // 2. 跨試算表連線原專案試算表
-  if (!urlOrId) {
-    diag.openError = '未提供原專案試算表網址 (O1 儲存格為空)';
-    return bindings;
-  }
-
-  // 診斷：是否貼成了 Google Apps Script Web App 網址或 HTML 網頁
-  if (/script\.google\.com/i.test(urlOrId)) {
-    diag.isGasUrl = true;
-    diag.openError = '您在 O1 儲存格貼成了 Google Apps Script (script.google.com) 部署網址，而非 Google 試算表 (docs.google.com/spreadsheets/d/...) 網址！';
-    return bindings;
-  }
-  if (/\.html|\.github\.io/i.test(urlOrId)) {
-    diag.isWebUrl = true;
-    diag.openError = '您在 O1 儲存格貼成了網頁展示網址，請改貼 Google 試算表網址！';
-    return bindings;
-  }
-
-  var ssId = extractSpreadsheetId_(urlOrId);
-  diag.ssId = ssId;
-  if (!ssId) {
-    diag.openError = '無法自輸入內容辨識 Google 試算表 ID';
-    return bindings;
-  }
-
-  try {
-    var sourceSs = SpreadsheetApp.openById(ssId);
-    if (!sourceSs) {
-      diag.openError = '無法開啟試算表 (openById 回傳空值)';
-      return bindings;
-    }
-    diag.openSuccess = true;
-
-    var sheets = sourceSs.getSheets();
-    for (var s = 0; s < sheets.length; s++) {
-      var sheet = sheets[s];
-      var name = sheet.getName();
-
-      // 當總分頁數 <= 6 時掃描全部，或優先掃描常見名稱
-      var shouldScan = sheets.length <= 6 || /line|家長|名冊|綁定|會員|用戶|家長名冊|回應|response|sheet|工作表|學生|清單|表單/i.test(name);
-      if (!shouldScan) continue;
-
-      var lastRow = sheet.getLastRow();
-      var lastCol = sheet.getLastColumn();
-      if (lastRow <= 1 || lastCol < 2) continue;
-
-      diag.sheetsScanned.push(name);
-
-      var sData = sheet.getRange(1, 1, Math.min(lastRow, 300), Math.min(lastCol, 20)).getValues();
-      var sHeaders = sData[0] || [];
-      var tokenCol = -1;
-      var uidCol = -1;
-      var seatCol = -1;
-      var nameCol = -1;
-
-      for (var hc = 0; hc < sHeaders.length; hc++) {
-        var headerName = (sHeaders[hc] || '').toString().trim();
-        if (/代碼|token|查詢代碼|code|通行碼|識別碼|驗證碼|學號/i.test(headerName)) tokenCol = hc;
-        if (/userid|line.*id|使用者id|用戶id|line_id|line.*uid|家長id|line帳號/i.test(headerName)) uidCol = hc;
-        if (/座號|seat/i.test(headerName)) seatCol = hc;
-        if (/姓名|學生姓名|學生|name/i.test(headerName)) nameCol = hc;
-      }
-
-      // 啟發式自動辨識 LINE User ID 欄位（以 'U' 開頭、長度 32~34 碼）
-      if (uidCol === -1 && sData.length > 1) {
-        for (var sampleCol = 0; sampleCol < sHeaders.length; sampleCol++) {
-          var hitCount = 0;
-          for (var testRow = 1; testRow < Math.min(sData.length, 6); testRow++) {
-            var sampleVal = (sData[testRow][sampleCol] || '').toString().trim();
-            if (sampleVal.indexOf('U') === 0 && sampleVal.length >= 32 && sampleVal.length <= 36) {
-              hitCount++;
-            }
-          }
-          if (hitCount >= 1) {
-            uidCol = sampleCol;
-            break;
-          }
-        }
-      }
-
-      // 若找到了 LINE User ID 欄位，開始提取綁定
-      if (uidCol !== -1) {
-        var matchedInThisSheet = 0;
-        for (var rowIdx = 1; rowIdx < sData.length; rowIdx++) {
-          var uVal = (sData[rowIdx][uidCol] || '').toString().trim();
-          if (!uVal || uVal.indexOf('U') !== 0 || uVal.length < 30) continue;
-
-          var targetToken = '';
-
-          // A. 優先以查詢代碼 (Token) 比對
-          if (tokenCol !== -1) {
-            var tVal = (sData[rowIdx][tokenCol] || '').toString().trim().toUpperCase();
-            if (tVal && knownTokens[tVal]) {
-              targetToken = tVal;
-              if (diag.matchedBy.indexOf('查詢代碼') === -1) diag.matchedBy.push('查詢代碼');
-            }
-          }
-
-          // B. 次之以座號比對（若原專案未記錄 Token 或代碼未對應）
-          if (!targetToken && seatCol !== -1) {
-            var sVal = normalizeSeatNumber(sData[rowIdx][seatCol]);
-            if (sVal && seatToToken[sVal]) {
-              targetToken = seatToToken[sVal];
-              if (diag.matchedBy.indexOf('座號比對') === -1) diag.matchedBy.push('座號比對');
-            }
-          }
-
-          // C. 再次以學生姓名比對
-          if (!targetToken && nameCol !== -1) {
-            var nVal = (sData[rowIdx][nameCol] || '').toString().trim();
-            if (nVal && nameToToken[nVal]) {
-              targetToken = nameToToken[nVal];
-              if (diag.matchedBy.indexOf('姓名比對') === -1) diag.matchedBy.push('姓名比對');
-            }
-          }
-
-          // D. 若原專案只有 Token 且名單未收錄，仍收納為直接對照
-          if (!targetToken && tokenCol !== -1) {
-            var rawTok = (sData[rowIdx][tokenCol] || '').toString().trim().toUpperCase();
-            if (rawTok) targetToken = rawTok;
-          }
-
-          if (targetToken) {
-            bindings[targetToken] = bindings[targetToken] || [];
-            if (bindings[targetToken].indexOf(uVal) === -1) {
-              bindings[targetToken].push(uVal);
-              matchedInThisSheet++;
-            }
-          }
-        }
-        if (matchedInThisSheet > 0) {
-          diag.detectedUidCol = sHeaders[uidCol] || ('第 ' + (uidCol + 1) + ' 欄');
-        }
-      }
-    }
-  } catch (err) {
-    diag.openError = err.toString();
-    Logger.log('跨表讀取原專案 LINE 綁定失敗: ' + err.toString());
-  }
-
-  diag.boundTokensCount = Object.keys(bindings).length;
-  return bindings;
-}
-
-/**
- * 呼叫 LINE Messaging API 發送單一推播訊息 (Push Message)
- */
-function sendLinePushMessage_(token, toUserId, messageText) {
-  if (!token || !toUserId || !messageText) {
-    return { success: false, error: '缺少參數' };
-  }
-
-  var url = 'https://api.line.me/v2/bot/message/push';
-  var payload = {
-    to: toUserId,
-    messages: [
-      {
-        type: 'text',
-        text: messageText
-      }
-    ]
-  };
-
-  var options = {
-    method: 'post',
-    contentType: 'application/json',
-    headers: {
-      Authorization: 'Bearer ' + token
-    },
-    payload: JSON.stringify(payload),
-    muteHttpExceptions: true
-  };
-
-  try {
-    var response = UrlFetchApp.fetch(url, options);
-    var statusCode = response.getResponseCode();
-    if (statusCode === 200) {
-      return { success: true };
-    } else {
-      var errBody = response.getContentText();
-      return { success: false, error: 'LINE 回應 ' + statusCode + ': ' + errBody };
-    }
-  } catch (err) {
-    return { success: false, error: err.toString() };
-  }
-}
-
-/**
- * 取得 LINE 推播設定與綁定狀態摘要（供網頁教師端與選單查詢）
+ * 取得 LINE 推播與 School LINE Hub 中樞綁定狀態摘要（供網頁教師端與選單查詢）
  */
 function getLinePushStatus_() {
-  var lineToken = getLineChannelAccessToken_();
-  var sourceUrl = getSourceQrProjectSpreadsheetUrl_();
+  var hubClient = getLineHubClient_();
+  var config = getLineHubConfig_();
+
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sSheet = ss.getSheetByName('學生名冊');
-  var diagnosticInfo = {};
-
   if (!sSheet || sSheet.getLastRow() <= 1) {
     return {
       status: 'success',
       success: true,
-      hasToken: !!lineToken,
-      hasSourceUrl: !!sourceUrl,
-      sourceUrl: sourceUrl || '',
-      diagnostic: diagnosticInfo,
+      hasToken: true,
+      hasSourceUrl: true,
+      hasHub: true,
+      hubConnected: true,
+      hubUrl: config.hubUrl,
+      appId: config.appId,
       totalStudents: 0,
       boundStudentsCount: 0,
       boundParentsCount: 0,
@@ -2928,16 +2726,24 @@ function getLinePushStatus_() {
     };
   }
 
+  // 1. 測試中樞連線
+  var testRes = {};
+  try {
+    testRes = hubClient.testConnection();
+  } catch (err) {
+    testRes = { status: 'error', message: err.toString() };
+  }
+
+  // 2. 批次取得全班綁定對照表
+  var summaryRes = {};
   var bindingsMap = {};
-  if (sourceUrl) {
-    try {
-      bindingsMap = fetchSourceProjectLineBindingsMap_(diagnosticInfo);
-    } catch (e) {
-      diagnosticInfo.openError = e.toString();
-      Logger.log('讀取原專案綁定失敗: ' + e.toString());
+  try {
+    summaryRes = hubClient.getAllBindingsSummary();
+    if (summaryRes && summaryRes.bindings) {
+      bindingsMap = summaryRes.bindings;
     }
-  } else {
-    diagnosticInfo.openError = '尚未於【學生名冊】O1 設定原專案試算表網址';
+  } catch (err) {
+    Logger.log('取得中樞綁定摘要失敗: ' + err.toString());
   }
 
   var rData = sSheet.getDataRange().getValues();
@@ -2946,19 +2752,25 @@ function getLinePushStatus_() {
   var boundStudentsCount = 0;
 
   for (var i = 1; i < rData.length; i++) {
-    var seat = (rData[i][1] || '').toString().trim();
+    var rawSeat = (rData[i][1] || '').toString().trim();
+    var seat = normalizeSeatNumber(rawSeat);
     var name = (rData[i][2] || '').toString().trim();
     var tok = (rData[i][3] || '').toString().trim().toUpperCase();
     var isEnabled = rData[i][4] !== false;
 
     if (!name || !tok || !isEnabled) continue;
 
-    var matchedUids = bindingsMap[tok] || [];
-    var pCount = matchedUids.length;
+    // 交叉比對中樞綁定：支援依座號（01 或 1）、查詢代碼 (Token)
+    var strippedSeat = rawSeat.replace(/^0+/, '');
+    var bInfo = bindingsMap[seat] || bindingsMap[strippedSeat] || bindingsMap[tok] || null;
+    var isBound = bInfo ? (bInfo.isBound !== false) : false;
+    var pCount = isBound ? 1 : 0;
+
     if (pCount > 0) {
       boundStudentsCount++;
       totalBoundParents += pCount;
     }
+
     studentsList.push({
       seat: seat,
       name: name,
@@ -2967,37 +2779,39 @@ function getLinePushStatus_() {
     });
   }
 
+  var hubConnected = testRes && (testRes.status === 'success' || summaryRes.status === 'success');
+
   return {
     status: 'success',
     success: true,
-    hasToken: !!lineToken,
-    hasSourceUrl: !!sourceUrl,
-    sourceUrl: sourceUrl || '',
-    diagnostic: diagnosticInfo,
+    hasToken: hubConnected,
+    hasSourceUrl: hubConnected,
+    hasHub: true,
+    hubConnected: hubConnected,
+    hubUrl: config.hubUrl,
+    appId: config.appId,
+    projectName: testRes.projectName || '平時成績管理系統',
     totalStudents: rData.length - 1,
     boundStudentsCount: boundStudentsCount,
     boundParentsCount: totalBoundParents,
-    students: studentsList
+    students: studentsList,
+    diagnostic: {
+      hubUrl: config.hubUrl,
+      appId: config.appId,
+      hubConnected: hubConnected,
+      hubMessage: testRes.message || (hubConnected ? '已成功連線 School LINE Hub 中樞' : (testRes.message || '中樞連線逾時')),
+      activeBindingsCount: testRes.activeBindingsCount || totalBoundParents
+    }
   };
 }
 
 /**
- * 執行 LINE 平時成績更新推播（供選單及網頁 API 調用）
+ * 執行平時成績更新推播（接入 School LINE Hub 中樞）
  */
 function executeLineScorePushNotifications_(params) {
   params = params || {};
-  var lineToken = getLineChannelAccessToken_();
-  if (!lineToken) {
-    return {
-      status: 'error',
-      success: false,
-      code: 'NO_TOKEN',
-      message: '尚未設定 LINE Channel Access Token！請於試算表【學生名冊】M1 儲存格填入 Token。'
-    };
-  }
+  var hubClient = getLineHubClient_();
 
-  var sourceUrl = getSourceQrProjectSpreadsheetUrl_();
-  var bindingsMap = fetchSourceProjectLineBindingsMap_();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sSheet = ss.getSheetByName('學生名冊');
   if (!sSheet || sSheet.getLastRow() <= 1) {
@@ -3010,27 +2824,23 @@ function executeLineScorePushNotifications_(params) {
   }
 
   var rData = sSheet.getDataRange().getValues();
-  var studentsToNotify = [];
-  var totalBoundParents = 0;
+  var allStudents = [];
 
   for (var i = 1; i < rData.length; i++) {
-    var seat = (rData[i][1] || '').toString().trim();
+    var rawSeat = (rData[i][1] || '').toString().trim();
+    var seat = normalizeSeatNumber(rawSeat);
     var name = (rData[i][2] || '').toString().trim();
     var tok = (rData[i][3] || '').toString().trim().toUpperCase();
     var isEnabled = rData[i][4] !== false;
 
     if (!name || !tok || !isEnabled) continue;
 
-    var matchedUids = bindingsMap[tok] || [];
-    if (matchedUids.length > 0) {
-      studentsToNotify.push({
-        seat: seat,
-        name: name,
-        token: tok,
-        userIds: matchedUids
-      });
-      totalBoundParents += matchedUids.length;
-    }
+    allStudents.push({
+      seat: seat,
+      rawSeat: rawSeat,
+      name: name,
+      token: tok
+    });
   }
 
   // 支援個別指定學生發送（傳入 token 或 tokens 逗號分隔列表）
@@ -3048,114 +2858,117 @@ function executeLineScorePushNotifications_(params) {
     }
   }
 
+  var studentsToNotify = allStudents;
   if (filterTokens.length > 0) {
-    studentsToNotify = studentsToNotify.filter(function(st) {
-      return filterTokens.indexOf(st.token.toUpperCase()) !== -1;
+    studentsToNotify = allStudents.filter(function(st) {
+      return filterTokens.indexOf(st.token) !== -1;
     });
-    totalBoundParents = 0;
-    for (var bi = 0; bi < studentsToNotify.length; bi++) {
-      totalBoundParents += studentsToNotify[bi].userIds.length;
-    }
   }
 
   if (studentsToNotify.length === 0) {
-    var notFoundMsg = (filterTokens.length > 0)
-      ? '所選的學生尚未綁定 LINE 家長，或查無此學生。'
-      : '尚未偵測到已綁定 LINE 的家長。請確認原專案試算表網址是否已在 O1 正確填寫，且兩試算表具備讀取權限。';
     return {
       status: 'error',
       success: false,
-      code: 'NO_BOUND_PARENTS',
-      message: notFoundMsg,
-      totalStudents: rData.length - 1,
-      boundCount: 0
+      code: 'NO_STUDENTS',
+      message: '查無符合條件的學生資料！'
     };
   }
 
   var gasUrl = (params.gasUrl || params.api || '').toString().trim() || ScriptApp.getService().getUrl() || '';
   var parentBaseUrl = (params.parentBaseUrl || '').toString().trim() || 'https://chy23.github.io/MPScore-Daily/parent.html';
 
-  var successCount = 0;
-  var failCount = 0;
-  var errors = [];
-
+  // 組裝推播目標，直接送出座號、姓名與成績摘要給中樞發送
+  var targets = [];
   for (var stIdx = 0; stIdx < studentsToNotify.length; stIdx++) {
     var stItem = studentsToNotify[stIdx];
-    var studentName = stItem.name;
-    var maskedName = studentName.length <= 2
-      ? studentName.charAt(0) + '○'
-      : studentName.charAt(0) + '○' + studentName.slice(2);
-
     var studentUrl = parentBaseUrl + '?t=' + encodeURIComponent(stItem.token);
     if (gasUrl) {
       studentUrl += '&api=' + encodeURIComponent(gasUrl);
     }
 
-    var messageText = '🔔【MPScore-Daily 平時成績通知】\n\n' +
-      '家長您好：\n' +
-      '老師已登錄 ' + maskedName + ' 最新的平時評量成績！\n\n' +
-      '📱 點擊下方專屬手札連結，立即查看各科平時表現與學習走勢：\n' +
-      studentUrl + '\n\n' +
-      '（各次評量難易度以班級成績估計。）';
+    // 計算各科成績摘要
+    var scoreSummary = generateStudentScoreSummary_(stItem.token, stItem.seat, stItem.name);
 
-    for (var uIdx = 0; uIdx < stItem.userIds.length; uIdx++) {
-      var uid = stItem.userIds[uIdx];
-      var sendRes = sendLinePushMessage_(lineToken, uid, messageText);
-      if (sendRes.success) {
-        successCount++;
-      } else {
-        failCount++;
-        if (errors.length < 5) {
-          errors.push(sendRes.error);
-        }
-        Logger.log('推播至 ' + uid + ' 失敗: ' + sendRes.error);
-      }
-    }
+    targets.push({
+      seatNo: stItem.seat,
+      studentName: stItem.name,
+      token: stItem.token,
+      title: '📊 【平時成績更新通知】',
+      body: scoreSummary,
+      url: studentUrl
+    });
   }
 
+  var template = {
+    title: '📊 【平時成績更新通知】',
+    body: '平時評量成績已完成登錄，請家長參閱最新學習手札。'
+  };
+
+  // 呼叫 LineHubClient 發送批次推播
+  var hubResult = {};
+  try {
+    hubResult = hubClient.sendBatchPush(targets, template);
+  } catch (sendErr) {
+    return {
+      status: 'error',
+      success: false,
+      message: 'School LINE Hub 中樞發送失敗: ' + sendErr.toString()
+    };
+  }
+
+  var sentCount = (hubResult && typeof hubResult.sentCount === 'number') ? hubResult.sentCount : 0;
+  var failedCount = (hubResult && typeof hubResult.failedCount === 'number') ? hubResult.failedCount : 0;
+  var skippedCount = (hubResult && typeof hubResult.skippedCount === 'number') ? hubResult.skippedCount : 0;
+
   return {
-    status: 'success',
-    success: true,
-    successCount: successCount,
-    failCount: failCount,
+    status: (hubResult.status === 'success' || sentCount > 0) ? 'success' : 'error',
+    success: (hubResult.status === 'success' || sentCount > 0),
+    successCount: sentCount,
+    failCount: failedCount,
+    skippedCount: skippedCount,
     studentCount: studentsToNotify.length,
-    totalBoundParents: totalBoundParents,
-    errors: errors
+    hubDetails: hubResult.details || [],
+    message: (sentCount > 0) ? ('成功透過 School LINE Hub 發送 ' + sentCount + ' 則成績通知！') : (hubResult.message || '中樞處理完成')
   };
 }
 
 /**
+ * ⚙️ 設定 School LINE Hub 中樞連線（選單對話框）
+ */
+function setupLinePushSettingsMenu() {
+  var ui = SpreadsheetApp.getUi();
+  var config = getLineHubConfig_();
+
+  var hubClient = getLineHubClient_();
+  var testRes = {};
+  try {
+    testRes = hubClient.testConnection();
+  } catch (e) {
+    testRes = { status: 'error', message: e.toString() };
+  }
+
+  var isOk = testRes && testRes.status === 'success';
+
+  var statusMsg = '【School LINE Hub 中樞接入資訊】\n\n' +
+    '• 中樞網址：' + config.hubUrl + '\n' +
+    '• 專案 App ID：' + config.appId + '\n' +
+    '• 連線狀態：' + (isOk ? '🟢 連線正常（' + (testRes.projectName || '平時成績管理系統') + '）' : '⚠️ 連線異常 (' + (testRes.message || '請確認中樞已部署') + ')') + '\n\n' +
+    '本系統已全面接入 School LINE Hub 統一中樞，無需再設定 LINE Channel Access Token，亦無需跨試算表讀取家長綁定！';
+
+  ui.alert('⚙️ School LINE Hub 中樞設定', statusMsg, ui.ButtonSet.OK);
+}
+
+/**
  * 📢 發送【平時成績已更新】LINE 通知給已綁定家長（選單呼叫，支援全班或個別發送）
- * 一次性聚合發送，每位家長只跳一則，不洩漏細項名稱與分數
+ * 透過 School LINE Hub 中樞發送座號、姓名與成績摘要
  */
 function sendLineScoreUpdateNotificationMenu() {
   var ui = SpreadsheetApp.getUi();
-  var lineToken = getLineChannelAccessToken_();
-
-  if (!lineToken) {
-    var ask = ui.alert('⚠️ 尚未設定 LINE Token', '尚未設定原專案的 LINE Channel Access Token！\n\n是否現在前往設定？', ui.ButtonSet.YES_NO);
-    if (ask === ui.Button.YES) {
-      setupLinePushSettingsMenu();
-    }
-    return;
-  }
-
   var status = getLinePushStatus_();
-  if (status.boundParentsCount === 0) {
-    ui.alert('ℹ️ 尚未偵測到已綁定 LINE 的家長',
-      '系統比對目前學生名冊，尚未在原專案試算表中找到符合「查詢代碼」的 LINE 家長。\n\n' +
-      '💡 請確認：\n' +
-      '1. 【學生名冊】的查詢代碼是否與原 QRcode 專案一致。\n' +
-      '2. 原專案試算表網址是否已於選單「⚙️ 設定 LINE 推播與原專案連線」或 O1 正確填入。\n' +
-      '3. 原專案試算表是否有開「知道連結的人均可檢視」或與本試算表同帳號。',
-      ui.ButtonSet.OK
-    );
-    return;
-  }
 
   // 詢問發送範圍：全班 vs 個別學生
   var askPrompt = ui.prompt(
-    '📢 發送【平時成績已更新】LINE 通知',
+    '📢 發送【平時成績已更新】LINE 通知（School LINE Hub 中樞）',
     '請選擇發送對象：\n' +
     '•【全班發送】：直接按「確定」（或輸入 ALL）\n' +
     '•【個別學生發送】：請輸入學生的「座號」（例如：5）或「查詢代碼」\n\n' +
@@ -3192,8 +3005,9 @@ function sendLineScoreUpdateNotificationMenu() {
     var confirmSingleMsg = '📢【個別發送成績更新通知確認】\n\n' +
       '• 推播對象：' + targetStudent.seat + '號 ' + targetStudent.name + '\n' +
       '• 查詢代碼：' + targetStudent.token + '\n' +
-      '• 推播訊息格式：簡潔提醒有新成績登錄，不洩漏細項名稱與分數，每位家長僅發送 1 則通知。\n\n' +
-      '確定要立即發送通知給該生家長嗎？';
+      '• 推播管道：School LINE Hub 中樞\n' +
+      '• 訊息內容：自動附帶各科最新成績摘要與個人專屬手札連結。\n\n' +
+      '確定要透過中樞發送通知給該生家長嗎？';
 
     var askConfirm = ui.alert('📢 確認發送 LINE 通知', confirmSingleMsg, ui.ButtonSet.YES_NO);
     if (askConfirm !== ui.Button.YES) return;
@@ -3201,8 +3015,9 @@ function sendLineScoreUpdateNotificationMenu() {
     var confirmMsg = '📢【全班發送成績更新通知確認】\n\n' +
       '• 全班學生人數：' + status.totalStudents + ' 人\n' +
       '• 已成功綁定 LINE 家長：' + status.boundParentsCount + ' 位（涵蓋 ' + status.boundStudentsCount + ' 位學生）\n' +
-      '• 推播訊息格式：簡潔提醒有新成績登錄，不洩漏細項名稱與分數，每位家長僅發送 1 則通知。\n\n' +
-      '確定要立即發送全班 LINE 成績更新通知嗎？';
+      '• 推播管道：School LINE Hub 中樞\n' +
+      '• 訊息內容：自動附帶每位學生各自的成績摘要與個人專屬手札連結。\n\n' +
+      '確定要立即透過中樞發送全班 LINE 成績更新通知嗎？';
 
     var askConfirm = ui.alert('📢 確認發送 LINE 通知', confirmMsg, ui.ButtonSet.YES_NO);
     if (askConfirm !== ui.Button.YES) return;
@@ -3210,11 +3025,12 @@ function sendLineScoreUpdateNotificationMenu() {
 
   var result = executeLineScorePushNotifications_(params);
   if (result.success) {
-    var resultMsg = '🎉【LINE 推播發送完畢】\n\n' +
+    var resultMsg = '🎉【School LINE Hub 推播發送完畢】\n\n' +
       '• 成功發送：' + result.successCount + ' 則訊息\n' +
       (result.failCount > 0 ? ('• 發送失敗：' + result.failCount + ' 則（可能家長已封鎖官方帳號）\n') : '') +
+      (result.skippedCount > 0 ? ('• 略過未綁定：' + result.skippedCount + ' 位學生\n') : '') +
       '• 涵蓋學生：' + result.studentCount + ' 位\n\n' +
-      '家長將在 LINE 官方帳號聊天室中收到最新成績更新提醒！';
+      '家長已在 LINE 官方帳號收到成績摘要與手札連結！';
     ui.alert(resultMsg);
   } else {
     ui.alert('⚠️ 發送失敗：' + result.message);
@@ -3239,8 +3055,8 @@ var MPScoreDailyEngine = {
   executeLineScorePushNotifications: executeLineScorePushNotifications_,
   getTeacherAdminKey: getTeacherAdminKey_,
   setTeacherAdminKey: setTeacherAdminKey_,
-  getLineChannelAccessToken: getLineChannelAccessToken_,
-  getSourceQrProjectSpreadsheetUrl: getSourceQrProjectSpreadsheetUrl_,
+  getLineHubClient: getLineHubClient_,
+  getLineHubConfig: getLineHubConfig_,
   clearAccessLogs: clearAccessLogs_,
   getRecentAccessLogs: getRecentAccessLogs_,
   getStudentAccessHistoryMap: getStudentAccessHistoryMap_,

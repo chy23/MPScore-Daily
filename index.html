@@ -615,14 +615,14 @@
                         </div>
                         <div>
                             <div class="flex items-center gap-2 flex-wrap">
-                                <span class="px-2.5 py-0.5 rounded-full bg-emerald-700 text-white text-xs font-black">STEP 4 新增功能</span>
-                                <h3 class="text-base sm:text-lg font-black text-slate-900">LINE 官方帳號新成績主動推播 ‧ 原 QRcode 專案無痛直連教學</h3>
+                                <span class="px-2.5 py-0.5 rounded-full bg-emerald-700 text-white text-xs font-black">STEP 4 智慧中樞</span>
+                                <h3 class="text-base sm:text-lg font-black text-slate-900">School LINE Hub 中樞直連 ‧ 免 Token、免跨表成績推播</h3>
                             </div>
-                            <p class="text-xs text-slate-600 mt-0.5">與原 QRcode 專案共用家長查詢代碼（Token），家長零操作、免重新綁定，每次改完成績一鍵發送 LINE 提醒！</p>
+                            <p class="text-xs text-slate-600 mt-0.5">原生接入校園 LINE 中樞（PROJECT_SCORE），免設定 Token、免跨表讀取，每次改完成績一鍵推播座號、姓名與成績摘要！</p>
                         </div>
                     </div>
                     <span class="text-xs font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 shrink-0 self-start sm:self-auto">
-                        ✨ 家長 0 負擔 ‧ 原 Bot 直接推播
+                        ✨ School LINE Hub 原生中樞接入
                     </span>
                 </div>
 
@@ -630,34 +630,34 @@
                     <!-- 教學卡 1 -->
                     <div class="p-4 rounded-2xl bg-white/90 border border-emerald-200/90 space-y-2.5">
                         <div class="flex items-center justify-between">
-                            <span class="px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-800 font-black text-[11px]">步驟 ①</span>
-                            <span class="text-[11px] text-slate-500 font-bold">只需設定一次</span>
+                            <span class="px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-800 font-black text-[11px]">特點 ①</span>
+                            <span class="text-[11px] text-slate-500 font-bold">免 Token 申請</span>
                         </div>
-                        <h4 class="font-black text-slate-900 text-sm">設定原專案 LINE Token</h4>
+                        <h4 class="font-black text-slate-900 text-sm">原生接入 School LINE Hub</h4>
                         <p class="text-slate-600">
-                            至 LINE Developers Console 複製原本班級 Bot 的 <b>Channel Access Token</b>。
+                            由校園中樞統一管理 LINE 官方帳號憑證，教師完全無需自行申請或設定 Channel Access Token。
                         </p>
                         <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 font-mono text-[11px] text-slate-700 space-y-1">
-                            <div>• 試算表選單點選：</div>
-                            <div class="font-bold text-emerald-800">「⚡ 工具 ➔ ⚙️ 設定 LINE 推播與原專案連線」</div>
-                            <div class="text-[10.5px] text-slate-500">（亦可直接在【學生名冊】第 1 列 M1 儲存格貼上 Token）</div>
+                            <div>• 專案接入代碼：</div>
+                            <div class="font-bold text-emerald-800 font-mono">App ID: PROJECT_SCORE</div>
+                            <div class="text-[10.5px] text-slate-500">（系統預設連線，隨開即用）</div>
                         </div>
                     </div>
 
                     <!-- 教學卡 2 -->
                     <div class="p-4 rounded-2xl bg-white/90 border border-emerald-200/90 space-y-2.5">
                         <div class="flex items-center justify-between">
-                            <span class="px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-800 font-black text-[11px]">步驟 ②</span>
-                            <span class="text-[11px] text-slate-500 font-bold">代碼自動對應</span>
+                            <span class="px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-800 font-black text-[11px]">特點 ②</span>
+                            <span class="text-[11px] text-slate-500 font-bold">成績摘要自動打包</span>
                         </div>
-                        <h4 class="font-black text-slate-900 text-sm">連線原 QRcode 試算表網址</h4>
+                        <h4 class="font-black text-slate-900 text-sm">直接送出座號、姓名與成績摘要</h4>
                         <p class="text-slate-600">
-                            將原本段考專案（記錄家長 LINE 綁定關係）的 <b>Google 試算表網址</b> 貼上。
+                            發送通知時，系統自動統整該生各科平時成績平均與評量次數，打包送至中樞發送。
                         </p>
                         <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 font-mono text-[11px] text-slate-700 space-y-1">
-                            <div>• 系統跨表自動比對：</div>
-                            <div class="font-bold text-sky-800">「查詢代碼 (Token) ➔ LINE userId」</div>
-                            <div class="text-[10.5px] text-slate-500">（只要代碼相同，家長完全不用重複加入好友或重新綁定！）</div>
+                            <div>• 訊息內容包含：</div>
+                            <div class="font-bold text-sky-800">「座號 + 姓名 + 各科平時均分摘要」</div>
+                            <div class="text-[10.5px] text-slate-500">（附帶個人專屬加密查閱手札連結）</div>
                         </div>
                     </div>
 
@@ -1421,7 +1421,7 @@
                     <div>
                         <div class="flex items-center gap-2">
                             <h3 class="text-base md:text-lg font-black tracking-tight text-white">MPScore-Daily 系統詳細更新紀錄</h3>
-                            <span class="text-[10px] bg-emerald-500 text-white font-black px-2 py-0.5 rounded-full">v3.4.0 最新版</span>
+                            <span class="text-[10px] bg-emerald-500 text-white font-black px-2 py-0.5 rounded-full">v3.5.0 最新版</span>
                         </div>
                         <p class="text-xs text-sky-100 mt-0.5">平時成績無痛結算 ‧ 親師雲端即時溝通 ‧ 國中小專用智慧平台</p>
                     </div>
@@ -1434,11 +1434,33 @@
             <!-- 更新日誌內容滾動區 -->
             <div class="p-5 md:p-8 overflow-y-auto space-y-6 text-xs text-slate-700 bg-slate-50/50 leading-relaxed">
 
-                <!-- v3.4.0 最新版里程碑 -->
+                <!-- v3.5.0 最新版里程碑 -->
                 <div class="bg-white p-5 rounded-3xl border border-emerald-300 shadow-sm space-y-4 relative overflow-hidden ring-2 ring-emerald-400/20">
                     <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                         <div class="flex items-center gap-2">
-                            <span class="text-xs font-black bg-emerald-600 text-white px-2.5 py-1 rounded-xl shadow-xs">v3.4.0 最新版</span>
+                            <span class="text-xs font-black bg-emerald-600 text-white px-2.5 py-1 rounded-xl shadow-xs">v3.5.0 最新版</span>
+                            <span class="text-sm font-black text-slate-900">🚀 接入 School LINE Hub 統一中樞 ‧ 免 Token、免跨表、自動發送成績摘要</span>
+                        </div>
+                        <span class="text-[11px] text-slate-400 font-mono font-bold">2026-10-29</span>
+                    </div>
+
+                    <div class="space-y-3.5">
+                        <div class="p-3.5 bg-emerald-50/80 rounded-2xl border border-emerald-200/80 text-[11px] text-emerald-950 font-bold space-y-1.5">
+                            <div>🎯 <b>本次核心功能更新說明</b>：</div>
+                            <ul class="list-disc list-inside font-normal text-slate-700 pl-1 space-y-1.5">
+                                <li><b>接入 School LINE Hub 校園中樞</b>：全面移除原本跨試算表讀取舊邏輯，原生引入 <code class="bg-emerald-100 px-1 py-0.5 rounded font-mono">LineHubClient</code> SDK 連接中樞（PROJECT_SCORE），免向 LINE Developers 申請 Token！</li>
+                                <li><b>自動產生各科平時成績摘要</b>：推播時自動彙整該生各科平時均分與評量次數（如：國語均分 92.5 分），直接送出座號、姓名與成績摘要給中樞發送。</li>
+                                <li><b>雙模式與多管道無縫延續</b>：名冊一鍵直發、全班群發與手機模擬器預覽後推播，全數無縫接軌中樞管線！</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- v3.4.0 里程碑 -->
+                <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-4 relative overflow-hidden">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-lg">v3.4.0</span>
                             <span class="text-sm font-black text-slate-900">💬 支援個別指定學生發送 LINE 成績通知 ‧ 多模式推播與名冊一鍵直發</span>
                         </div>
                         <span class="text-[11px] text-slate-400 font-mono font-bold">2026-10-29</span>
@@ -2139,9 +2161,9 @@
                     <div>
                         <div class="flex items-center gap-2 flex-wrap">
                             <h3 class="text-lg font-black tracking-tight text-white">LINE 家長成績更新推播中心</h3>
-                            <span class="text-[11px] font-extrabold bg-white/20 text-white px-2.5 py-0.5 rounded-full backdrop-blur-xs">原 QRcode 專案直連</span>
+                            <span class="text-[11px] font-extrabold bg-white/20 text-white px-2.5 py-0.5 rounded-full backdrop-blur-xs">School LINE Hub 中樞直連</span>
                         </div>
-                        <p class="text-xs text-emerald-100/90 mt-0.5">一次登記多項小考或作業分數後，向已綁定家長推播成績更新通知</p>
+                        <p class="text-xs text-emerald-100/90 mt-0.5">接入校園 LINE 智慧中樞 ‧ 免 Token、免跨表 ‧ 一鍵推播座號、姓名與成績摘要</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeLinePushModal()" aria-label="關閉" class="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center text-lg font-bold transition cursor-pointer">
@@ -2156,28 +2178,28 @@
                 <div class="p-4 rounded-2xl bg-white border border-emerald-200 shadow-2xs space-y-3">
                     <div class="flex items-center justify-between flex-wrap gap-2">
                         <span class="text-xs font-black text-slate-800 flex items-center gap-1.5">
-                            <span>🔍 雲端設定與家長綁定檢測狀態</span>
+                            <span>🔍 中樞連線與家長綁定檢測狀態</span>
                         </span>
                         <button type="button" onclick="checkLinePushStatusFromCloud()" id="btnRefreshLineStatus" class="min-h-[30px] px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold transition flex items-center gap-1 cursor-pointer">
                             <span>🔄 重新整理檢測</span>
                         </button>
                     </div>
 
-                    <!-- 3 個狀態指標 (Token / 原專案試算表 / 綁定人數) -->
+                    <!-- 3 個狀態指標 (中樞連線 / 專案 App ID / 綁定人數) -->
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
                         <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
-                            <span class="text-slate-500 font-bold">1. LINE Token</span>
+                            <span class="text-slate-500 font-bold">1. School LINE Hub</span>
                             <div class="mt-1">
                                 <span id="lineModalTokenBadge" class="inline-block px-2 py-0.5 rounded-md font-extrabold text-[11px] bg-slate-200 text-slate-600">檢測中...</span>
                             </div>
-                            <span class="text-[10.5px] text-slate-400 mt-1">試算表【學生名冊】M1</span>
+                            <span class="text-[10.5px] text-slate-400 mt-1">校園推播統一中樞</span>
                         </div>
                         <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
-                            <span class="text-slate-500 font-bold">2. 原專案試算表</span>
+                            <span class="text-slate-500 font-bold">2. 專案 App ID</span>
                             <div class="mt-1">
                                 <span id="lineModalSourceBadge" class="inline-block px-2 py-0.5 rounded-md font-extrabold text-[11px] bg-slate-200 text-slate-600">檢測中...</span>
                             </div>
-                            <span class="text-[10.5px] text-slate-400 mt-1">試算表【學生名冊】O1</span>
+                            <span class="text-[10.5px] text-slate-400 mt-1">PROJECT_SCORE</span>
                         </div>
                         <div class="p-3 rounded-xl bg-emerald-50/80 border border-emerald-200 flex flex-col justify-between">
                             <span class="text-emerald-800 font-bold">3. 已綁定家長</span>
@@ -2189,27 +2211,26 @@
                         </div>
                     </div>
 
-                    <!-- 設定指引提示（若尚未設定時展開） -->
-                    <div id="lineSettingsHelpBox" class="hidden p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1.5 leading-relaxed">
-                        <div class="font-extrabold flex items-center gap-1 text-amber-950">
-                            <span>⚠️ 尚未完成連線設定指引：</span>
+                    <!-- 設定指引提示（若尚未連線時展開） -->
+                    <div id="lineSettingsHelpBox" class="hidden p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 space-y-1.5 leading-relaxed">
+                        <div class="font-extrabold flex items-center gap-1 text-emerald-950">
+                            <span>✨ School LINE Hub 中樞接入說明：</span>
                         </div>
-                        <ol class="list-decimal list-inside space-y-1 text-[11.5px] text-amber-900">
-                            <li id="helpTokenItem">請於試算表【學生名冊】的 <b>M1 儲存格</b> 貼上原專案的 LINE Channel Access Token。</li>
-                            <li id="helpSourceUrlItem">請於試算表【學生名冊】的 <b>O1 儲存格</b> 貼上原 QRcode 專案的 Google 試算表網址。</li>
-                            <li>亦可隨時在試算表點選上方選單<b>「⚡ MPScore-Daily ➔ ⚙️ 設定 LINE 推播與原專案連線」</b>一鍵輸入。</li>
-                        </ol>
+                        <p class="text-[11.5px] text-emerald-800">
+                            本系統已原生接入 School LINE Hub 統一中樞（App ID: <code class="font-mono bg-emerald-100 px-1 py-0.5 rounded">PROJECT_SCORE</code>）。每次推播時自動發送該生座號、姓名、成績摘要與個人專屬手札連結，家長無需重複掃碼綁定！
+                        </p>
                     </div>
 
-                    <!-- 智能連線診斷提示（當已設定網址但偵測到 0 位綁定或發生連線異常時展開） -->
+                    <!-- 智能連線診斷提示（連線異常時展開） -->
                     <div id="lineDiagnosticBox" class="hidden p-3.5 rounded-xl bg-amber-50/90 border border-amber-300 text-xs text-amber-950 space-y-1.5 leading-relaxed">
                         <div class="font-black flex items-center gap-1.5 text-amber-950">
-                            <span>🔍 系統連線排查診斷：</span>
+                            <span>🔍 中樞連線排查診斷：</span>
                         </div>
                         <div id="lineDiagnosticMsg" class="text-[11.5px] text-amber-900 leading-normal">
                             <!-- JS 動態填入診斷訊息 -->
                         </div>
                     </div>
+                </div>
                 </div>
 
                 <!-- 推播對象模式切換（全班 vs 個別/勾選特定學生） -->
@@ -3164,10 +3185,10 @@ function testGitHubConnection() {
             const textEl = document.getElementById('linePushBtnText');
             if (!executeBtn || !textEl) return;
 
-            const hasToken = currentLinePushStatus && currentLinePushStatus.hasToken;
-            if (!hasToken) {
+            const isReady = currentLinePushStatus && (currentLinePushStatus.hasHub || currentLinePushStatus.hasToken || currentLinePushStatus.hubConnected);
+            if (!isReady) {
                 executeBtn.disabled = true;
-                textEl.textContent = '⚠️ 請先在試算表 M1 填寫 Token';
+                textEl.textContent = '⚠️ School LINE Hub 中樞尚未就緒';
                 return;
             }
 
@@ -3300,18 +3321,25 @@ function testGitHubConnection() {
                     renderLineCustomStudentList(document.getElementById('lineCustomStudentSearch')?.value);
                 }
 
-                // 更新 Token 狀態
-                if (data.hasToken) {
-                    if (tokenBadge) { tokenBadge.textContent = '✅ 已設定 (M1)'; tokenBadge.className = 'inline-block px-2 py-0.5 rounded-md font-extrabold text-[11px] bg-emerald-100 text-emerald-800'; }
+                // 更新 School LINE Hub 中樞與 App ID 狀態
+                if (data.hubConnected || data.hasHub || data.hasToken) {
+                    if (tokenBadge) {
+                        tokenBadge.textContent = '✅ 中樞已就緒';
+                        tokenBadge.className = 'inline-block px-2 py-0.5 rounded-md font-extrabold text-[11px] bg-emerald-100 text-emerald-800';
+                    }
+                    if (sourceBadge) {
+                        sourceBadge.textContent = 'PROJECT_SCORE';
+                        sourceBadge.className = 'inline-block px-2 py-0.5 rounded-md font-extrabold text-[11px] bg-sky-100 text-sky-800 font-mono';
+                    }
                 } else {
-                    if (tokenBadge) { tokenBadge.textContent = '⚠️ 待設定 (M1)'; tokenBadge.className = 'inline-block px-2 py-0.5 rounded-md font-extrabold text-[11px] bg-amber-100 text-amber-900'; }
-                }
-
-                // 更新原專案試算表狀態
-                if (data.hasSourceUrl) {
-                    if (sourceBadge) { sourceBadge.textContent = '✅ 已連線 (O1)'; sourceBadge.className = 'inline-block px-2 py-0.5 rounded-md font-extrabold text-[11px] bg-emerald-100 text-emerald-800'; }
-                } else {
-                    if (sourceBadge) { sourceBadge.textContent = '⚠️ 待設定 (O1)'; sourceBadge.className = 'inline-block px-2 py-0.5 rounded-md font-extrabold text-[11px] bg-amber-100 text-amber-900'; }
+                    if (tokenBadge) {
+                        tokenBadge.textContent = '⚠️ 中樞連線異常';
+                        tokenBadge.className = 'inline-block px-2 py-0.5 rounded-md font-extrabold text-[11px] bg-amber-100 text-amber-900';
+                    }
+                    if (sourceBadge) {
+                        sourceBadge.textContent = 'PROJECT_SCORE';
+                        sourceBadge.className = 'inline-block px-2 py-0.5 rounded-md font-extrabold text-[11px] bg-slate-100 text-slate-600 font-mono';
+                    }
                 }
 
                 // 綁定人數
@@ -3330,16 +3358,12 @@ function testGitHubConnection() {
                         : 'text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300';
                 }
                 if (quickBadge) {
-                    quickBadge.textContent = boundCount > 0 ? `共 ${boundCount} 位家長可接收推播` : '尚未連線綁定';
+                    quickBadge.textContent = boundCount > 0 ? `共 ${boundCount} 位家長可接收推播` : '中樞連線中';
                 }
 
                 // 是否顯示設定指引
-                if (!data.hasToken || !data.hasSourceUrl) {
+                if (!data.hubConnected && !data.hasHub && !data.hasToken) {
                     if (helpBox) helpBox.classList.remove('hidden');
-                    const helpTok = document.getElementById('helpTokenItem');
-                    const helpSrc = document.getElementById('helpSourceUrlItem');
-                    if (helpTok) helpTok.style.display = data.hasToken ? 'none' : 'list-item';
-                    if (helpSrc) helpSrc.style.display = data.hasSourceUrl ? 'none' : 'list-item';
                 } else {
                     if (helpBox) helpBox.classList.add('hidden');
                 }
@@ -3351,27 +3375,16 @@ function testGitHubConnection() {
                     const diag = data.diagnostic || {};
                     let diagHtml = '';
 
-                    if (diag.isGasUrl) {
-                        diagHtml = '❌ <b>貼錯網址格式</b>：您在試算表 O1 貼成了 Google Apps Script 部署網址 (<code>script.google.com</code>)。<br>👉 <b>解決方式</b>：請改貼原本 QRcode 專案的 <b>Google 試算表原本網址</b>（<code>https://docs.google.com/spreadsheets/d/.../edit</code>）。';
-                    } else if (diag.isWebUrl) {
-                        diagHtml = '❌ <b>貼錯網址格式</b>：您在試算表 O1 貼成了網頁展示網址，請改貼 Google 試算表 (Google Sheets) 網址。';
-                    } else if (diag.openError && diag.openError.includes('permission')) {
-                        diagHtml = `🔒 <b>跨試算表存取權限遭拒</b>：目前執行的 Google 帳號無法讀取該原專案試算表。<br>👉 <b>解決方式</b>：請打開原本記錄綁定的 Google 試算表，點擊右上角「共用」，將檢視權限分享給您目前部署此 GAS 的 Google 帳號。`;
-                    } else if (diag.openError && !data.hasSourceUrl) {
-                        diagHtml = '⚠️ 尚未於試算表【學生名冊】的 <b>O1 儲存格</b> 填入原 QRcode 專案試算表網址。';
-                    } else if (diag.openError) {
-                        diagHtml = `⚠️ <b>無法開啟原專案試算表</b>：<span class="font-mono text-[11px]">${diag.openError}</span><br>👉 請確認 O1 儲存格是正確的 Google 試算表網址。`;
-                    } else if (boundCount === 0 && data.hasSourceUrl) {
-                        const scanned = (diag.sheetsScanned && diag.sheetsScanned.length > 0) ? diag.sheetsScanned.join('、') : '無符合分頁';
-                        diagHtml = `⚠️ <b>已成功連線原試算表，但尚未比對到家長綁定紀錄</b>：<br>` +
-                            `• 已連線掃描工作表：【<b>${scanned}</b>】<br>` +
-                            `• <b>常見原因排查</b>：<br>` +
-                            `  1. <b>分頁名稱</b>：確認原試算表中記錄家長綁定的工作表名稱。<br>` +
-                            `  2. <b>欄位比對</b>：確認原試算表是否有「座號」、「姓名」、「代碼/Token」與「LINE ID」欄位。<br>` +
-                            `  3. <b>重新部署</b>：若剛在 Google Apps Script 編輯器更新程式碼，請務必點選「部署」➔「管理部署」➔ 編輯 ➔「新版本」➔「部署」才會生效！`;
+                    if (diag.hubConnected === false) {
+                        diagHtml = `⚠️ <b>School LINE Hub 中樞連線異常</b>：<span class="font-mono text-[11px]">${diag.hubMessage || '無法連線至中樞'}</span><br>👉 請確認中樞 GAS 專案已部署為 Web App 並給予所有人存取權限。`;
+                    } else if (boundCount === 0) {
+                        diagHtml = `ℹ️ <b>已連線 School LINE Hub 中樞（PROJECT_SCORE）</b>：<br>` +
+                            `• 中樞連線狀態：${diag.hubMessage || '正常就緒'}<br>` +
+                            `• 目前中樞尚未比對到本班學生的家長 LINE 綁定。<br>` +
+                            `• 家長在校園官方帳號完成座號綁定後，系統將自動比對並亮起綠色發送鈕！`;
                     }
 
-                    if (diagHtml && boundCount === 0) {
+                    if (diagHtml && (boundCount === 0 || diag.hubConnected === false)) {
                         diagMsg.innerHTML = diagHtml;
                         diagBox.classList.remove('hidden');
                     } else {
