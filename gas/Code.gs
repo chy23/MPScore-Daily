@@ -2611,7 +2611,7 @@ var LineHubClient = this.LineHubClient || (function() {
  * 預設 School LINE Hub 連線組態
  */
 var SCHOOL_LINE_HUB_DEFAULT_CONFIG = {
-  hubUrl: 'https://script.google.com/macros/s/AKfycbx3FmbjzzlZ0AsEe7CXFMxQeW5aJEfVjN7kTA7DnY7IJ8H909MgjPWRRB3kFgxDdtu5sg/exec',
+  hubUrl: 'https://script.google.com/macros/s/AKfycbzdGSGhHERp5WUsnXzTj-QomTjh4glPW8lAjNK9CdvdEsgrv89uDPawrTyGm_YZ0DQNJQ/exec',
   appId: 'PROJECT_SCORE',
   appSecret: 'sec_score_demo_7182934'
 };
@@ -2920,15 +2920,27 @@ function executeLineScorePushNotifications_(params) {
   var failedCount = (hubResult && typeof hubResult.failedCount === 'number') ? hubResult.failedCount : 0;
   var skippedCount = (hubResult && typeof hubResult.skippedCount === 'number') ? hubResult.skippedCount : 0;
 
+  var isSuccess = (sentCount > 0);
+  var msg = '';
+  if (isSuccess) {
+    msg = '成功透過 School LINE Hub 發送 ' + sentCount + ' 則成績通知！';
+  } else if (hubResult && hubResult.message) {
+    msg = hubResult.message;
+  } else if (skippedCount > 0) {
+    msg = '未發送：所選學生尚未綁定家長 LINE（請先於 LINE 完成綁定）';
+  } else {
+    msg = '發送失敗：中樞未送出任何訊息，請檢查連線狀態。';
+  }
+
   return {
-    status: (hubResult.status === 'success' || sentCount > 0) ? 'success' : 'error',
-    success: (hubResult.status === 'success' || sentCount > 0),
+    status: isSuccess ? 'success' : 'error',
+    success: isSuccess,
     successCount: sentCount,
     failCount: failedCount,
     skippedCount: skippedCount,
     studentCount: studentsToNotify.length,
     hubDetails: hubResult.details || [],
-    message: (sentCount > 0) ? ('成功透過 School LINE Hub 發送 ' + sentCount + ' 則成績通知！') : (hubResult.message || '中樞處理完成')
+    message: msg
   };
 }
 
