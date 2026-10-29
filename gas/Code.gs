@@ -3444,6 +3444,9 @@ function executeLineScorePushNotifications_(params) {
 
   var gasUrl = (params.gasUrl || params.api || '').toString().trim() || ScriptApp.getService().getUrl() || '';
   var parentBaseUrl = (params.parentBaseUrl || '').toString().trim() || 'https://chy23.github.io/MPScore-Daily/parent.html';
+  if (parentBaseUrl && !parentBaseUrl.endsWith('.html')) {
+    parentBaseUrl = (parentBaseUrl.endsWith('/') ? parentBaseUrl : parentBaseUrl + '/') + 'parent.html';
+  }
 
   var summaryOptions = {
     sinceDate: params.sinceDate || '',
