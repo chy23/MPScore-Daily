@@ -3192,11 +3192,17 @@ function testGitHubConnection() {
 
         let isFetchingSubjectCounts = false;
         function cleanSubjectDisplayName(name, sheetName) {
-            if (!name || typeof name !== 'string') return sheetName || '本科';
-            if (name.includes('GMT') || name.includes('台北標準時間') || name.includes('UTC')) {
-                return sheetName || '本科';
+            if (name && typeof name === 'string') {
+                if (!name.includes('GMT') && !name.includes('台北標準時間') && !name.includes('UTC') && !/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s/i.test(name)) {
+                    return name;
+                }
             }
-            return name;
+            if (sheetName && typeof sheetName === 'string') {
+                if (!sheetName.includes('GMT') && !sheetName.includes('台北標準時間') && !sheetName.includes('UTC') && !/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s/i.test(sheetName)) {
+                    return sheetName;
+                }
+            }
+            return '平時成績';
         }
 
         async function fetchSubjectCountsForSinceDate(targetDate) {
