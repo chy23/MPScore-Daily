@@ -2611,7 +2611,7 @@ var LineHubClient = this.LineHubClient || (function() {
  * 預設 School LINE Hub 連線組態
  */
 var SCHOOL_LINE_HUB_DEFAULT_CONFIG = {
-  hubUrl: 'https://script.google.com/macros/s/AKfycbzdGSGhHERp5WUsnXzTj-QomTjh4glPW8lAjNK9CdvdEsgrv89uDPawrTyGm_YZ0DQNJQ/exec',
+  hubUrl: 'https://script.google.com/macros/s/AKfycby4yrSdmztcbnmdHlGdLqqM9nBRT4vo6DwK8LmW1R-wi22qEKC_vcD-VvrDnUTp4Bm_Yg/exec',
   appId: 'PROJECT_SCORE',
   appSecret: 'sec_score_demo_7182934'
 };

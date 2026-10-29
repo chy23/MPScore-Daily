@@ -10,7 +10,7 @@
 1. **接入 School LINE Hub 校園統一中樞 (`gas/Code.gs`, `gas/LineHubClient.gs`, `client-sdk/LineHubClient.js`)**：
    - 徹底移除原本使用 `SpreadsheetApp.openById` / `openByUrl` 跨試算表讀取原專案 LINE 綁定之舊機制，消除跨 Google 帳號授權阻礙與個資暴露風險。
    - 原生引入 `LineHubClient` SDK，以標準 RESTful API 與 School LINE Hub 連接。
-   - 預設連線中樞網址：`https://script.google.com/macros/s/AKfycbzdGSGhHERp5WUsnXzTj-QomTjh4glPW8lAjNK9CdvdEsgrv89uDPawrTyGm_YZ0DQNJQ/exec`。
+   - 預設連線中樞網址：`https://script.google.com/macros/s/AKfycby4yrSdmztcbnmdHlGdLqqM9nBRT4vo6DwK8LmW1R-wi22qEKC_vcD-VvrDnUTp4Bm_Yg/exec`。
    - 預設接入專案：`App ID: PROJECT_SCORE` / `Secret: sec_score_demo_7182934`。
 2. **自動產生各科平時成績摘要 (Score Summary)**：
    - 推播發送時，系統自動掃描各科分頁，提取該生各科平時成績平均分數與已評量次數（如：`• 國語：均分 92.5 分 (已評量 5 次)`）。
