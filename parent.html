@@ -215,6 +215,18 @@
 
 <body class="min-h-screen flex flex-col selection:bg-sky-200 selection:text-sky-950">
 
+    <!-- 📱 教師端手機即時模擬預覽模式提示條 (絕不計入家長閱覽日誌與次數) -->
+    <div id="simulatedNoticeBanner" class="hidden no-print sticky top-0 z-50 bg-gradient-to-r from-indigo-700 via-purple-700 to-indigo-800 text-white text-xs font-bold py-2 px-3.5 shadow-md border-b border-indigo-400">
+        <div class="max-w-4xl mx-auto flex items-center justify-between gap-2 flex-wrap">
+            <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                <span class="font-black text-amber-300">📱 教師端手機即時畫面模擬</span>
+                <span class="text-indigo-100 text-[11px]">（🔒 安全保護：本次瀏覽不會計入家長閱覽紀錄或次數）</span>
+            </div>
+            <span class="text-[10px] font-mono bg-white/20 px-2 py-0.5 rounded-full">SIMULATION MODE</span>
+        </div>
+    </div>
+
     <!-- 頂部導覽列（Apple Liquid Glass 浮動半透明導覽層） -->
     <header class="sticky top-0 z-30 apple-glass-nav px-4 py-3">
         <div class="max-w-4xl mx-auto flex items-center justify-between gap-2">
@@ -2506,13 +2518,23 @@
             document.getElementById('errorSection').classList.add('hidden');
             document.getElementById('loadingSection').classList.remove('hidden');
 
+            const isSimulated = params.get('sim') === '1' || params.get('preview') === '1' || params.get('simulate') === '1';
+            if (isSimulated) {
+                const simBanner = document.getElementById('simulatedNoticeBanner');
+                if (simBanner) simBanner.classList.remove('hidden');
+            }
+
             try {
                 const sep = apiUrl.includes('?') ? '&' : '?';
-                const device = /iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'iPhone / iOS' :
+                let device = /iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'iPhone / iOS' :
                                /Android/i.test(navigator.userAgent) ? 'Android 手機' :
                                /Macintosh/i.test(navigator.userAgent) ? 'Mac 電腦' :
                                /Windows/i.test(navigator.userAgent) ? 'Windows 電腦' : '行動裝置';
-                const res = await fetch(`${apiUrl}${sep}token=${encodeURIComponent(cleanToken)}&device=${encodeURIComponent(device)}&nocache=1&v=8&t=${Date.now()}`, { redirect: 'follow', cache: 'no-store' });
+                if (isSimulated) {
+                    device = '模擬預覽 (教師端)';
+                }
+                const simQuery = isSimulated ? '&sim=1' : '';
+                const res = await fetch(`${apiUrl}${sep}token=${encodeURIComponent(cleanToken)}&device=${encodeURIComponent(device)}${simQuery}&nocache=1&v=8&t=${Date.now()}`, { redirect: 'follow', cache: 'no-store' });
                 const data = await res.json();
                 if (data && (data.status === 'success' || data.success === true) && data.student) {
                     renderPortfolio(normalizeCloudPayload(data));

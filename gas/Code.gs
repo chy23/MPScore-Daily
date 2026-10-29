@@ -647,7 +647,8 @@ function doGet(e) {
     if (action === 'ping') {
       output = checkSystemStatus();
     } else if (action === 'query') {
-      output = getStudentDailyPortfolioByToken(params.token, params.device, (params.nocache === '1' || params.reload === '1'));
+      var isSimulated = (params.sim === '1' || params.preview === '1' || params.simulate === '1' || (params.device && params.device.indexOf('模擬') !== -1));
+      output = getStudentDailyPortfolioByToken(params.token, params.device, (params.nocache === '1' || params.reload === '1'), isSimulated);
     } else if (action === 'getStudentLogs') {
       var ss = SpreadsheetApp.getActiveSpreadsheet();
       var studentToken = (params.token || '').toString().trim().toUpperCase();
@@ -696,6 +697,10 @@ function doGet(e) {
       } else if (action === 'appendDailyScores') {
         var body = params.payload || (e && e.postData && e.postData.contents ? e.postData.contents : '');
         output = appendDailyScores(body);
+      } else if (action === 'getLineStatus') {
+        output = getLinePushStatus_();
+      } else if (action === 'sendLineNotification') {
+        output = executeLineScorePushNotifications_(params);
       } else if (action === 'setTeacherKey') {
         var newKey = (params.newKey || '').toString().trim();
         if (newKey && newKey.length >= 4) {
@@ -1790,7 +1795,7 @@ function checkSystemStatus() {
 /**
  * 家長端依 Token 查詢該生所有平時成績歷程資料 (高資安隔離)
  */
-function getStudentDailyPortfolioByToken(token, clientDevice, skipCacheOpt) {
+function getStudentDailyPortfolioByToken(token, clientDevice, skipCacheOpt, isSimulated) {
   var cleanToken = (token || '').toString().trim().toUpperCase();
   if (!cleanToken) {
     return { status: 'error', success: false, message: '請掃描有效的專屬 QR Code！' };
@@ -1829,10 +1834,12 @@ function getStudentDailyPortfolioByToken(token, clientDevice, skipCacheOpt) {
     return { status: 'error', success: false, message: '查無此專屬代碼或尚未啟用，請確認通知單上的 QR Code 是否正確。' };
   }
 
-  // 記錄家長閱覽日誌（含 3 分鐘防抖保護）
-  try {
-    recordParentAccessLog_(ss, sSheet, matchedStudent, matchedRowIdx, clientDevice);
-  } catch (logErr) {}
+  // 記錄家長閱覽日誌（含 3 分鐘防抖保護。若為教師端模擬預覽模式則絕不記錄，保護真實數據純淨）
+  if (!isSimulated) {
+    try {
+      recordParentAccessLog_(ss, sSheet, matchedStudent, matchedRowIdx, clientDevice);
+    } catch (logErr) {}
+  }
 
   var skipCache = Boolean(skipCacheOpt);
   var cache = CacheService.getScriptCache();
@@ -2775,31 +2782,107 @@ function sendLinePushMessage_(token, toUserId, messageText) {
 }
 
 /**
- * 📢 發送【平時成績已更新】LINE 通知給已綁定家長（選單呼叫）
- * 一次性聚合發送，每位家長只跳一則，不洩漏細項名稱與分數
+ * 取得 LINE 推播設定與綁定狀態摘要（供網頁教師端與選單查詢）
  */
-function sendLineScoreUpdateNotificationMenu() {
-  var ui = SpreadsheetApp.getUi();
+function getLinePushStatus_() {
   var lineToken = getLineChannelAccessToken_();
+  var sourceUrl = getSourceQrProjectSpreadsheetUrl_();
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sSheet = ss.getSheetByName('學生名冊');
 
-  if (!lineToken) {
-    var ask = ui.alert('⚠️ 尚未設定 LINE Token', '尚未設定原專案的 LINE Channel Access Token！\n\n是否現在前往設定？', ui.ButtonSet.YES_NO);
-    if (ask === ui.Button.YES) {
-      setupLinePushSettingsMenu();
-    }
-    return;
+  if (!sSheet || sSheet.getLastRow() <= 1) {
+    return {
+      status: 'success',
+      success: true,
+      hasToken: !!lineToken,
+      hasSourceUrl: !!sourceUrl,
+      sourceUrl: sourceUrl || '',
+      totalStudents: 0,
+      boundStudentsCount: 0,
+      boundParentsCount: 0,
+      students: []
+    };
   }
 
+  var bindingsMap = {};
+  if (sourceUrl) {
+    try {
+      bindingsMap = fetchSourceProjectLineBindingsMap_();
+    } catch (e) {
+      Logger.log('讀取原專案綁定失敗: ' + e.toString());
+    }
+  }
+
+  var rData = sSheet.getDataRange().getValues();
+  var studentsList = [];
+  var totalBoundParents = 0;
+  var boundStudentsCount = 0;
+
+  for (var i = 1; i < rData.length; i++) {
+    var seat = (rData[i][1] || '').toString().trim();
+    var name = (rData[i][2] || '').toString().trim();
+    var tok = (rData[i][3] || '').toString().trim().toUpperCase();
+    var isEnabled = rData[i][4] !== false;
+
+    if (!name || !tok || !isEnabled) continue;
+
+    var matchedUids = bindingsMap[tok] || [];
+    var pCount = matchedUids.length;
+    if (pCount > 0) {
+      boundStudentsCount++;
+      totalBoundParents += pCount;
+    }
+    studentsList.push({
+      seat: seat,
+      name: name,
+      token: tok,
+      boundParentsCount: pCount
+    });
+  }
+
+  return {
+    status: 'success',
+    success: true,
+    hasToken: !!lineToken,
+    hasSourceUrl: !!sourceUrl,
+    sourceUrl: sourceUrl || '',
+    totalStudents: rData.length - 1,
+    boundStudentsCount: boundStudentsCount,
+    boundParentsCount: totalBoundParents,
+    students: studentsList
+  };
+}
+
+/**
+ * 執行 LINE 平時成績更新推播（供選單及網頁 API 調用）
+ */
+function executeLineScorePushNotifications_(params) {
+  params = params || {};
+  var lineToken = getLineChannelAccessToken_();
+  if (!lineToken) {
+    return {
+      status: 'error',
+      success: false,
+      code: 'NO_TOKEN',
+      message: '尚未設定 LINE Channel Access Token！請於試算表【學生名冊】M1 儲存格填入 Token。'
+    };
+  }
+
+  var sourceUrl = getSourceQrProjectSpreadsheetUrl_();
   var bindingsMap = fetchSourceProjectLineBindingsMap_();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sSheet = ss.getSheetByName('學生名冊');
   if (!sSheet || sSheet.getLastRow() <= 1) {
-    ui.alert('⚠️ 查無學生名冊資料！');
-    return;
+    return {
+      status: 'error',
+      success: false,
+      code: 'NO_ROSTER',
+      message: '查無學生名冊資料！'
+    };
   }
 
   var rData = sSheet.getDataRange().getValues();
-  var studentsToNotify = []; // { seat, name, token, userIds: [] }
+  var studentsToNotify = [];
   var totalBoundParents = 0;
 
   for (var i = 1; i < rData.length; i++) {
@@ -2823,32 +2906,22 @@ function sendLineScoreUpdateNotificationMenu() {
   }
 
   if (studentsToNotify.length === 0) {
-    ui.alert('ℹ️ 尚未偵測到已綁定 LINE 的家長',
-      '系統比對目前學生名冊，尚未在原專案試算表中找到符合「查詢代碼」的 LINE 家長。\n\n' +
-      '💡 請確認：\n' +
-      '1. 【學生名冊】的查詢代碼是否與原 QRcode 專案一致。\n' +
-      '2. 原專案試算表網址是否已於選單「⚙️ 設定 LINE 推播與原專案連線」正確填入。\n' +
-      '3. 原專案試算表是否有開「知道連結的人均可檢視」或與本試算表同帳號。',
-      ui.ButtonSet.OK
-    );
-    return;
+    return {
+      status: 'error',
+      success: false,
+      code: 'NO_BOUND_PARENTS',
+      message: '尚未偵測到已綁定 LINE 的家長。請確認原專案試算表網址是否已在 O1 正確填寫，且兩試算表具備讀取權限。',
+      totalStudents: rData.length - 1,
+      boundCount: 0
+    };
   }
 
-  // 取得部署的 Web App API 網址，組合成家長查詢專屬短網址
-  var gasUrl = ScriptApp.getService().getUrl() || '';
-  var parentBaseUrl = 'https://chy23.github.io/MPScore-Daily/parent.html';
-
-  var confirmMsg = '📢【發送成績更新通知確認】\n\n' +
-    '• 全班學生人數：' + (rData.length - 1) + ' 人\n' +
-    '• 已成功綁定 LINE 家長：' + totalBoundParents + ' 位（涵蓋 ' + studentsToNotify.length + ' 位學生）\n' +
-    '• 推播訊息格式：簡潔提醒有新成績登錄，不洩漏細項名稱與分數，每位家長僅發送 1 則通知。\n\n' +
-    '確定要立即發送 LINE 成績更新通知嗎？';
-
-  var askConfirm = ui.alert('📢 確認發送 LINE 通知', confirmMsg, ui.ButtonSet.YES_NO);
-  if (askConfirm !== ui.Button.YES) return;
+  var gasUrl = (params.gasUrl || params.api || '').toString().trim() || ScriptApp.getService().getUrl() || '';
+  var parentBaseUrl = (params.parentBaseUrl || '').toString().trim() || 'https://chy23.github.io/MPScore-Daily/parent.html';
 
   var successCount = 0;
   var failCount = 0;
+  var errors = [];
 
   for (var stIdx = 0; stIdx < studentsToNotify.length; stIdx++) {
     var stItem = studentsToNotify[stIdx];
@@ -2876,18 +2949,74 @@ function sendLineScoreUpdateNotificationMenu() {
         successCount++;
       } else {
         failCount++;
+        if (errors.length < 5) {
+          errors.push(sendRes.error);
+        }
         Logger.log('推播至 ' + uid + ' 失敗: ' + sendRes.error);
       }
     }
   }
 
-  var resultMsg = '🎉【LINE 推播發送完畢】\n\n' +
-    '• 成功發送：' + successCount + ' 則訊息\n' +
-    (failCount > 0 ? ('• 發送失敗：' + failCount + ' 則（可能家長已封鎖官方帳號）\n') : '') +
-    '• 涵蓋學生：' + studentsToNotify.length + ' 位\n\n' +
-    '家長將在 LINE 官方帳號聊天室中收到最新成績更新提醒！';
+  return {
+    status: 'success',
+    success: true,
+    successCount: successCount,
+    failCount: failCount,
+    studentCount: studentsToNotify.length,
+    totalBoundParents: totalBoundParents,
+    errors: errors
+  };
+}
 
-  ui.alert(resultMsg);
+/**
+ * 📢 發送【平時成績已更新】LINE 通知給已綁定家長（選單呼叫）
+ * 一次性聚合發送，每位家長只跳一則，不洩漏細項名稱與分數
+ */
+function sendLineScoreUpdateNotificationMenu() {
+  var ui = SpreadsheetApp.getUi();
+  var lineToken = getLineChannelAccessToken_();
+
+  if (!lineToken) {
+    var ask = ui.alert('⚠️ 尚未設定 LINE Token', '尚未設定原專案的 LINE Channel Access Token！\n\n是否現在前往設定？', ui.ButtonSet.YES_NO);
+    if (ask === ui.Button.YES) {
+      setupLinePushSettingsMenu();
+    }
+    return;
+  }
+
+  var status = getLinePushStatus_();
+  if (status.boundParentsCount === 0) {
+    ui.alert('ℹ️ 尚未偵測到已綁定 LINE 的家長',
+      '系統比對目前學生名冊，尚未在原專案試算表中找到符合「查詢代碼」的 LINE 家長。\n\n' +
+      '💡 請確認：\n' +
+      '1. 【學生名冊】的查詢代碼是否與原 QRcode 專案一致。\n' +
+      '2. 原專案試算表網址是否已於選單「⚙️ 設定 LINE 推播與原專案連線」或 O1 正確填入。\n' +
+      '3. 原專案試算表是否有開「知道連結的人均可檢視」或與本試算表同帳號。',
+      ui.ButtonSet.OK
+    );
+    return;
+  }
+
+  var confirmMsg = '📢【發送成績更新通知確認】\n\n' +
+    '• 全班學生人數：' + status.totalStudents + ' 人\n' +
+    '• 已成功綁定 LINE 家長：' + status.boundParentsCount + ' 位（涵蓋 ' + status.boundStudentsCount + ' 位學生）\n' +
+    '• 推播訊息格式：簡潔提醒有新成績登錄，不洩漏細項名稱與分數，每位家長僅發送 1 則通知。\n\n' +
+    '確定要立即發送 LINE 成績更新通知嗎？';
+
+  var askConfirm = ui.alert('📢 確認發送 LINE 通知', confirmMsg, ui.ButtonSet.YES_NO);
+  if (askConfirm !== ui.Button.YES) return;
+
+  var result = executeLineScorePushNotifications_();
+  if (result.success) {
+    var resultMsg = '🎉【LINE 推播發送完畢】\n\n' +
+      '• 成功發送：' + result.successCount + ' 則訊息\n' +
+      (result.failCount > 0 ? ('• 發送失敗：' + result.failCount + ' 則（可能家長已封鎖官方帳號）\n') : '') +
+      '• 涵蓋學生：' + result.studentCount + ' 位\n\n' +
+      '家長將在 LINE 官方帳號聊天室中收到最新成績更新提醒！';
+    ui.alert(resultMsg);
+  } else {
+    ui.alert('⚠️ 發送失敗：' + result.message);
+  }
 }
 
 // 導出核心引擎供 Loader.gs 熱更新調用
@@ -2904,6 +3033,8 @@ var MPScoreDailyEngine = {
   manageTeacherAdminKeyMenu: manageTeacherAdminKeyMenu,
   setupLinePushSettingsMenu: setupLinePushSettingsMenu,
   sendLineScoreUpdateNotificationMenu: sendLineScoreUpdateNotificationMenu,
+  getLinePushStatus: getLinePushStatus_,
+  executeLineScorePushNotifications: executeLineScorePushNotifications_,
   getTeacherAdminKey: getTeacherAdminKey_,
   setTeacherAdminKey: setTeacherAdminKey_,
   getLineChannelAccessToken: getLineChannelAccessToken_,

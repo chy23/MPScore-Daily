@@ -434,6 +434,14 @@
                 <button onclick="switchMainTab('print')" id="tabBtnPrint" class="min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition text-slate-600 hover:text-slate-900">
                     🖨️ 2. 平時成績總覽與通知卡列印
                 </button>
+                <button onclick="openParentPhoneSimulator()" class="min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-black transition bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 flex items-center gap-1.5 shadow-2xs active:scale-95 cursor-pointer" title="📱 開啟家長端手機即時畫面模擬（不計入閱覽紀錄）">
+                    <span>📱</span>
+                    <span>家長手機模擬</span>
+                </button>
+                <button onclick="openLinePushModal()" class="min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-black transition bg-[#06C755] hover:bg-[#05b34c] text-white flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer" title="📢 發送 LINE 平時成績已更新通知給家長">
+                    <span>💬</span>
+                    <span>發送 LINE 通知</span>
+                </button>
                 <button onclick="openTeacherChangelogModal()" class="min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/90 flex items-center gap-1.5 shadow-2xs active:scale-95 cursor-pointer" title="查看 MPScore-Daily 系統更新紀錄">
                     <span>📋</span>
                     <span>系統更新紀錄</span>
@@ -654,20 +662,25 @@
                     </div>
 
                     <!-- 教學卡 3 -->
-                    <div class="p-4 rounded-2xl bg-white/90 border border-emerald-200/90 space-y-2.5">
-                        <div class="flex items-center justify-between">
-                            <span class="px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-800 font-black text-[11px]">日常操作 ③</span>
-                            <span class="text-[11px] text-emerald-700 font-bold">打完成績點一下</span>
+                    <div class="p-4 rounded-2xl bg-white/90 border border-emerald-200/90 space-y-2.5 flex flex-col justify-between">
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-800 font-black text-[11px]">日常操作 ③</span>
+                                <span class="text-[11px] text-emerald-700 font-bold">打完成績點一下</span>
+                            </div>
+                            <h4 class="font-black text-slate-900 text-sm">一鍵發送更新通知至 LINE</h4>
+                            <p class="text-slate-600 text-xs leading-relaxed">
+                                平時照常在試算表登記小考、作業分數，一次登記完多項成績後，有兩種方式發送通知：
+                            </p>
+                            <div class="p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200 font-mono text-[11px] text-emerald-950 space-y-1">
+                                <div>• <b>方式 A（最方便）</b>：直接點下方綠色按鈕在網頁上發送！</div>
+                                <div>• <b>方式 B（試算表）</b>：選單「📢 發送【平時成績已更新】LINE 通知」</div>
+                            </div>
                         </div>
-                        <h4 class="font-black text-slate-900 text-sm">一鍵發送更新通知至 LINE</h4>
-                        <p class="text-slate-600">
-                            平時照常在試算表登記小考、作業分數，一次登記完多項成績後：
-                        </p>
-                        <div class="p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200 font-mono text-[11px] text-emerald-950 space-y-1">
-                            <div>• 點選試算表選單：</div>
-                            <div class="font-bold text-emerald-900">「📢 發送【平時成績已更新】LINE 通知」</div>
-                            <div class="text-[10.5px] text-emerald-800">（彈出確認視窗，核對綁定家長人數後確認發送）</div>
-                        </div>
+                        <button type="button" onclick="openLinePushModal()" class="w-full mt-2 py-2.5 px-3 rounded-xl bg-[#06C755] hover:bg-[#05b34c] text-white font-black text-xs shadow-sm transition flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer">
+                            <span>💬</span>
+                            <span>在網頁上直接發送 LINE 成績通知</span>
+                        </button>
                     </div>
                 </div>
 
@@ -738,6 +751,14 @@
                         <button onclick="connectCloudGradebook()" class="min-h-[42px] px-3.5 py-2.5 rounded-2xl bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-300 font-extrabold text-xs sm:text-sm shadow-sm transition flex items-center gap-1.5 cursor-pointer">
                             <span>🔄</span>
                             <span>重新同步試算表最新成績</span>
+                        </button>
+                        <button onclick="openParentPhoneSimulator()" class="min-h-[42px] px-3.5 py-2.5 rounded-2xl bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 font-extrabold text-xs sm:text-sm shadow-sm transition flex items-center gap-1.5 cursor-pointer" title="開啟家長端手機即時畫面模擬（不計入閱覽紀錄）">
+                            <span>📱</span>
+                            <span>家長手機即時模擬</span>
+                        </button>
+                        <button id="btnSendLineNotification" onclick="openLinePushModal()" class="min-h-[42px] px-3.5 py-2.5 rounded-2xl bg-[#06C755] hover:bg-[#05b34c] text-white font-black text-xs sm:text-sm shadow-sm shadow-[#06C755]/20 transition flex items-center gap-1.5 cursor-pointer" title="發送平時成績已更新通知給已綁定 LINE 的家長">
+                            <span>💬</span>
+                            <span>發送 LINE 成績更新通知</span>
                         </button>
                         <button onclick="openTeacherChangelogModal()" class="min-h-[42px] px-3.5 py-2.5 rounded-2xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-extrabold text-xs sm:text-sm shadow-sm transition flex items-center gap-1.5 cursor-pointer" title="查看 MPScore-Daily 系統詳細更新紀錄">
                             <span>📋</span>
@@ -958,6 +979,31 @@
                                 class="w-full px-3 py-1.5 rounded-xl border border-sky-200 bg-[#F5FAFD] text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-sky-500">
                         </div>
                     </div>
+                </div>
+            </section>
+
+            <!-- LINE 官方帳號成績更新推播專區卡片 (Apple HIG Card) -->
+            <section class="p-4 sm:p-5 rounded-3xl bg-[#F0FAF4] border-2 border-[#A7E3BC] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="flex items-start sm:items-center gap-3.5">
+                    <div class="w-12 h-12 rounded-2xl bg-[#06C755] text-white flex items-center justify-center font-black text-2xl shadow-md shadow-[#06C755]/25 shrink-0">
+                        💬
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-xs font-black px-2.5 py-0.5 rounded-full bg-[#06C755] text-white">LINE 主動推播專區</span>
+                            <h3 class="font-black text-slate-800 text-base sm:text-lg">發送【平時成績已更新】通知給已綁定家長</h3>
+                            <span id="lineCardStatusBadge" class="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-white text-emerald-800 border border-emerald-300">🟢 點擊檢測綁定</span>
+                        </div>
+                        <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+                            一次登記多項小考或作業分數後，點此發送通知！系統自動整合成 1 則訊息，不透露評量細項與分數，保護隱私並極致節省 LINE 則數。
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2.5 shrink-0 self-end sm:self-auto">
+                    <button type="button" onclick="openLinePushModal()" class="min-h-[44px] px-5 py-2.5 rounded-2xl bg-[#06C755] hover:bg-[#05b34c] text-white font-black text-xs sm:text-sm shadow-md shadow-[#06C755]/25 transition flex items-center gap-2 active:scale-95 cursor-pointer">
+                        <span>📢</span>
+                        <span>發送 LINE 成績通知</span>
+                    </button>
                 </div>
             </section>
 
@@ -1375,7 +1421,7 @@
                     <div>
                         <div class="flex items-center gap-2">
                             <h3 class="text-base md:text-lg font-black tracking-tight text-white">MPScore-Daily 系統詳細更新紀錄</h3>
-                            <span class="text-[10px] bg-emerald-500 text-white font-black px-2 py-0.5 rounded-full">v3.1.0 最新版</span>
+                            <span class="text-[10px] bg-indigo-500 text-white font-black px-2 py-0.5 rounded-full">v3.3.0 最新版</span>
                         </div>
                         <p class="text-xs text-sky-100 mt-0.5">平時成績無痛結算 ‧ 親師雲端即時溝通 ‧ 國中小專用智慧平台</p>
                     </div>
@@ -1388,11 +1434,57 @@
             <!-- 更新日誌內容滾動區 -->
             <div class="p-5 md:p-8 overflow-y-auto space-y-6 text-xs text-slate-700 bg-slate-50/50 leading-relaxed">
 
-                <!-- v3.1.0 最新版里程碑 -->
-                <div class="bg-white p-5 rounded-3xl border border-emerald-300 shadow-sm space-y-4 relative overflow-hidden ring-2 ring-emerald-400/20">
+                <!-- v3.3.0 最新版里程碑 -->
+                <div class="bg-white p-5 rounded-3xl border border-indigo-300 shadow-sm space-y-4 relative overflow-hidden ring-2 ring-indigo-400/20">
                     <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                         <div class="flex items-center gap-2">
-                            <span class="text-xs font-black bg-[#06C755] text-white px-2.5 py-1 rounded-xl shadow-xs">v3.1.0 最新版</span>
+                            <span class="text-xs font-black bg-indigo-600 text-white px-2.5 py-1 rounded-xl shadow-xs">v3.3.0 最新版</span>
+                            <span class="text-sm font-black text-slate-900">📱 家長端手機即時畫面模擬器 ‧ Apple HIG 機身外框 ‧ 閱覽紀錄零污染保護</span>
+                        </div>
+                        <span class="text-[11px] text-slate-400 font-mono font-bold">2026-10-29</span>
+                    </div>
+
+                    <div class="space-y-3.5">
+                        <div class="p-3.5 bg-indigo-50/80 rounded-2xl border border-indigo-200/80 text-[11px] text-indigo-950 font-bold space-y-1.5">
+                            <div>🎯 <b>本次核心功能更新說明</b>：</div>
+                            <ul class="list-disc list-inside font-normal text-slate-700 pl-1 space-y-1.5">
+                                <li><b>家長端手機即時畫面模擬</b>：內建擬真 iPhone / Android 手機機身框架，具備即時時鐘、動態島與 iOS Home Indicator，隨時在教師端無縫體驗家長手機畫面！</li>
+                                <li><b>名冊快速切換與瀏覽</b>：模擬器頂部支援學生選單即時更換，亦可點選「◀ 上一位 / 下一位 ▶」光速對比各生呈現效果。</li>
+                                <li><b>閱覽紀錄零污染保證 (Zero Log Contamination)</b>：模擬器連線全面自動夾帶 <code class="bg-indigo-100 px-1 py-0.5 rounded font-mono">sim=1</code> 參數。後端嚴格屏蔽寫入：<b>絕不增加家長累積閱覽次數，亦不寫入【家長閱覽紀錄】日誌分頁</b>，徹底杜絕教師測試時污染真實統計數據！</li>
+                                <li><b>名冊表格直通操作</b>：全班成績總表「家長端預覽」欄位新增「📱 手機模擬」直達鈕，方便點選任一生立即觀看。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- v3.2.0 里程碑 -->
+                <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-black bg-[#06C755] text-white px-2.5 py-1 rounded-xl shadow-xs">v3.2.0</span>
+                            <span class="text-sm font-black text-slate-900">📢 網頁端直接發送 LINE 成績通知 ‧ 狀態即時檢測與 Apple HIG 推播中心</span>
+                        </div>
+                        <span class="text-[11px] text-slate-400 font-mono font-bold">2026-10-29</span>
+                    </div>
+
+                    <div class="space-y-3.5">
+                        <div class="p-3.5 bg-emerald-50/80 rounded-2xl border border-emerald-200/80 text-[11px] text-emerald-950 font-bold space-y-1.5">
+                            <div>🎯 <b>本次核心功能更新說明</b>：</div>
+                            <ul class="list-disc list-inside font-normal text-slate-700 pl-1 space-y-1.5">
+                                <li><b>網頁端直接一鍵推播</b>：教師無需返回 Google 試算表，直接於網頁頂部導覽列「💬 發送 LINE 通知」、設定精靈 STEP 4 或成績總覽專區點擊綠色按鈕即可觸發推播！</li>
+                                <li><b>Apple HIG 推播管理中心 Modal</b>：點選後彈出專屬面板，即時自雲端檢測 LINE Channel Access Token（M1）、原專案試算表網址（O1）以及已成功比對綁定之全班家長人數。</li>
+                                <li><b>安全金鑰保護 API</b>：後端擴充 `getLineStatus` 與 `sendLineNotification`，全面實施教師 PIN 驗證，保障全班名冊與推播安全。</li>
+                                <li><b>即時發送報告與回饋</b>：發送後即時回報成功與失敗則數，提供完整安心的操作反饋。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- v3.1.0 里程碑 -->
+                <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-black bg-slate-700 text-white px-2.5 py-1 rounded-xl">v3.1.0</span>
                             <span class="text-sm font-black text-slate-900">💬 LINE 官方帳號新成績主動推播 ‧ 原專案查詢代碼無痛直連 ‧ 教師端完整設定教學</span>
                         </div>
                         <span class="text-[11px] text-slate-400 font-mono font-bold">2026-10-29</span>
@@ -2006,6 +2098,267 @@
         </div>
     </div>
 
+    <!-- ========================================================================= -->
+    <!-- 📢 LINE 家長成績更新主動推播 Modal (Apple HIG Bottom Sheet 工藝標準) -->
+    <!-- ========================================================================= -->
+    <div id="linePushModal" class="hidden fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-md overflow-y-auto flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6 transition-all">
+        <div class="bg-white rounded-t-[32px] sm:rounded-3xl shadow-2xl max-w-2xl w-full border border-slate-200 overflow-hidden sm:my-6 flex flex-col max-h-[92vh] sm:max-h-[90vh]">
+            
+            <!-- iOS Grabber -->
+            <div class="w-10 h-1.5 bg-white/40 rounded-full mx-auto mt-2.5 -mb-2 sm:hidden z-10"></div>
+
+            <!-- Modal Header (LINE 標誌性綠色漸層) -->
+            <div class="p-5 md:p-6 bg-gradient-to-r from-[#06C755] to-[#04933E] text-white flex items-center justify-between border-b border-emerald-600 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-2xl bg-white text-[#06C755] flex items-center justify-center font-black text-2xl shadow-md">
+                        💬
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h3 class="text-lg font-black tracking-tight text-white">LINE 家長成績更新推播中心</h3>
+                            <span class="text-[11px] font-extrabold bg-white/20 text-white px-2.5 py-0.5 rounded-full backdrop-blur-xs">原 QRcode 專案直連</span>
+                        </div>
+                        <p class="text-xs text-emerald-100/90 mt-0.5">一次登記多項小考或作業分數後，向已綁定家長推播成績更新通知</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeLinePushModal()" aria-label="關閉" class="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center text-lg font-bold transition cursor-pointer">
+                    ✕
+                </button>
+            </div>
+
+            <!-- Modal 內容區 -->
+            <div class="p-5 md:p-6 overflow-y-auto flex-1 space-y-5 bg-[#F9FBFA]">
+
+                <!-- 狀態檢測卡片 -->
+                <div class="p-4 rounded-2xl bg-white border border-emerald-200 shadow-2xs space-y-3">
+                    <div class="flex items-center justify-between flex-wrap gap-2">
+                        <span class="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                            <span>🔍 雲端設定與家長綁定檢測狀態</span>
+                        </span>
+                        <button type="button" onclick="checkLinePushStatusFromCloud()" id="btnRefreshLineStatus" class="min-h-[30px] px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold transition flex items-center gap-1 cursor-pointer">
+                            <span>🔄 重新整理檢測</span>
+                        </button>
+                    </div>
+
+                    <!-- 3 個狀態指標 (Token / 原專案試算表 / 綁定人數) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                            <span class="text-slate-500 font-bold">1. LINE Token</span>
+                            <div class="mt-1">
+                                <span id="lineModalTokenBadge" class="inline-block px-2 py-0.5 rounded-md font-extrabold text-[11px] bg-slate-200 text-slate-600">檢測中...</span>
+                            </div>
+                            <span class="text-[10.5px] text-slate-400 mt-1">試算表【學生名冊】M1</span>
+                        </div>
+                        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                            <span class="text-slate-500 font-bold">2. 原專案試算表</span>
+                            <div class="mt-1">
+                                <span id="lineModalSourceBadge" class="inline-block px-2 py-0.5 rounded-md font-extrabold text-[11px] bg-slate-200 text-slate-600">檢測中...</span>
+                            </div>
+                            <span class="text-[10.5px] text-slate-400 mt-1">試算表【學生名冊】O1</span>
+                        </div>
+                        <div class="p-3 rounded-xl bg-emerald-50/80 border border-emerald-200 flex flex-col justify-between">
+                            <span class="text-emerald-800 font-bold">3. 已綁定家長</span>
+                            <div class="mt-1 flex items-baseline gap-1">
+                                <span id="lineModalBoundCount" class="text-xl font-black text-emerald-700 font-mono">--</span>
+                                <span class="text-xs font-bold text-emerald-900">位家長</span>
+                            </div>
+                            <span id="lineModalStudentCoverage" class="text-[10.5px] text-emerald-700 mt-0.5 font-bold">涵蓋 -- 位學生</span>
+                        </div>
+                    </div>
+
+                    <!-- 設定指引提示（若尚未設定時展開） -->
+                    <div id="lineSettingsHelpBox" class="hidden p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1.5 leading-relaxed">
+                        <div class="font-extrabold flex items-center gap-1 text-amber-950">
+                            <span>⚠️ 尚未完成連線設定指引：</span>
+                        </div>
+                        <ol class="list-decimal list-inside space-y-1 text-[11.5px] text-amber-900">
+                            <li id="helpTokenItem">請於試算表【學生名冊】的 <b>M1 儲存格</b> 貼上原專案的 LINE Channel Access Token。</li>
+                            <li id="helpSourceUrlItem">請於試算表【學生名冊】的 <b>O1 儲存格</b> 貼上原 QRcode 專案的 Google 試算表網址。</li>
+                            <li>亦可隨時在試算表點選上方選單<b>「⚡ MPScore-Daily ➔ ⚙️ 設定 LINE 推播與原專案連線」</b>一鍵輸入。</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- 家長收到訊息預覽泡泡 (LINE 擬真卡片) -->
+                <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-2.5">
+                    <div class="flex items-center justify-between flex-wrap gap-2">
+                        <span class="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                            <span>📱 推播訊息格式預覽（家長手機實際畫面）：</span>
+                        </span>
+                        <span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                            單則整合 ‧ 絕不洩漏分數
+                        </span>
+                    </div>
+
+                    <div class="bg-[#7994A9] p-3.5 rounded-2xl shadow-inner max-w-sm mx-auto sm:mx-0">
+                        <div class="bg-white p-3.5 rounded-2xl rounded-tl-none shadow-sm space-y-2 text-xs text-slate-800 leading-relaxed font-sans">
+                            <div class="font-black text-[#06C755] flex items-center gap-1 text-[13px]">
+                                <span>🔔</span>
+                                <span>【MPScore-Daily 平時成績通知】</span>
+                            </div>
+                            <div class="text-slate-700">
+                                家長您好：<br>
+                                老師已登錄 <b>王○明</b> 最新的平時評量成績！
+                            </div>
+                            <div class="p-2.5 rounded-xl bg-sky-50 border border-sky-100 text-[11px] text-sky-900 space-y-1">
+                                <div class="font-bold">📱 點擊下方專屬手札連結，立即查看各科平時表現與學習走勢：</div>
+                                <div class="text-sky-700 font-mono underline break-all text-[10.5px]">https://chy23.github.io/MPScore-Daily/parent.html?t=DEMO123</div>
+                            </div>
+                            <div class="text-[10px] text-slate-500 pt-0.5">
+                                （各次評量難易度以班級成績估計。）
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600 space-y-0.5">
+                        <p>💡 <b>隱私與防洗版規範</b>：每位家長僅發送 1 則訊息。手機通知橫幅只顯示「最新平時成績已登錄」，不洩漏任何科目或細項分數，點擊專屬連結即可直達學生個人平時手札。</p>
+                    </div>
+                </div>
+
+                <!-- 發送進度與結果警示列 -->
+                <div id="linePushAlertBox" class="hidden p-3.5 rounded-2xl text-xs font-bold transition"></div>
+
+            </div>
+
+            <!-- Modal Footer (操作按鈕列) -->
+            <div class="p-4 bg-white border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
+                <button type="button" onclick="closeLinePushModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition active:scale-95 cursor-pointer">
+                    關閉
+                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="btnExecuteLinePush" onclick="executeWebLinePushNotification()" class="min-h-[42px] px-5 py-2.5 rounded-2xl bg-[#06C755] hover:bg-[#05b34c] disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-xs sm:text-sm shadow-md shadow-[#06C755]/20 transition flex items-center gap-2 active:scale-95 cursor-pointer">
+                        <span id="linePushBtnIcon">📢</span>
+                        <span id="linePushBtnText">確認發送 LINE 成績通知</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- 📱 家長端手機即時畫面模擬 Modal (Apple HIG Device Frame 工藝標準) -->
+    <!-- ========================================================================= -->
+    <div id="parentPhoneSimulatorModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md overflow-y-auto flex items-center justify-center p-2 sm:p-4 md:p-6 transition-all">
+        <div class="bg-slate-900 rounded-[32px] sm:rounded-[36px] shadow-2xl max-w-4xl w-full border border-slate-700/80 overflow-hidden flex flex-col my-auto max-h-[96vh]">
+            
+            <!-- 模擬器頂部操作控制列 -->
+            <div class="p-3.5 sm:p-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex flex-wrap items-center justify-between gap-3 border-b border-slate-700/80 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-indigo-500 text-white flex items-center justify-center font-black text-xl shadow-md shadow-indigo-500/30">
+                        📱
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h3 class="text-base sm:text-lg font-black tracking-tight text-white">家長端手機即時畫面模擬</h3>
+                            <span class="text-[10.5px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">🔒 閱覽紀錄隔離保護中</span>
+                        </div>
+                        <p class="text-[11px] text-indigo-200/80">自動夾帶 sim=1 模擬參數，絕對不累計家長閱覽次數、不寫入日誌分頁</p>
+                    </div>
+                </div>
+
+                <!-- 頂部快速切換學生與尺寸控制 -->
+                <div class="flex items-center gap-2 flex-wrap">
+                    <div class="flex items-center gap-1.5 bg-slate-800/90 border border-slate-700 p-1 rounded-2xl">
+                        <button type="button" onclick="navigateSimulatorStudent(-1)" class="w-8 h-8 rounded-xl hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-xs font-bold transition cursor-pointer" title="上一位學生">
+                            ◀
+                        </button>
+                        <select id="simStudentSelect" onchange="changeSimulatorStudent(this.value)" class="bg-slate-900 text-white font-bold text-xs px-2.5 py-1.5 rounded-xl border border-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                            <!-- JS 動態填入學生選項 -->
+                        </select>
+                        <button type="button" onclick="navigateSimulatorStudent(1)" class="w-8 h-8 rounded-xl hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-xs font-bold transition cursor-pointer" title="下一位學生">
+                            ▶
+                        </button>
+                    </div>
+
+                    <div class="inline-flex rounded-xl bg-slate-800 border border-slate-700 p-0.5 text-xs">
+                        <button type="button" onclick="setSimulatorDeviceWidth('393')" id="btnSimWidth393" class="px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-black cursor-pointer">iPhone</button>
+                        <button type="button" onclick="setSimulatorDeviceWidth('360')" id="btnSimWidth360" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-white cursor-pointer">Android</button>
+                    </div>
+
+                    <button type="button" onclick="refreshSimulatorFrame()" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 flex items-center justify-center text-sm font-bold transition cursor-pointer" title="重新整理模擬畫面">
+                        🔄
+                    </button>
+
+                    <a id="simOpenExternalLink" href="#" target="_blank" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 flex items-center justify-center text-sm font-bold transition" title="在新分頁開啟模擬 (含 sim=1 保護)">
+                        ↗
+                    </a>
+
+                    <button type="button" onclick="closeParentPhoneSimulator()" aria-label="關閉" class="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-base font-bold transition cursor-pointer ml-1">
+                        ✕
+                    </button>
+                </div>
+            </div>
+
+            <!-- 模擬器中間舞台區（沉浸式深黑背景 + 擬真手機邊框） -->
+            <div class="p-4 sm:p-6 bg-slate-950 flex flex-col items-center justify-center overflow-y-auto flex-1 min-h-[520px]">
+                
+                <!-- 智慧擬真手機外殼 (Apple Design Device Chassis) -->
+                <div id="simPhoneChassis" class="w-[375px] sm:w-[393px] h-[660px] sm:h-[720px] bg-slate-900 rounded-[48px] p-2.5 sm:p-3 shadow-2xl ring-8 ring-slate-800/90 border-4 border-slate-700/60 relative flex flex-col transition-all duration-300">
+                    
+                    <!-- 螢幕視窗容器 -->
+                    <div class="w-full h-full bg-[#EAF3F9] rounded-[38px] overflow-hidden flex flex-col relative shadow-inner">
+                        
+                        <!-- 模擬手機頂部狀態列 (Status Bar) -->
+                        <div class="bg-slate-900 text-white px-5 pt-2 pb-1.5 flex items-center justify-between text-[11px] font-semibold shrink-0 select-none z-20">
+                            <span id="simClockTime" class="font-mono font-bold tracking-tight">09:41</span>
+                            
+                            <!-- Dynamic Island (動態島藥丸) -->
+                            <div class="w-24 h-5 bg-black rounded-full flex items-center justify-end px-2 gap-1 shadow-sm">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                <span class="text-[9px] font-mono text-emerald-400">SIM</span>
+                            </div>
+
+                            <div class="flex items-center gap-1.5 text-xs">
+                                <span>📶</span>
+                                <span>5G</span>
+                                <span>🔋</span>
+                            </div>
+                        </div>
+
+                        <!-- 模擬模式隔離宣告條 -->
+                        <div class="bg-indigo-700 text-white text-[10px] py-1 px-3 flex items-center justify-between font-bold shrink-0 border-b border-indigo-600 shadow-2xs select-none">
+                            <span class="flex items-center gap-1">
+                                <span>🛡️</span>
+                                <span>模擬中：家長閱覽次數與時間絕不增加</span>
+                            </span>
+                            <span id="simStudentNameLabel" class="font-mono text-amber-300 font-black">01號 王小明</span>
+                        </div>
+
+                        <!-- iframe 內嵌家長端畫面 -->
+                        <div class="flex-1 w-full relative bg-[#EAF3F9] overflow-hidden">
+                            <iframe id="phoneSimulatorIframe" class="w-full h-full border-0 bg-transparent" src="about:blank"></iframe>
+                        </div>
+
+                        <!-- 底部 iOS Home Indicator (主畫面指示條) -->
+                        <div class="bg-[#EAF3F9] pt-1 pb-2 flex justify-center shrink-0 select-none">
+                            <div class="w-28 h-1 bg-slate-400/80 rounded-full"></div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- 底部提示文字 -->
+                <div class="text-center text-slate-400 text-xs mt-3 space-y-0.5">
+                    <p>💡 <b>操作說明</b>：您可直接在上方模擬螢幕內自由上下滑動、展開各科折線圖、點選分項平均或診斷建議。</p>
+                    <p class="text-slate-500 text-[11px]">系統已自動在連線網址加入 <code class="text-indigo-400 font-mono">sim=1</code> 參數，後端已完全屏蔽寫入，請安心測試！</p>
+                </div>
+
+            </div>
+
+            <!-- 模擬器底部功能按鈕列 -->
+            <div class="p-3.5 bg-slate-900 border-t border-slate-800 flex items-center justify-between gap-2 shrink-0 text-xs">
+                <span id="simCurrentUrlPreview" class="text-slate-400 font-mono text-[11px] truncate max-w-md hidden sm:inline">
+                    parent.html?t=...&sim=1
+                </span>
+                <button type="button" onclick="closeParentPhoneSimulator()" class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-black text-xs transition active:scale-95 cursor-pointer ml-auto">
+                    關閉模擬器
+                </button>
+            </div>
+
+        </div>
+    </div>
+
     <!-- JavaScript 邏輯 -->
     <script>
         // =========================================================================
@@ -2326,6 +2679,9 @@ function testGitHubConnection() {
                     if (badgeSource) badgeSource.textContent = `☁️ 已連線雲端試算表（共 ${currentRoster.length} 位學生）`;
                     document.getElementById('rosterUpdatedTime').textContent = `更新時間：${data.updatedAt || '剛剛'}`;
                     switchMainTab('print');
+                    setTimeout(() => {
+                        checkLinePushStatusFromCloud();
+                    }, 600);
                 } else {
                     statusMsg.textContent = `⚠️ ${data && data.message ? data.message : '無法解析試算表資料，請確認試算表內已有【學生名冊】與平時成績分頁。'}`;
                     statusMsg.className = 'text-xs text-rose-600 font-bold';
@@ -2559,6 +2915,353 @@ function testGitHubConnection() {
         function closeAccessLogModal() {
             document.getElementById('accessLogModal').classList.add('hidden');
             document.body.style.overflow = '';
+        }
+
+        // =========================================================================
+        // 4.3 LINE 官方帳號家長成績更新推播系統 (Web 一鍵觸發與狀態同步)
+        // =========================================================================
+        let currentLinePushStatus = null;
+        let isCheckingLinePushStatus = false;
+        let isSendingLinePush = false;
+
+        function openLinePushModal() {
+            const modal = document.getElementById('linePushModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+                checkLinePushStatusFromCloud();
+            }
+        }
+
+        function closeLinePushModal() {
+            const modal = document.getElementById('linePushModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+        }
+
+        async function checkLinePushStatusFromCloud() {
+            if (isCheckingLinePushStatus) return;
+            const apiUrl = (localStorage.getItem('mpdaily_api_url') || (document.getElementById('apiUrlInput') ? document.getElementById('apiUrlInput').value.trim() : '')).trim();
+            const teacherKey = getTeacherKey();
+            const tokenBadge = document.getElementById('lineModalTokenBadge');
+            const sourceBadge = document.getElementById('lineModalSourceBadge');
+            const boundCountEl = document.getElementById('lineModalBoundCount');
+            const coverageEl = document.getElementById('lineModalStudentCoverage');
+            const helpBox = document.getElementById('lineSettingsHelpBox');
+            const alertBox = document.getElementById('linePushAlertBox');
+            const executeBtn = document.getElementById('btnExecuteLinePush');
+            const cardBadge = document.getElementById('lineCardStatusBadge');
+            const quickBadge = document.getElementById('linePushQuickBadge');
+
+            if (alertBox) {
+                alertBox.className = 'hidden';
+                alertBox.textContent = '';
+            }
+
+            if (!apiUrl) {
+                if (tokenBadge) { tokenBadge.textContent = '未連線 API'; tokenBadge.className = 'inline-block px-2 py-0.5 rounded-md font-extrabold text-[11px] bg-rose-100 text-rose-700'; }
+                if (sourceBadge) { sourceBadge.textContent = '未連線 API'; sourceBadge.className = 'inline-block px-2 py-0.5 rounded-md font-extrabold text-[11px] bg-rose-100 text-rose-700'; }
+                if (boundCountEl) boundCountEl.textContent = '0';
+                if (coverageEl) coverageEl.textContent = '請先於 STEP 3 貼上網址並連線';
+                if (helpBox) helpBox.classList.remove('hidden');
+                if (executeBtn) {
+                    executeBtn.disabled = true;
+                    document.getElementById('linePushBtnText').textContent = '⚠️ 請先連線試算表 Web App';
+                }
+                return;
+            }
+
+            isCheckingLinePushStatus = true;
+            if (tokenBadge) { tokenBadge.textContent = '檢測中...'; tokenBadge.className = 'inline-block px-2 py-0.5 rounded-md font-extrabold text-[11px] bg-sky-100 text-sky-700 animate-pulse'; }
+            if (sourceBadge) { sourceBadge.textContent = '檢測中...'; sourceBadge.className = 'inline-block px-2 py-0.5 rounded-md font-extrabold text-[11px] bg-sky-100 text-sky-700 animate-pulse'; }
+
+            try {
+                const sep = apiUrl.includes('?') ? '&' : '?';
+                const url = `${apiUrl}${sep}action=getLineStatus&key=${encodeURIComponent(teacherKey)}&nocache=1&t=${Date.now()}`;
+                const res = await fetch(url, { redirect: 'follow', cache: 'no-store' });
+                const data = await res.json();
+
+                if (data.code === 'AUTH_FAILED') {
+                    if (tokenBadge) { tokenBadge.textContent = 'PIN 驗證失敗'; tokenBadge.className = 'inline-block px-2 py-0.5 rounded-md font-extrabold text-[11px] bg-rose-100 text-rose-700'; }
+                    if (alertBox) {
+                        alertBox.className = 'p-3 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-bold block';
+                        alertBox.innerHTML = '🔒 <b>存取遭拒：教師安全金鑰 (PIN) 錯誤</b><br>請在上方或 STEP 3 確認教師 PIN 碼（預設為 8888）。';
+                    }
+                    if (executeBtn) executeBtn.disabled = true;
+                    return;
+                }
+
+                currentLinePushStatus = data;
+
+                // 更新 Token 狀態
+                if (data.hasToken) {
+                    if (tokenBadge) { tokenBadge.textContent = '✅ 已設定 (M1)'; tokenBadge.className = 'inline-block px-2 py-0.5 rounded-md font-extrabold text-[11px] bg-emerald-100 text-emerald-800'; }
+                } else {
+                    if (tokenBadge) { tokenBadge.textContent = '⚠️ 待設定 (M1)'; tokenBadge.className = 'inline-block px-2 py-0.5 rounded-md font-extrabold text-[11px] bg-amber-100 text-amber-900'; }
+                }
+
+                // 更新原專案試算表狀態
+                if (data.hasSourceUrl) {
+                    if (sourceBadge) { sourceBadge.textContent = '✅ 已連線 (O1)'; sourceBadge.className = 'inline-block px-2 py-0.5 rounded-md font-extrabold text-[11px] bg-emerald-100 text-emerald-800'; }
+                } else {
+                    if (sourceBadge) { sourceBadge.textContent = '⚠️ 待設定 (O1)'; sourceBadge.className = 'inline-block px-2 py-0.5 rounded-md font-extrabold text-[11px] bg-amber-100 text-amber-900'; }
+                }
+
+                // 綁定人數
+                const boundCount = data.boundParentsCount || 0;
+                const boundStudents = data.boundStudentsCount || 0;
+                const totalStudents = data.totalStudents || (currentRoster ? currentRoster.length : 0);
+
+                if (boundCountEl) boundCountEl.textContent = String(boundCount);
+                if (coverageEl) coverageEl.textContent = `涵蓋 ${boundStudents} / ${totalStudents} 位學生`;
+
+                // 外部卡片狀態同步
+                if (cardBadge) {
+                    cardBadge.textContent = boundCount > 0 ? `🟢 已綁定 ${boundCount} 位家長` : '⚪ 尚未偵測到已綁定家長';
+                    cardBadge.className = boundCount > 0
+                        ? 'text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300'
+                        : 'text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300';
+                }
+                if (quickBadge) {
+                    quickBadge.textContent = boundCount > 0 ? `共 ${boundCount} 位家長可接收推播` : '尚未連線綁定';
+                }
+
+                // 是否顯示設定指引
+                if (!data.hasToken || !data.hasSourceUrl) {
+                    if (helpBox) helpBox.classList.remove('hidden');
+                    const helpTok = document.getElementById('helpTokenItem');
+                    const helpSrc = document.getElementById('helpSourceUrlItem');
+                    if (helpTok) helpTok.style.display = data.hasToken ? 'none' : 'list-item';
+                    if (helpSrc) helpSrc.style.display = data.hasSourceUrl ? 'none' : 'list-item';
+                } else {
+                    if (helpBox) helpBox.classList.add('hidden');
+                }
+
+                // 按鈕啟用狀態
+                if (executeBtn) {
+                    if (!data.hasToken) {
+                        executeBtn.disabled = true;
+                        document.getElementById('linePushBtnText').textContent = '⚠️ 請先在試算表 M1 填寫 Token';
+                    } else if (boundCount === 0) {
+                        executeBtn.disabled = true;
+                        document.getElementById('linePushBtnText').textContent = '⚠️ 尚未偵測到已綁定家長（0人）';
+                    } else {
+                        executeBtn.disabled = false;
+                        document.getElementById('linePushBtnText').textContent = `📢 確認發送 LINE 通知（共 ${boundCount} 位家長）`;
+                    }
+                }
+            } catch (err) {
+                if (tokenBadge) { tokenBadge.textContent = '連線失敗'; tokenBadge.className = 'inline-block px-2 py-0.5 rounded-md font-extrabold text-[11px] bg-rose-100 text-rose-700'; }
+                if (sourceBadge) { sourceBadge.textContent = '連線失敗'; sourceBadge.className = 'inline-block px-2 py-0.5 rounded-md font-extrabold text-[11px] bg-rose-100 text-rose-700'; }
+                if (alertBox) {
+                    alertBox.className = 'p-3 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-bold block';
+                    alertBox.textContent = '⚠️ 無法自 Google Apps Script 取得 LINE 設定狀態，請確認網路連線與部署權限。';
+                }
+            } finally {
+                isCheckingLinePushStatus = false;
+            }
+        }
+
+        async function executeWebLinePushNotification() {
+            if (isSendingLinePush) return;
+            const apiUrl = (localStorage.getItem('mpdaily_api_url') || (document.getElementById('apiUrlInput') ? document.getElementById('apiUrlInput').value.trim() : '')).trim();
+            const teacherKey = getTeacherKey();
+            const boundCount = (currentLinePushStatus && currentLinePushStatus.boundParentsCount) || 0;
+            const boundStudents = (currentLinePushStatus && currentLinePushStatus.boundStudentsCount) || 0;
+
+            if (!apiUrl) {
+                alert('⚠️ 尚未設定試算表 API 網址！');
+                return;
+            }
+
+            const confirmMsg = `📢【確認發送平時成績更新 LINE 通知】\n\n` +
+                `• 即將發送給：${boundCount} 位已綁定家長（涵蓋 ${boundStudents} 位學生）\n` +
+                `• 訊息內容：簡潔告知有新平時成績登錄，每位家長僅發送 1 則通知，不透露評量細項與分數\n\n` +
+                `確定要立即推播嗎？`;
+
+            if (!confirm(confirmMsg)) return;
+
+            isSendingLinePush = true;
+            const executeBtn = document.getElementById('btnExecuteLinePush');
+            const iconEl = document.getElementById('linePushBtnIcon');
+            const textEl = document.getElementById('linePushBtnText');
+            const alertBox = document.getElementById('linePushAlertBox');
+
+            if (executeBtn) executeBtn.disabled = true;
+            if (iconEl) iconEl.textContent = '⏳';
+            if (textEl) textEl.textContent = '正在發送 LINE 訊息...';
+            if (alertBox) {
+                alertBox.className = 'p-3 rounded-2xl bg-sky-50 border border-sky-200 text-xs text-sky-800 font-bold block animate-pulse';
+                alertBox.textContent = '⏳ 正在透過 LINE Messaging API 依序發送成績更新推播訊息，請稍候...';
+            }
+
+            try {
+                const sep = apiUrl.includes('?') ? '&' : '?';
+                const parentBaseUrl = window.location.href.replace(/\/[^\/]*$/, '/parent.html');
+                const url = `${apiUrl}${sep}action=sendLineNotification&key=${encodeURIComponent(teacherKey)}&gasUrl=${encodeURIComponent(apiUrl)}&parentBaseUrl=${encodeURIComponent(parentBaseUrl)}&nocache=1&t=${Date.now()}`;
+
+                const res = await fetch(url, { redirect: 'follow', cache: 'no-store' });
+                const data = await res.json();
+
+                if (data.status === 'success' || data.success === true) {
+                    if (alertBox) {
+                        alertBox.className = 'p-3.5 rounded-2xl bg-emerald-50 border border-emerald-300 text-xs text-emerald-950 font-bold block space-y-1';
+                        alertBox.innerHTML = `
+                            <div class="text-sm font-black text-emerald-900 flex items-center gap-1.5">
+                                <span>🎉</span>
+                                <span>LINE 推播發送完畢！</span>
+                            </div>
+                            <div class="text-xs text-emerald-800 space-y-0.5">
+                                <div>• 成功送達：<b>${data.successCount}</b> 則訊息</div>
+                                <div>• 涵蓋學生：<b>${data.studentCount}</b> 位</div>
+                                ${data.failCount > 0 ? `<div class="text-rose-700">• 發送失敗：${data.failCount} 則（可能家長已封鎖官方帳號）</div>` : ''}
+                            </div>
+                            <div class="text-[11px] text-emerald-700 pt-1">
+                                家長已在 LINE 官方帳號收到通知，點擊專屬連結即可直接查看平時手札！
+                            </div>
+                        `;
+                    }
+                    if (iconEl) iconEl.textContent = '✅';
+                    if (textEl) textEl.textContent = `發送成功（共 ${data.successCount} 則）`;
+                } else {
+                    if (alertBox) {
+                        alertBox.className = 'p-3.5 rounded-2xl bg-rose-50 border border-rose-300 text-xs text-rose-800 font-bold block';
+                        alertBox.innerHTML = `⚠️ <b>推播發送失敗</b>：${data.message || '未知錯誤，請檢視試算表權限與 Token'}`;
+                    }
+                    if (iconEl) iconEl.textContent = '⚠️';
+                    if (textEl) textEl.textContent = '發送失敗，請重試';
+                }
+            } catch (err) {
+                if (alertBox) {
+                    alertBox.className = 'p-3.5 rounded-2xl bg-rose-50 border border-rose-300 text-xs text-rose-800 font-bold block';
+                    alertBox.textContent = `⚠️ 發送失敗：${err.message || '網路連線異常'}`;
+                }
+                if (iconEl) iconEl.textContent = '⚠️';
+                if (textEl) textEl.textContent = '網路連線異常';
+            } finally {
+                isSendingLinePush = false;
+                setTimeout(() => {
+                    checkLinePushStatusFromCloud();
+                }, 3000);
+            }
+        }
+
+        // =========================================================================
+        // 4.4 家長端手機即時畫面模擬器 (Apple HIG Device Frame，含 sim=1 閱覽紀錄隔離保護)
+        // =========================================================================
+        let currentSimulatorToken = '';
+
+        function openParentPhoneSimulator(targetToken) {
+            const modal = document.getElementById('parentPhoneSimulatorModal');
+            if (!modal) return;
+
+            // 確保有學生名單
+            if (!currentRoster || currentRoster.length === 0) {
+                alert('⚠️ 尚未載入學生名冊資料，請先連線試算表。');
+                return;
+            }
+
+            // 決定目標學生 Token
+            let matchedStudent = null;
+            if (targetToken) {
+                matchedStudent = currentRoster.find(s => s.token === targetToken);
+            }
+            if (!matchedStudent) {
+                matchedStudent = currentRoster[0];
+            }
+            currentSimulatorToken = matchedStudent.token;
+
+            // 填入下拉選單
+            const selectEl = document.getElementById('simStudentSelect');
+            if (selectEl) {
+                selectEl.innerHTML = currentRoster.map(s => `
+                    <option value="${s.token}" ${s.token === currentSimulatorToken ? 'selected' : ''}>
+                        ${s.seatNo}號 ${s.name} (${s.token})
+                    </option>
+                `).join('');
+            }
+
+            // 更新手機頂部時間與標籤
+            const now = new Date();
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            const clockEl = document.getElementById('simClockTime');
+            if (clockEl) clockEl.textContent = timeStr;
+
+            const nameLabel = document.getElementById('simStudentNameLabel');
+            if (nameLabel) nameLabel.textContent = `${matchedStudent.seatNo}號 ${matchedStudent.name}`;
+
+            // 組裝帶有 sim=1 隔離保護的 URL
+            const rawUrl = buildParentPortalUrl(matchedStudent.token);
+            const simUrl = rawUrl.includes('?') ? `${rawUrl}&sim=1` : `${rawUrl}?sim=1`;
+
+            const iframe = document.getElementById('phoneSimulatorIframe');
+            if (iframe) {
+                iframe.src = simUrl;
+            }
+
+            const extLink = document.getElementById('simOpenExternalLink');
+            if (extLink) extLink.href = simUrl;
+
+            const previewText = document.getElementById('simCurrentUrlPreview');
+            if (previewText) previewText.textContent = simUrl;
+
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeParentPhoneSimulator() {
+            const modal = document.getElementById('parentPhoneSimulatorModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+            const iframe = document.getElementById('phoneSimulatorIframe');
+            if (iframe) iframe.src = 'about:blank';
+        }
+
+        function changeSimulatorStudent(token) {
+            if (token) {
+                openParentPhoneSimulator(token);
+            }
+        }
+
+        function navigateSimulatorStudent(direction) {
+            if (!currentRoster || currentRoster.length === 0) return;
+            const currentIdx = currentRoster.findIndex(s => s.token === currentSimulatorToken);
+            let nextIdx = 0;
+            if (currentIdx !== -1) {
+                nextIdx = (currentIdx + direction + currentRoster.length) % currentRoster.length;
+            }
+            openParentPhoneSimulator(currentRoster[nextIdx].token);
+        }
+
+        function setSimulatorDeviceWidth(width) {
+            const chassis = document.getElementById('simPhoneChassis');
+            const btn393 = document.getElementById('btnSimWidth393');
+            const btn360 = document.getElementById('btnSimWidth360');
+            if (chassis) {
+                chassis.style.width = width === '360' ? '360px' : '393px';
+            }
+            if (btn393 && btn360) {
+                if (width === '360') {
+                    btn360.className = 'px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-black cursor-pointer';
+                    btn393.className = 'px-2.5 py-1 rounded-lg text-slate-400 hover:text-white cursor-pointer';
+                } else {
+                    btn393.className = 'px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-black cursor-pointer';
+                    btn360.className = 'px-2.5 py-1 rounded-lg text-slate-400 hover:text-white cursor-pointer';
+                }
+            }
+        }
+
+        function refreshSimulatorFrame() {
+            const iframe = document.getElementById('phoneSimulatorIframe');
+            if (iframe && iframe.src && iframe.src !== 'about:blank') {
+                const currentSrc = iframe.src;
+                iframe.src = 'about:blank';
+                setTimeout(() => { iframe.src = currentSrc; }, 50);
+            }
         }
 
         function renderAccessLogsTable(filterText = '') {
@@ -3062,10 +3765,15 @@ function testGitHubConnection() {
                             <span class="font-mono font-black text-base text-teal-700 tabular-nums">${overallAvg}</span>
                         </td>
                         <td class="py-3 px-3 text-right whitespace-nowrap">
-                            <a href="${parentUrl}" target="_blank" class="min-h-[36px] inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border font-bold text-xs transition ${linkBtnClass}">
-                                <span>📊 查看平時歷程</span>
-                                <span>↗</span>
-                            </a>
+                            <div class="flex items-center justify-end gap-1.5">
+                                <button type="button" onclick="openParentPhoneSimulator('${st.token}')" class="min-h-[34px] px-3 py-1.5 rounded-xl bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-700 hover:to-teal-700 text-white font-black text-xs shadow-xs transition flex items-center gap-1 active:scale-95 cursor-pointer" title="在手機即時畫面中模擬 ${st.name} 的家長端（不計入閱覽紀錄）">
+                                    <span>📱</span>
+                                    <span>手機模擬</span>
+                                </button>
+                                <a href="${parentUrl}&sim=1" target="_blank" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition text-xs" title="在新分頁開啟模擬 (含 sim=1 保護)">
+                                    ↗
+                                </a>
+                            </div>
                         </td>
                     </tr>
                 `;
