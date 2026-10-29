@@ -2558,15 +2558,19 @@ function getLineChannelAccessToken_() {
 }
 
 /**
- * 取得原 QRcode 專案的 Google 試算表網址或 ID（優先順序：試算表 O1 > ScriptProperties）
+ * 取得原 QRcode 專案的 Google 試算表網址或 ID（優先順序：試算表 O1/N1 > ScriptProperties）
  */
 function getSourceQrProjectSpreadsheetUrl_() {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sSheet = ss.getSheetByName('學生名冊');
     if (sSheet && sSheet.getLastRow() >= 1) {
-      var val = (sSheet.getRange(1, 15).getValue() || '').toString().trim();
-      if (val && val !== '【原專案試算表】') return val;
+      // 優先讀取 O1 (第 15 欄)
+      var val15 = (sSheet.getRange(1, 15).getValue() || '').toString().trim();
+      if (val15 && val15 !== '【原專案試算表】' && val15 !== '【原QRcode試算表】') return val15;
+      // 容錯讀取 N1 (第 14 欄，避免使用者貼錯格)
+      var val14 = (sSheet.getRange(1, 14).getValue() || '').toString().trim();
+      if (val14 && (val14.indexOf('http') === 0 || val14.length > 25) && val14 !== '【原專案試算表】' && val14 !== '【原QRcode試算表】') return val14;
     }
   } catch (e) {}
 
@@ -2642,14 +2646,46 @@ function setupLinePushSettingsMenu() {
 
 /**
  * 讀取原專案試算表中的【查詢代碼 -> LINE User ID】綁定對照表
- * 支援原專案中各常見分頁名（如：LINE綁定名冊、家長綁定、學生名冊、LINE...）
+ * 具備強大容錯機制：
+ * 1. 支援依【查詢代碼 Token】、【座號】或【學生姓名】三重交叉智慧比對。
+ * 2. 智慧掃描所有工作表（包含 LINE綁定名冊、家長名冊、工作表1、Sheet1、表單回應等）。
+ * 3. 啟發式自動辨識 LINE User ID 欄位（以 'U' 開頭長度 33 碼）。
+ * 4. 支援回傳詳細除錯診斷資訊 (diagnosticInfo)。
  */
-function fetchSourceProjectLineBindingsMap_() {
+function fetchSourceProjectLineBindingsMap_(diagnosticOut) {
   var urlOrId = getSourceQrProjectSpreadsheetUrl_();
-  var ssId = extractSpreadsheetId_(urlOrId);
-  var bindings = {}; // { TOKEN: [userId1, userId2...], SEAT: [userId1...] }
+  var bindings = {}; // { TOKEN: [userId1, userId2...] }
+  var diag = diagnosticOut || {};
 
-  // 1. 若當前試算表【學生名冊】本身就有 LINE_USER_ID 欄（例如在 K 欄或第 8 欄之後）
+  diag.sourceUrlRaw = urlOrId;
+  diag.sheetsScanned = [];
+  diag.openSuccess = false;
+  diag.openError = '';
+  diag.matchedBy = [];
+
+  // 0. 建立本試算表【學生名冊】的比對字典（座號 -> Token、姓名 -> Token、有效 Token 表）
+  var seatToToken = {};
+  var nameToToken = {};
+  var knownTokens = {};
+  try {
+    var curSs = SpreadsheetApp.getActiveSpreadsheet();
+    var curSheet = curSs.getSheetByName('學生名冊');
+    if (curSheet && curSheet.getLastRow() > 1) {
+      var cData = curSheet.getDataRange().getValues();
+      for (var cr = 1; cr < cData.length; cr++) {
+        var cSeat = normalizeSeatNumber(cData[cr][1]);
+        var cName = (cData[cr][2] || '').toString().trim();
+        var cTok = (cData[cr][3] || '').toString().trim().toUpperCase();
+        if (cTok) {
+          knownTokens[cTok] = true;
+          if (cSeat) seatToToken[cSeat] = cTok;
+          if (cName) nameToToken[cName] = cTok;
+        }
+      }
+    }
+  } catch (e) {}
+
+  // 1. 若當前試算表【學生名冊】本身就包含 LINE_USER_ID 欄位
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sSheet = ss.getSheetByName('學生名冊');
@@ -2673,68 +2709,154 @@ function fetchSourceProjectLineBindingsMap_() {
             if (bindings[tok].indexOf(uid) === -1) bindings[tok].push(uid);
           }
         }
+        if (Object.keys(bindings).length > 0) {
+          diag.matchedBy.push('當前學生名冊LINE欄位');
+        }
       }
     }
   } catch (e) {}
 
-  // 2. 跨試算表讀取原專案試算表
-  if (!ssId) return bindings;
+  // 2. 跨試算表連線原專案試算表
+  if (!urlOrId) {
+    diag.openError = '未提供原專案試算表網址 (O1 儲存格為空)';
+    return bindings;
+  }
+
+  // 診斷：是否貼成了 Google Apps Script Web App 網址或 HTML 網頁
+  if (/script\.google\.com/i.test(urlOrId)) {
+    diag.isGasUrl = true;
+    diag.openError = '您在 O1 儲存格貼成了 Google Apps Script (script.google.com) 部署網址，而非 Google 試算表 (docs.google.com/spreadsheets/d/...) 網址！';
+    return bindings;
+  }
+  if (/\.html|\.github\.io/i.test(urlOrId)) {
+    diag.isWebUrl = true;
+    diag.openError = '您在 O1 儲存格貼成了網頁展示網址，請改貼 Google 試算表網址！';
+    return bindings;
+  }
+
+  var ssId = extractSpreadsheetId_(urlOrId);
+  diag.ssId = ssId;
+  if (!ssId) {
+    diag.openError = '無法自輸入內容辨識 Google 試算表 ID';
+    return bindings;
+  }
 
   try {
     var sourceSs = SpreadsheetApp.openById(ssId);
-    if (!sourceSs) return bindings;
+    if (!sourceSs) {
+      diag.openError = '無法開啟試算表 (openById 回傳空值)';
+      return bindings;
+    }
+    diag.openSuccess = true;
 
     var sheets = sourceSs.getSheets();
     for (var s = 0; s < sheets.length; s++) {
       var sheet = sheets[s];
       var name = sheet.getName();
-      if (!/line|家長|名冊|綁定|會員|用戶|家長名冊/i.test(name)) continue;
+
+      // 當總分頁數 <= 6 時掃描全部，或優先掃描常見名稱
+      var shouldScan = sheets.length <= 6 || /line|家長|名冊|綁定|會員|用戶|家長名冊|回應|response|sheet|工作表|學生|清單|表單/i.test(name);
+      if (!shouldScan) continue;
 
       var lastRow = sheet.getLastRow();
       var lastCol = sheet.getLastColumn();
       if (lastRow <= 1 || lastCol < 2) continue;
 
-      var sData = sheet.getRange(1, 1, lastRow, Math.min(lastCol, 15)).getValues();
+      diag.sheetsScanned.push(name);
+
+      var sData = sheet.getRange(1, 1, Math.min(lastRow, 300), Math.min(lastCol, 20)).getValues();
       var sHeaders = sData[0] || [];
       var tokenCol = -1;
       var uidCol = -1;
       var seatCol = -1;
+      var nameCol = -1;
 
       for (var hc = 0; hc < sHeaders.length; hc++) {
         var headerName = (sHeaders[hc] || '').toString().trim();
-        if (/代碼|token|查詢代碼|code|通行碼/i.test(headerName)) tokenCol = hc;
-        if (/userid|line.*id|使用者id|用戶id|line_id/i.test(headerName)) uidCol = hc;
+        if (/代碼|token|查詢代碼|code|通行碼|識別碼|驗證碼|學號/i.test(headerName)) tokenCol = hc;
+        if (/userid|line.*id|使用者id|用戶id|line_id|line.*uid|家長id|line帳號/i.test(headerName)) uidCol = hc;
         if (/座號|seat/i.test(headerName)) seatCol = hc;
+        if (/姓名|學生姓名|學生|name/i.test(headerName)) nameCol = hc;
       }
 
-      // 若未找到明確表頭，嘗試啟發式偵測（找內容以 'U' 開頭長度 33 碼為 LINE userId）
+      // 啟發式自動辨識 LINE User ID 欄位（以 'U' 開頭、長度 32~34 碼）
       if (uidCol === -1 && sData.length > 1) {
         for (var sampleCol = 0; sampleCol < sHeaders.length; sampleCol++) {
-          var sampleVal = (sData[1][sampleCol] || '').toString().trim();
-          if (sampleVal.indexOf('U') === 0 && sampleVal.length >= 32) {
+          var hitCount = 0;
+          for (var testRow = 1; testRow < Math.min(sData.length, 6); testRow++) {
+            var sampleVal = (sData[testRow][sampleCol] || '').toString().trim();
+            if (sampleVal.indexOf('U') === 0 && sampleVal.length >= 32 && sampleVal.length <= 36) {
+              hitCount++;
+            }
+          }
+          if (hitCount >= 1) {
             uidCol = sampleCol;
             break;
           }
         }
       }
 
-      if (tokenCol !== -1 && uidCol !== -1) {
+      // 若找到了 LINE User ID 欄位，開始提取綁定
+      if (uidCol !== -1) {
+        var matchedInThisSheet = 0;
         for (var rowIdx = 1; rowIdx < sData.length; rowIdx++) {
-          var tVal = (sData[rowIdx][tokenCol] || '').toString().trim().toUpperCase();
           var uVal = (sData[rowIdx][uidCol] || '').toString().trim();
-          if (tVal && uVal && uVal.indexOf('U') === 0) {
-            bindings[tVal] = bindings[tVal] || [];
-            if (bindings[tVal].indexOf(uVal) === -1) {
-              bindings[tVal].push(uVal);
+          if (!uVal || uVal.indexOf('U') !== 0 || uVal.length < 30) continue;
+
+          var targetToken = '';
+
+          // A. 優先以查詢代碼 (Token) 比對
+          if (tokenCol !== -1) {
+            var tVal = (sData[rowIdx][tokenCol] || '').toString().trim().toUpperCase();
+            if (tVal && knownTokens[tVal]) {
+              targetToken = tVal;
+              if (diag.matchedBy.indexOf('查詢代碼') === -1) diag.matchedBy.push('查詢代碼');
             }
           }
+
+          // B. 次之以座號比對（若原專案未記錄 Token 或代碼未對應）
+          if (!targetToken && seatCol !== -1) {
+            var sVal = normalizeSeatNumber(sData[rowIdx][seatCol]);
+            if (sVal && seatToToken[sVal]) {
+              targetToken = seatToToken[sVal];
+              if (diag.matchedBy.indexOf('座號比對') === -1) diag.matchedBy.push('座號比對');
+            }
+          }
+
+          // C. 再次以學生姓名比對
+          if (!targetToken && nameCol !== -1) {
+            var nVal = (sData[rowIdx][nameCol] || '').toString().trim();
+            if (nVal && nameToToken[nVal]) {
+              targetToken = nameToToken[nVal];
+              if (diag.matchedBy.indexOf('姓名比對') === -1) diag.matchedBy.push('姓名比對');
+            }
+          }
+
+          // D. 若原專案只有 Token 且名單未收錄，仍收納為直接對照
+          if (!targetToken && tokenCol !== -1) {
+            var rawTok = (sData[rowIdx][tokenCol] || '').toString().trim().toUpperCase();
+            if (rawTok) targetToken = rawTok;
+          }
+
+          if (targetToken) {
+            bindings[targetToken] = bindings[targetToken] || [];
+            if (bindings[targetToken].indexOf(uVal) === -1) {
+              bindings[targetToken].push(uVal);
+              matchedInThisSheet++;
+            }
+          }
+        }
+        if (matchedInThisSheet > 0) {
+          diag.detectedUidCol = sHeaders[uidCol] || ('第 ' + (uidCol + 1) + ' 欄');
         }
       }
     }
   } catch (err) {
+    diag.openError = err.toString();
     Logger.log('跨表讀取原專案 LINE 綁定失敗: ' + err.toString());
   }
 
+  diag.boundTokensCount = Object.keys(bindings).length;
   return bindings;
 }
 
@@ -2789,6 +2911,7 @@ function getLinePushStatus_() {
   var sourceUrl = getSourceQrProjectSpreadsheetUrl_();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sSheet = ss.getSheetByName('學生名冊');
+  var diagnosticInfo = {};
 
   if (!sSheet || sSheet.getLastRow() <= 1) {
     return {
@@ -2797,6 +2920,7 @@ function getLinePushStatus_() {
       hasToken: !!lineToken,
       hasSourceUrl: !!sourceUrl,
       sourceUrl: sourceUrl || '',
+      diagnostic: diagnosticInfo,
       totalStudents: 0,
       boundStudentsCount: 0,
       boundParentsCount: 0,
@@ -2807,10 +2931,13 @@ function getLinePushStatus_() {
   var bindingsMap = {};
   if (sourceUrl) {
     try {
-      bindingsMap = fetchSourceProjectLineBindingsMap_();
+      bindingsMap = fetchSourceProjectLineBindingsMap_(diagnosticInfo);
     } catch (e) {
+      diagnosticInfo.openError = e.toString();
       Logger.log('讀取原專案綁定失敗: ' + e.toString());
     }
+  } else {
+    diagnosticInfo.openError = '尚未於【學生名冊】O1 設定原專案試算表網址';
   }
 
   var rData = sSheet.getDataRange().getValues();
@@ -2846,6 +2973,7 @@ function getLinePushStatus_() {
     hasToken: !!lineToken,
     hasSourceUrl: !!sourceUrl,
     sourceUrl: sourceUrl || '',
+    diagnostic: diagnosticInfo,
     totalStudents: rData.length - 1,
     boundStudentsCount: boundStudentsCount,
     boundParentsCount: totalBoundParents,

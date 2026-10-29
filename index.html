@@ -2200,6 +2200,16 @@
                             <li>亦可隨時在試算表點選上方選單<b>「⚡ MPScore-Daily ➔ ⚙️ 設定 LINE 推播與原專案連線」</b>一鍵輸入。</li>
                         </ol>
                     </div>
+
+                    <!-- 智能連線診斷提示（當已設定網址但偵測到 0 位綁定或發生連線異常時展開） -->
+                    <div id="lineDiagnosticBox" class="hidden p-3.5 rounded-xl bg-amber-50/90 border border-amber-300 text-xs text-amber-950 space-y-1.5 leading-relaxed">
+                        <div class="font-black flex items-center gap-1.5 text-amber-950">
+                            <span>🔍 系統連線排查診斷：</span>
+                        </div>
+                        <div id="lineDiagnosticMsg" class="text-[11.5px] text-amber-900 leading-normal">
+                            <!-- JS 動態填入診斷訊息 -->
+                        </div>
+                    </div>
                 </div>
 
                 <!-- 推播對象模式切換（全班 vs 個別/勾選特定學生） -->
@@ -3332,6 +3342,41 @@ function testGitHubConnection() {
                     if (helpSrc) helpSrc.style.display = data.hasSourceUrl ? 'none' : 'list-item';
                 } else {
                     if (helpBox) helpBox.classList.add('hidden');
+                }
+
+                // 智能診斷分析提示
+                const diagBox = document.getElementById('lineDiagnosticBox');
+                const diagMsg = document.getElementById('lineDiagnosticMsg');
+                if (diagBox && diagMsg) {
+                    const diag = data.diagnostic || {};
+                    let diagHtml = '';
+
+                    if (diag.isGasUrl) {
+                        diagHtml = '❌ <b>貼錯網址格式</b>：您在試算表 O1 貼成了 Google Apps Script 部署網址 (<code>script.google.com</code>)。<br>👉 <b>解決方式</b>：請改貼原本 QRcode 專案的 <b>Google 試算表原本網址</b>（<code>https://docs.google.com/spreadsheets/d/.../edit</code>）。';
+                    } else if (diag.isWebUrl) {
+                        diagHtml = '❌ <b>貼錯網址格式</b>：您在試算表 O1 貼成了網頁展示網址，請改貼 Google 試算表 (Google Sheets) 網址。';
+                    } else if (diag.openError && diag.openError.includes('permission')) {
+                        diagHtml = `🔒 <b>跨試算表存取權限遭拒</b>：目前執行的 Google 帳號無法讀取該原專案試算表。<br>👉 <b>解決方式</b>：請打開原本記錄綁定的 Google 試算表，點擊右上角「共用」，將檢視權限分享給您目前部署此 GAS 的 Google 帳號。`;
+                    } else if (diag.openError && !data.hasSourceUrl) {
+                        diagHtml = '⚠️ 尚未於試算表【學生名冊】的 <b>O1 儲存格</b> 填入原 QRcode 專案試算表網址。';
+                    } else if (diag.openError) {
+                        diagHtml = `⚠️ <b>無法開啟原專案試算表</b>：<span class="font-mono text-[11px]">${diag.openError}</span><br>👉 請確認 O1 儲存格是正確的 Google 試算表網址。`;
+                    } else if (boundCount === 0 && data.hasSourceUrl) {
+                        const scanned = (diag.sheetsScanned && diag.sheetsScanned.length > 0) ? diag.sheetsScanned.join('、') : '無符合分頁';
+                        diagHtml = `⚠️ <b>已成功連線原試算表，但尚未比對到家長綁定紀錄</b>：<br>` +
+                            `• 已連線掃描工作表：【<b>${scanned}</b>】<br>` +
+                            `• <b>常見原因排查</b>：<br>` +
+                            `  1. <b>分頁名稱</b>：確認原試算表中記錄家長綁定的工作表名稱。<br>` +
+                            `  2. <b>欄位比對</b>：確認原試算表是否有「座號」、「姓名」、「代碼/Token」與「LINE ID」欄位。<br>` +
+                            `  3. <b>重新部署</b>：若剛在 Google Apps Script 編輯器更新程式碼，請務必點選「部署」➔「管理部署」➔ 編輯 ➔「新版本」➔「部署」才會生效！`;
+                    }
+
+                    if (diagHtml && boundCount === 0) {
+                        diagMsg.innerHTML = diagHtml;
+                        diagBox.classList.remove('hidden');
+                    } else {
+                        diagBox.classList.add('hidden');
+                    }
                 }
 
                 updateExecuteLinePushBtnState();
