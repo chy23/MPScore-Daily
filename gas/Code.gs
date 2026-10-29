@@ -1398,9 +1398,12 @@ function parseDailySubjectSheet(sheet) {
   var sheetName = sheet.getName();
   var sheetTitle = sheetName;
 
-  if (loc.itemHeaderRowIdx > 0) {
+  // 僅當第 1 列不是「登記日期列」，且為傳統標題列時，才嘗試自第 1 列讀取自訂大標題
+  if (loc.itemHeaderRowIdx > 0 && loc.dateRowIdx !== 0) {
     var titleCandidates = data[0].filter(function(cell) {
-      var s = (cell || '').toString().trim();
+      if (!cell || cell instanceof Date) return false;
+      var s = cell.toString().trim();
+      if (s.indexOf('GMT') !== -1 || s.indexOf('台北標準時間') !== -1 || s.indexOf('UTC') !== -1) return false;
       return s && s !== '📌 學生名單' && s !== '📌 登記日期' && s !== '座號' && s !== '姓名' && !extractDateFromTitle_(s);
     });
     if (titleCandidates.length > 0) sheetTitle = titleCandidates[0].toString().trim();
@@ -1784,8 +1787,11 @@ function parseDailySubjectSheet(sheet) {
  */
 function inferSubjectShortName(sheetName, sheetTitle) {
   var exactName = (sheetName || '').toString().trim();
-  if (exactName) return exactName;
-  return (sheetTitle || '平時成績').toString().trim();
+  if (exactName && exactName.indexOf('GMT') === -1) return exactName;
+  if (sheetTitle && sheetTitle.indexOf('GMT') === -1 && sheetTitle.indexOf('台北標準時間') === -1) {
+    return sheetTitle.toString().trim();
+  }
+  return '平時成績';
 }
 
 /**
@@ -2933,7 +2939,12 @@ function maskStudentName_(name) {
  */
 function extractDateFromTitle_(title, referenceYear) {
   if (!title) return null;
+  if (title instanceof Date) return title;
   var str = title.toString().trim();
+  if (str.indexOf('GMT') !== -1 || str.indexOf('台北標準時間') !== -1 || str.indexOf('UTC') !== -1) {
+    var parsed = new Date(str);
+    if (!isNaN(parsed.getTime())) return parsed;
+  }
   referenceYear = referenceYear || (new Date()).getFullYear();
 
   // Pattern 1: YYYY-MM-DD or YYYY/MM/DD
@@ -2991,7 +3002,7 @@ function generateStudentScoreSummary_(studentToken, studentSeat, studentName, op
     try {
       var ss = SpreadsheetApp.getActiveSpreadsheet();
       var sheets = ss.getSheets();
-      var sinceDateStr = options.sinceDate || '';
+      var sinceDateStr = (options.sinceDate || '').toString().trim().replace(/\//g, '-');
 
       for (var i = 0; i < sheets.length; i++) {
         var sh = sheets[i];
@@ -3004,7 +3015,7 @@ function generateStudentScoreSummary_(studentToken, studentSeat, studentName, op
 
           if (sinceDateStr && parsed.assessments && parsed.assessments.length > 0) {
             for (var a = 0; a < parsed.assessments.length; a++) {
-              var aDate = extractDateFromTitle_(parsed.assessments[a].name);
+              var aDate = extractDateFromTitle_(parsed.assessments[a].date) || extractDateFromTitle_(parsed.assessments[a].name);
               if (aDate) {
                 var aDateStr = Utilities.formatDate(aDate, Session.getScriptTimeZone() || 'Asia/Taipei', 'yyyy-MM-dd');
                 if (aDateStr >= sinceDateStr) {
@@ -3022,7 +3033,8 @@ function generateStudentScoreSummary_(studentToken, studentSeat, studentName, op
             }
           }
 
-          summaryLines.push('• ' + (parsed.subjectTitle || sh.getName()) + '：有（ ' + count + ' ）項成績更新');
+          var subjName = parsed.subjectShortName || parsed.sheetName || sh.getName();
+          summaryLines.push('• ' + subjName + '：有（ ' + count + ' ）項成績更新');
         }
       }
     } catch (e) {
@@ -3208,7 +3220,8 @@ function getLinePushStatus_(params) {
   }
 
   // 採計基準日期：優先使用前端傳入之設定日期 sinceDate，若無則退回使用前次推播日期 lastPushDate
-  var targetSinceDate = (params.sinceDate || '').toString().trim() || lastPushDate;
+  var rawSinceDate = (params.sinceDate || '').toString().trim() || lastPushDate;
+  var targetSinceDate = rawSinceDate.replace(/\//g, '-');
 
   // 抓取試算表檔案最後修改時間 (Last Updated)
   var ssLastUpdatedStr = '';
@@ -3316,8 +3329,9 @@ function getLinePushStatus_(params) {
           }
         }
 
+        var cleanSubjName = parsed.subjectShortName || parsed.sheetName || sh.getName();
         subjectsMeta.push({
-          name: parsed.subjectTitle || sh.getName(),
+          name: cleanSubjName,
           sheetName: sh.getName(),
           totalAssessments: assessments.length,
           defaultCount: updatedCount,

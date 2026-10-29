@@ -3191,6 +3191,14 @@ function testGitHubConnection() {
         }
 
         let isFetchingSubjectCounts = false;
+        function cleanSubjectDisplayName(name, sheetName) {
+            if (!name || typeof name !== 'string') return sheetName || '本科';
+            if (name.includes('GMT') || name.includes('台北標準時間') || name.includes('UTC')) {
+                return sheetName || '本科';
+            }
+            return name;
+        }
+
         async function fetchSubjectCountsForSinceDate(targetDate) {
             if (isFetchingSubjectCounts) return;
             const apiUrl = (localStorage.getItem('mpdaily_api_url') || (document.getElementById('apiUrlInput') ? document.getElementById('apiUrlInput').value.trim() : '')).trim();
@@ -3220,7 +3228,9 @@ function testGitHubConnection() {
                 if (data.status === 'success' || data.success === true) {
                     if (Array.isArray(data.subjectsMeta) && data.subjectsMeta.length > 0) {
                         data.subjectsMeta.forEach(s => {
-                            subjectPushCountMap[s.name] = (typeof s.defaultCount === 'number') ? s.defaultCount : 0;
+                            const validName = cleanSubjectDisplayName(s.name, s.sheetName);
+                            s.name = validName;
+                            subjectPushCountMap[validName] = (typeof s.defaultCount === 'number') ? s.defaultCount : 0;
                         });
                         renderSubjectCounters();
                         updateLinePushMessagePreview();
@@ -3256,9 +3266,12 @@ function testGitHubConnection() {
         function initSubjectCounters(subjectsMeta, forceOverwrite = true) {
             let subjs = [];
             if (Array.isArray(subjectsMeta) && subjectsMeta.length > 0) {
-                subjs = subjectsMeta;
+                subjs = subjectsMeta.map(s => ({
+                    ...s,
+                    name: cleanSubjectDisplayName(s.name, s.sheetName)
+                }));
             } else if (Array.isArray(currentSubjectList) && currentSubjectList.length > 0) {
-                subjs = currentSubjectList.map(s => ({ name: s, defaultCount: 1 }));
+                subjs = currentSubjectList.map(s => ({ name: cleanSubjectDisplayName(s, s), defaultCount: 1 }));
             } else {
                 subjs = [
                     { name: '國語', defaultCount: 1 },
@@ -3649,6 +3662,7 @@ function testGitHubConnection() {
 
                 if (Array.isArray(data.subjectsMeta)) {
                     data.subjectsMeta.forEach(s => {
+                        s.name = cleanSubjectDisplayName(s.name, s.sheetName);
                         subjectPushCountMap[s.name] = (typeof s.defaultCount === 'number') ? s.defaultCount : 0;
                     });
                 }

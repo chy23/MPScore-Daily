@@ -1241,7 +1241,8 @@
             document.getElementById('sectionScoreMatrix').classList.toggle('hidden', !displayFlags.showScoreMatrix);
 
             // A. 平時評量分項平均卡片（僅顯示試算表實際有的項目！）
-            document.getElementById('pillarSubjectTitle').textContent = subj.subject;
+            const safeSubjName = (subj.subject && !subj.subject.includes('GMT') && !subj.subject.includes('台北標準時間')) ? subj.subject : (subj.sheetName || '本科');
+            document.getElementById('pillarSubjectTitle').textContent = safeSubjName;
             document.getElementById('currentSubjAvg').textContent = subj.overallAverage !== null ? subj.overallAverage.toFixed(1) : '--';
             
             const hasSubjPersonalScore = subj.overallAverage !== null && !isNaN(subj.overallAverage);
