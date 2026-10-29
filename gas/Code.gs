@@ -697,8 +697,8 @@ function doGet(e) {
       } else if (action === 'appendDailyScores') {
         var body = params.payload || (e && e.postData && e.postData.contents ? e.postData.contents : '');
         output = appendDailyScores(body);
-      } else if (action === 'getLineStatus') {
-        output = getLinePushStatus_();
+      } else if (action === 'getLineStatus' || action === 'getSubjectUpdateCounts') {
+        output = getLinePushStatus_(params);
       } else if (action === 'sendLineNotification') {
         output = executeLineScorePushNotifications_(params);
       } else if (action === 'setTeacherKey') {
@@ -2789,9 +2789,41 @@ function generateStudentScoreSummary_(studentToken, studentSeat, studentName, op
 }
 
 /**
- * 取得 LINE 推播與 School LINE Hub 中樞綁定狀態摘要（供網頁教師端與選單查詢）
+ * 試算表即時編輯觸發器：記錄各欄位最後編輯時間戳記，供推播自動抓取試算表更新時間
  */
-function getLinePushStatus_() {
+function onEdit(e) {
+  try {
+    if (!e || !e.range) return;
+    var sheet = e.range.getSheet();
+    var sheetName = sheet.getName();
+    if (isSystemSheet(sheetName)) return;
+
+    var col = e.range.getColumn();
+    var row = e.range.getRow();
+    if (col >= 3 && row >= 2) {
+      var tz = Session.getScriptTimeZone() || 'Asia/Taipei';
+      var nowStr = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd HH:mm:ss');
+      try {
+        var docProps = PropertiesService.getDocumentProperties();
+        docProps.setProperty('EDIT_' + sheetName + '_' + col, nowStr);
+      } catch (prpErr) {}
+
+      try {
+        var headerCell = sheet.getRange(2, col);
+        var oldNote = headerCell.getNote() || '';
+        var cleanNote = oldNote.replace(/最後更新：[^\n]+/g, '').trim();
+        headerCell.setNote((cleanNote ? cleanNote + '\n' : '') + '最後更新：' + nowStr);
+      } catch (notErr) {}
+    }
+  } catch (err) {}
+}
+
+/**
+ * 取得 LINE 推播與 School LINE Hub 中樞綁定狀態摘要（供網頁教師端與選單查詢）
+ * 支援方案 B：接收 sinceDate 參數，主動抓取試算表各科評量與儲存格更新時間，動態計算更新項目數
+ */
+function getLinePushStatus_(params) {
+  params = params || {};
   var hubClient = getLineHubClient_();
   var config = getLineHubConfig_();
 
@@ -2877,6 +2909,22 @@ function getLinePushStatus_() {
     lastPushDate = lastPushTimestamp.split(' ')[0];
   }
 
+  // 採計基準日期：優先使用前端傳入之設定日期 sinceDate，若無則退回使用前次推播日期 lastPushDate
+  var targetSinceDate = (params.sinceDate || '').toString().trim() || lastPushDate;
+
+  // 抓取試算表檔案最後修改時間 (Last Updated)
+  var ssLastUpdatedStr = '';
+  try {
+    var file = DriveApp.getFileById(ss.getId());
+    var fDate = file.getLastUpdated();
+    ssLastUpdatedStr = Utilities.formatDate(fDate, Session.getScriptTimeZone() || 'Asia/Taipei', 'yyyy-MM-dd HH:mm:ss');
+  } catch (dErr) {}
+
+  var docProps = null;
+  try {
+    docProps = PropertiesService.getDocumentProperties();
+  } catch (e) {}
+
   var subjectsMeta = [];
   try {
     var allSheets = ss.getSheets();
@@ -2886,27 +2934,82 @@ function getLinePushStatus_() {
       var parsed = parseDailySubjectSheet(sh);
       if (parsed) {
         var assessments = parsed.assessments || [];
-        var recentCount = 0;
-        if (lastPushDate) {
-          for (var aIdx = 0; aIdx < assessments.length; aIdx++) {
-            var aDate = extractDateFromTitle_(assessments[aIdx].name);
-            if (aDate) {
-              var aDateStr = Utilities.formatDate(aDate, Session.getScriptTimeZone() || 'Asia/Taipei', 'yyyy-MM-dd');
-              if (aDateStr >= lastPushDate) {
-                recentCount++;
+        var updatedCount = 0;
+        var latestColDateStr = '';
+
+        // 遍歷所有評量欄位，抓取試算表的更新時間
+        for (var aIdx = 0; aIdx < assessments.length; aIdx++) {
+          var item = assessments[aIdx];
+          var colIdx = item.colIdx !== undefined ? item.colIdx : (aIdx + 3);
+          var colDate = null;
+          var colDateStr = '';
+
+          // 1. 嘗試從欄位標題解析日期 (例如 10/24, 2026-10-28, 10月29日)
+          var titleDate = extractDateFromTitle_(item.name);
+          if (titleDate) {
+            colDate = titleDate;
+          }
+
+          // 2. 嘗試從儲存格備註 (Note) 抓取更新時間
+          if (!colDate) {
+            try {
+              var headerCell = sh.getRange(2, colIdx);
+              var note = headerCell.getNote();
+              if (note) {
+                var noteDate = extractDateFromTitle_(note);
+                if (noteDate) colDate = noteDate;
               }
+            } catch (nErr) {}
+          }
+
+          // 3. 嘗試從 DocumentProperties 抓取記錄的欄位編輯時間
+          if (!colDate && docProps) {
+            try {
+              var propTime = docProps.getProperty('EDIT_' + sh.getName() + '_' + colIdx);
+              if (propTime) {
+                var propDate = extractDateFromTitle_(propTime);
+                if (propDate) colDate = propDate;
+              }
+            } catch (pErr) {}
+          }
+
+          if (colDate) {
+            colDateStr = Utilities.formatDate(colDate, Session.getScriptTimeZone() || 'Asia/Taipei', 'yyyy-MM-dd');
+            if (!latestColDateStr || colDateStr > latestColDateStr) {
+              latestColDateStr = colDateStr;
             }
           }
+
+          // 依設定日期 (targetSinceDate) 判定是否屬於更新項目
+          if (targetSinceDate) {
+            if (colDateStr && colDateStr >= targetSinceDate) {
+              updatedCount++;
+            }
+          } else {
+            updatedCount++;
+          }
         }
-        if (recentCount === 0 && assessments.length > 0) {
-          recentCount = 1;
+
+        // 若該科目有評量，但欄位標題無日期：
+        // 檢驗試算表檔案最後修改時間 (ssLastUpdatedStr)
+        if (updatedCount === 0 && assessments.length > 0) {
+          if (ssLastUpdatedStr && targetSinceDate) {
+            var fileDateStr = ssLastUpdatedStr.split(' ')[0];
+            if (fileDateStr >= targetSinceDate) {
+              updatedCount = 1;
+              latestColDateStr = fileDateStr;
+            }
+          } else if (!targetSinceDate) {
+            updatedCount = 1;
+          }
         }
 
         subjectsMeta.push({
           name: parsed.subjectTitle || sh.getName(),
           sheetName: sh.getName(),
           totalAssessments: assessments.length,
-          defaultCount: recentCount
+          defaultCount: updatedCount,
+          latestUpdate: latestColDateStr || (ssLastUpdatedStr ? ssLastUpdatedStr.split(' ')[0] : '')
         });
       }
     }
@@ -2928,6 +3031,8 @@ function getLinePushStatus_() {
     boundStudentsCount: boundStudentsCount,
     boundParentsCount: totalBoundParents,
     students: studentsList,
+    sinceDate: targetSinceDate,
+    spreadsheetLastUpdated: ssLastUpdatedStr,
     lastPushTimestamp: lastPushTimestamp,
     lastPushDate: lastPushDate,
     subjectsMeta: subjectsMeta,
@@ -3244,6 +3349,7 @@ var MPScoreDailyEngine = {
   getRecentAccessLogs: getRecentAccessLogs_,
   getStudentAccessHistoryMap: getStudentAccessHistoryMap_,
   clearSystemCache: clearSystemCache,
+  onEdit: onEdit,
   handleDoGet: doGet,
   handleDoPost: doPost
 };

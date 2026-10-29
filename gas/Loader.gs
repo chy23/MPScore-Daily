@@ -77,6 +77,12 @@ function clearSystemCache() {
   getEngine(true).clearSystemCache();
 }
 
+function onEdit(e) {
+  try {
+    getEngine().onEdit(e);
+  } catch (err) {}
+}
+
 // Web API 入口點 (附完整錯誤捕捉保護，絕不回傳 HTML 當機頁面)
 function doGet(e) {
   try {

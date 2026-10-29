@@ -2269,21 +2269,30 @@
                     </div>
 
                     <!-- 基準日期選擇列 -->
-                    <div class="p-3 rounded-xl bg-sky-50/60 border border-sky-100 flex flex-wrap items-center justify-between gap-2.5">
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <label for="linePushSinceDate" class="text-xs font-bold text-slate-700 flex items-center gap-1">
-                                <span>採計此日期後更新之成績：</span>
-                            </label>
-                            <input type="date" id="linePushSinceDate" onchange="onLinePushSinceDateChange(this.value)"
-                                class="px-2.5 py-1 text-xs font-mono font-bold rounded-lg border border-sky-300 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-2xs">
+                    <div class="p-3.5 rounded-xl bg-sky-50/60 border border-sky-100 space-y-2">
+                        <div class="flex flex-wrap items-center justify-between gap-2.5">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <label for="linePushSinceDate" class="text-xs font-bold text-slate-700 flex items-center gap-1">
+                                    <span>採計此日期後更新之成績：</span>
+                                </label>
+                                <input type="date" id="linePushSinceDate" onchange="onLinePushSinceDateChange(this.value)"
+                                    class="px-2.5 py-1 text-xs font-mono font-bold rounded-lg border border-sky-300 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-2xs">
+                            </div>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <button type="button" onclick="applyLastPushDateToPicker()" id="btnApplyLastPushDate" class="px-2.5 py-1 rounded-lg bg-white hover:bg-sky-100 text-sky-800 border border-sky-200 text-[11px] font-bold shadow-2xs transition active:scale-95 cursor-pointer" title="帶入後端記錄的上次推播日期">
+                                    帶入前次推播日期
+                                </button>
+                                <button type="button" onclick="applyTodayToPicker()" class="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-bold shadow-2xs transition active:scale-95 cursor-pointer">
+                                    設為今日
+                                </button>
+                                <button type="button" onclick="refreshSubjectCountsFromSheet()" class="px-2.5 py-1 rounded-lg bg-sky-100 hover:bg-sky-200 text-sky-900 border border-sky-300 text-[11px] font-bold shadow-2xs transition active:scale-95 cursor-pointer flex items-center gap-1" title="點此依所選日期重新至試算表抓取更新時間">
+                                    <span>🔄</span>
+                                    <span>抓取試算表更新</span>
+                                </button>
+                            </div>
                         </div>
-                        <div class="flex items-center gap-1.5">
-                            <button type="button" onclick="applyLastPushDateToPicker()" id="btnApplyLastPushDate" class="px-2.5 py-1 rounded-lg bg-white hover:bg-sky-100 text-sky-800 border border-sky-200 text-[11px] font-bold shadow-2xs transition active:scale-95 cursor-pointer" title="帶入後端記錄的上次推播日期">
-                                帶入前次推播日期
-                            </button>
-                            <button type="button" onclick="applyTodayToPicker()" class="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-bold shadow-2xs transition active:scale-95 cursor-pointer">
-                                設為今日
-                            </button>
+                        <div id="lineSinceDateStatus" class="text-[11px] font-bold text-slate-500 min-h-[16px] flex items-center gap-1.5">
+                            <!-- JS 動態呈現抓取試算表更新時間與計算結果 -->
                         </div>
                     </div>
 
@@ -2613,6 +2622,12 @@ function autoFormatAndResizeAllSheets() { getEngine().autoFormatAndResizeAllShee
 function clearSystemCache() {
   _cachedEngine = null;
   getEngine(true).clearSystemCache();
+}
+
+function onEdit(e) {
+  try {
+    getEngine().onEdit(e);
+  } catch (err) {}
 }
 
 // Web API 入口點 (附完整錯誤捕捉保護，絕不回傳 HTML 當機頁面)
@@ -3107,7 +3122,7 @@ function testGitHubConnection() {
             if (!input) return;
             if (currentLastPushDate) {
                 input.value = currentLastPushDate;
-                onLinePushSinceDateChange(currentLastPushDate);
+                fetchSubjectCountsForSinceDate(currentLastPushDate);
             } else {
                 alert('ℹ️ 系統尚無前次推播紀錄，已自動設定為今日！');
                 applyTodayToPicker();
@@ -3119,14 +3134,83 @@ function testGitHubConnection() {
             if (!input) return;
             const todayStr = new Date().toISOString().split('T')[0];
             input.value = todayStr;
-            onLinePushSinceDateChange(todayStr);
+            fetchSubjectCountsForSinceDate(todayStr);
+        }
+
+        function refreshSubjectCountsFromSheet() {
+            const input = document.getElementById('linePushSinceDate');
+            const targetDate = input ? input.value : '';
+            fetchSubjectCountsForSinceDate(targetDate);
         }
 
         function onLinePushSinceDateChange(val) {
-            updateLinePushMessagePreview();
+            fetchSubjectCountsForSinceDate(val);
         }
 
-        function initSubjectCounters(subjectsMeta) {
+        let isFetchingSubjectCounts = false;
+        async function fetchSubjectCountsForSinceDate(targetDate) {
+            if (isFetchingSubjectCounts) return;
+            const apiUrl = (localStorage.getItem('mpdaily_api_url') || (document.getElementById('apiUrlInput') ? document.getElementById('apiUrlInput').value.trim() : '')).trim();
+            const teacherKey = getTeacherKey();
+            const statusTip = document.getElementById('lineSinceDateStatus');
+
+            if (!apiUrl) {
+                if (statusTip) {
+                    statusTip.className = 'text-[11px] font-bold text-amber-700 block';
+                    statusTip.textContent = '⚠️ 請先於 STEP 3 連線試算表 API';
+                }
+                return;
+            }
+
+            isFetchingSubjectCounts = true;
+            if (statusTip) {
+                statusTip.className = 'text-[11px] font-bold text-sky-700 flex items-center gap-1.5 animate-pulse block';
+                statusTip.innerHTML = `<span>⏳ 正在抓取試算表更新時間並計算各科項數...</span>`;
+            }
+
+            try {
+                const sep = apiUrl.includes('?') ? '&' : '?';
+                const url = `${apiUrl}${sep}action=getLineStatus&key=${encodeURIComponent(teacherKey)}&sinceDate=${encodeURIComponent(targetDate || '')}&nocache=1&t=${Date.now()}`;
+                const res = await fetch(url, { redirect: 'follow', cache: 'no-store' });
+                const data = await res.json();
+
+                if (data.status === 'success' || data.success === true) {
+                    if (Array.isArray(data.subjectsMeta) && data.subjectsMeta.length > 0) {
+                        data.subjectsMeta.forEach(s => {
+                            subjectPushCountMap[s.name] = (typeof s.defaultCount === 'number') ? s.defaultCount : 0;
+                        });
+                        renderSubjectCounters();
+                        updateLinePushMessagePreview();
+
+                        if (statusTip) {
+                            const summaryParts = data.subjectsMeta.map(s => `${s.name} ${subjectPushCountMap[s.name] || 0}項`).join('、');
+                            const modInfo = data.spreadsheetLastUpdated ? `（試算表最後異動：${data.spreadsheetLastUpdated}）` : '';
+                            statusTip.className = 'text-[11px] font-bold text-emerald-800 flex items-center gap-1 block';
+                            statusTip.innerHTML = `<span>✅ 已抓取試算表更新時間生成：<b>${summaryParts}</b> ${modInfo}</span>`;
+                        }
+                    } else {
+                        if (statusTip) {
+                            statusTip.className = 'text-[11px] font-bold text-slate-500 block';
+                            statusTip.textContent = 'ℹ️ 查無科目成績更新資料';
+                        }
+                    }
+                } else {
+                    if (statusTip) {
+                        statusTip.className = 'text-[11px] font-bold text-amber-700 block';
+                        statusTip.textContent = `⚠️ ${data.message || '無法抓取試算表更新時間'}`;
+                    }
+                }
+            } catch (err) {
+                if (statusTip) {
+                    statusTip.className = 'text-[11px] font-bold text-amber-700 block';
+                    statusTip.textContent = '⚠️ 連線逾時，您可直接手動微調下方項目數';
+                }
+            } finally {
+                isFetchingSubjectCounts = false;
+            }
+        }
+
+        function initSubjectCounters(subjectsMeta, forceOverwrite = true) {
             let subjs = [];
             if (Array.isArray(subjectsMeta) && subjectsMeta.length > 0) {
                 subjs = subjectsMeta;
@@ -3142,8 +3226,8 @@ function testGitHubConnection() {
 
             subjs.forEach(s => {
                 const name = s.name;
-                if (subjectPushCountMap[name] === undefined) {
-                    subjectPushCountMap[name] = (typeof s.defaultCount === 'number') ? s.defaultCount : 1;
+                if (forceOverwrite || subjectPushCountMap[name] === undefined) {
+                    subjectPushCountMap[name] = (typeof s.defaultCount === 'number') ? s.defaultCount : 0;
                 }
             });
 
@@ -3487,7 +3571,8 @@ function testGitHubConnection() {
 
             try {
                 const sep = apiUrl.includes('?') ? '&' : '?';
-                const url = `${apiUrl}${sep}action=getLineStatus&key=${encodeURIComponent(teacherKey)}&nocache=1&t=${Date.now()}`;
+                const initialSinceDate = document.getElementById('linePushSinceDate')?.value || '';
+                const url = `${apiUrl}${sep}action=getLineStatus&key=${encodeURIComponent(teacherKey)}${initialSinceDate ? `&sinceDate=${encodeURIComponent(initialSinceDate)}` : ''}&nocache=1&t=${Date.now()}`;
                 const res = await fetch(url, { redirect: 'follow', cache: 'no-store' });
                 const data = await res.json();
 
@@ -3519,7 +3604,20 @@ function testGitHubConnection() {
                     }
                 }
 
+                if (Array.isArray(data.subjectsMeta)) {
+                    data.subjectsMeta.forEach(s => {
+                        subjectPushCountMap[s.name] = (typeof s.defaultCount === 'number') ? s.defaultCount : 0;
+                    });
+                }
                 initSubjectCounters(data.subjectsMeta);
+
+                const statusTip = document.getElementById('lineSinceDateStatus');
+                if (statusTip && Array.isArray(data.subjectsMeta) && data.subjectsMeta.length > 0) {
+                    const summaryParts = data.subjectsMeta.map(s => `${s.name} ${subjectPushCountMap[s.name] || 0}項`).join('、');
+                    const modInfo = data.spreadsheetLastUpdated ? `（試算表最後異動：${data.spreadsheetLastUpdated}）` : '';
+                    statusTip.className = 'text-[11px] font-bold text-emerald-800 flex items-center gap-1 block';
+                    statusTip.innerHTML = `<span>✅ 已抓取試算表更新時間生成：<b>${summaryParts}</b> ${modInfo}</span>`;
+                }
 
                 // 更新個別綁定字典
                 lineStudentBindingMap = {};
