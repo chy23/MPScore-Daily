@@ -1421,7 +1421,7 @@
                     <div>
                         <div class="flex items-center gap-2">
                             <h3 class="text-base md:text-lg font-black tracking-tight text-white">MPScore-Daily 系統詳細更新紀錄</h3>
-                            <span class="text-[10px] bg-emerald-500 text-white font-black px-2 py-0.5 rounded-full">v3.5.0 最新版</span>
+                            <span class="text-[10px] bg-emerald-500 text-white font-black px-2 py-0.5 rounded-full">v3.6.0 最新版</span>
                         </div>
                         <p class="text-xs text-sky-100 mt-0.5">平時成績無痛結算 ‧ 親師雲端即時溝通 ‧ 國中小專用智慧平台</p>
                     </div>
@@ -1434,11 +1434,33 @@
             <!-- 更新日誌內容滾動區 -->
             <div class="p-5 md:p-8 overflow-y-auto space-y-6 text-xs text-slate-700 bg-slate-50/50 leading-relaxed">
 
-                <!-- v3.5.0 最新版里程碑 -->
+                <!-- v3.6.0 最新版里程碑 -->
                 <div class="bg-white p-5 rounded-3xl border border-emerald-300 shadow-sm space-y-4 relative overflow-hidden ring-2 ring-emerald-400/20">
                     <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                         <div class="flex items-center gap-2">
-                            <span class="text-xs font-black bg-emerald-600 text-white px-2.5 py-1 rounded-xl shadow-xs">v3.5.0 最新版</span>
+                            <span class="text-xs font-black bg-emerald-600 text-white px-2.5 py-1 rounded-xl shadow-xs">v3.6.0 最新版</span>
+                            <span class="text-sm font-black text-slate-900">📅 方案 B：成績更新採計基準 ‧ 自動追蹤前次推播時間 ‧ 各科項目微調</span>
+                        </div>
+                        <span class="text-[11px] text-slate-400 font-mono font-bold">2026-10-29</span>
+                    </div>
+
+                    <div class="space-y-3.5">
+                        <div class="p-3.5 bg-emerald-50/80 rounded-2xl border border-emerald-200/80 text-[11px] text-emerald-950 font-bold space-y-1.5">
+                            <div>🎯 <b>本次核心功能更新說明</b>：</div>
+                            <ul class="list-disc list-inside font-normal text-slate-700 pl-1 space-y-1.5">
+                                <li><b>自動追蹤與讀取前次推播時間</b>：後端 GAS 自動紀錄前次推播成功時間戳記，推播中心開啟時即時呈現「前次推播時間」並自動預設基準日期。</li>
+                                <li><b>自訂採計日期與各科項數微調（方案 B）</b>：提供日期選擇器與各科目 Stepper（＋ / －）計數器，精確掌控發送給家長之「有（ N ）項成績更新」通知。</li>
+                                <li><b>符合規範之統一訊息格式</b>：推播內文與手機擬真卡片嚴格遵循「• 科目：有（ N ）項成績更新」標準規範，姓名遮罩保密個資，絕不外洩細項分數。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- v3.5.0 里程碑 -->
+                <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-4 relative overflow-hidden">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-black bg-slate-700 text-white px-2.5 py-1 rounded-xl shadow-xs">v3.5.0</span>
                             <span class="text-sm font-black text-slate-900">🚀 接入 School LINE Hub 統一中樞 ‧ 免 Token、免跨表、自動發送成績摘要</span>
                         </div>
                         <span class="text-[11px] text-slate-400 font-mono font-bold">2026-10-29</span>
@@ -2231,6 +2253,50 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- 📅 成績更新採計基準（方案 B ‧ 追蹤前次推播時間） -->
+                <div class="p-4 rounded-2xl bg-white border border-sky-200 shadow-2xs space-y-3">
+                    <div class="flex items-center justify-between flex-wrap gap-2">
+                        <span class="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                            <span>📅 成績更新採計基準（方案 B）</span>
+                        </span>
+                        <div class="flex items-center gap-1.5">
+                            <span id="lineLastPushTimeBadge" class="px-2.5 py-1 rounded-full text-[11px] font-black bg-sky-50 text-sky-800 border border-sky-200 flex items-center gap-1">
+                                <span>🕒 前次推播：</span>
+                                <span id="lineLastPushTimeText" class="font-mono">載入中...</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- 基準日期選擇列 -->
+                    <div class="p-3 rounded-xl bg-sky-50/60 border border-sky-100 flex flex-wrap items-center justify-between gap-2.5">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <label for="linePushSinceDate" class="text-xs font-bold text-slate-700 flex items-center gap-1">
+                                <span>採計此日期後更新之成績：</span>
+                            </label>
+                            <input type="date" id="linePushSinceDate" onchange="onLinePushSinceDateChange(this.value)"
+                                class="px-2.5 py-1 text-xs font-mono font-bold rounded-lg border border-sky-300 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-2xs">
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <button type="button" onclick="applyLastPushDateToPicker()" id="btnApplyLastPushDate" class="px-2.5 py-1 rounded-lg bg-white hover:bg-sky-100 text-sky-800 border border-sky-200 text-[11px] font-bold shadow-2xs transition active:scale-95 cursor-pointer" title="帶入後端記錄的上次推播日期">
+                                帶入前次推播日期
+                            </button>
+                            <button type="button" onclick="applyTodayToPicker()" class="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-bold shadow-2xs transition active:scale-95 cursor-pointer">
+                                設為今日
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 各科目推播項數微調區 -->
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11.5px] font-bold text-slate-600">各科通知更新項目數（可點擊 ＋ / － 依需要微調）：</span>
+                            <span class="text-[10.5px] text-slate-400">設為 0 則不列入該科</span>
+                        </div>
+                        <div id="lineSubjectCountersContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                            <!-- JS 動態生成各科計數器 -->
+                        </div>
+                    </div>
                 </div>
 
                 <!-- 推播對象模式切換（全班 vs 個別/勾選特定學生） -->
@@ -2296,10 +2362,10 @@
                                 <b>王○華</b> 家長您好：<br>
                                 目前平時評量成績摘要：
                             </div>
-                            <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-800 space-y-1 font-mono">
-                                <div>• 國語：有（ 3 ）項成績更新</div>
-                                <div>• 數學：有（ 4 ）項成績更新</div>
-                                <div>• 英語：有（ 2 ）項成績更新</div>
+                            <div id="lineModalPreviewSummary" class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-800 space-y-1 font-mono">
+                                <div>• 國語：有（ 1 ）項成績更新</div>
+                                <div>• 數學：有（ 1 ）項成績更新</div>
+                                <div>• 英語：有（ 1 ）項成績更新</div>
                             </div>
                             <div class="p-2.5 rounded-xl bg-sky-50 border border-sky-100 text-[11px] text-sky-900 space-y-1">
                                 <div class="font-bold">🔗 點此開啟明細查看：</div>
@@ -2520,7 +2586,7 @@ function onOpen() {
     .addItem('📱 查看【家長閱覽紀錄】日誌分頁', 'openAccessLogsSheet')
     .addItem('🗑️ 清空全班【家長閱覽紀錄】與次數歸零', 'clearAllAccessLogsMenu')
     .addSeparator()
-    .addItem('⚙️ 設定 LINE 推播與原專案連線（Token/試算表）', 'setupLinePushSettingsMenu')
+    .addItem('⚙️ 設定 School LINE Hub 中樞連線', 'setupLinePushSettingsMenu')
     .addItem('📢 發送【平時成績已更新】LINE 通知給已綁定家長', 'sendLineScoreUpdateNotificationMenu')
     .addSeparator()
     .addItem('📊 查看全班各科平時總均與分項平均統計', 'previewClassStatistics')
@@ -3032,6 +3098,118 @@ function testGitHubConnection() {
         let currentLinePushTargetMode = 'all'; // 'all' | 'custom'
         let selectedTokensForLinePush = new Set();
         let lineStudentBindingMap = {};
+        let currentLastPushTimestamp = '';
+        let currentLastPushDate = '';
+        let subjectPushCountMap = {};
+
+        function applyLastPushDateToPicker() {
+            const input = document.getElementById('linePushSinceDate');
+            if (!input) return;
+            if (currentLastPushDate) {
+                input.value = currentLastPushDate;
+                onLinePushSinceDateChange(currentLastPushDate);
+            } else {
+                alert('ℹ️ 系統尚無前次推播紀錄，已自動設定為今日！');
+                applyTodayToPicker();
+            }
+        }
+
+        function applyTodayToPicker() {
+            const input = document.getElementById('linePushSinceDate');
+            if (!input) return;
+            const todayStr = new Date().toISOString().split('T')[0];
+            input.value = todayStr;
+            onLinePushSinceDateChange(todayStr);
+        }
+
+        function onLinePushSinceDateChange(val) {
+            updateLinePushMessagePreview();
+        }
+
+        function initSubjectCounters(subjectsMeta) {
+            let subjs = [];
+            if (Array.isArray(subjectsMeta) && subjectsMeta.length > 0) {
+                subjs = subjectsMeta;
+            } else if (Array.isArray(currentSubjectList) && currentSubjectList.length > 0) {
+                subjs = currentSubjectList.map(s => ({ name: s, defaultCount: 1 }));
+            } else {
+                subjs = [
+                    { name: '國語', defaultCount: 1 },
+                    { name: '數學', defaultCount: 1 },
+                    { name: '英語', defaultCount: 1 }
+                ];
+            }
+
+            subjs.forEach(s => {
+                const name = s.name;
+                if (subjectPushCountMap[name] === undefined) {
+                    subjectPushCountMap[name] = (typeof s.defaultCount === 'number') ? s.defaultCount : 1;
+                }
+            });
+
+            renderSubjectCounters();
+            updateLinePushMessagePreview();
+        }
+
+        function renderSubjectCounters() {
+            const container = document.getElementById('lineSubjectCountersContainer');
+            if (!container) return;
+
+            const keys = Object.keys(subjectPushCountMap);
+            if (keys.length === 0) {
+                container.innerHTML = '<div class="col-span-full py-2 text-center text-slate-400 text-xs">暫無科目資料</div>';
+                return;
+            }
+
+            container.innerHTML = keys.map(subj => {
+                const count = subjectPushCountMap[subj] || 0;
+                return `
+                    <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-sky-300 transition shadow-2xs">
+                        <span class="font-black text-xs text-slate-800 truncate mr-2">${subj}</span>
+                        <div class="flex items-center gap-1 shrink-0">
+                            <button type="button" onclick="adjustSubjectPushCount('${subj}', -1)" aria-label="減少" class="w-6 h-6 rounded-lg bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-black text-xs flex items-center justify-center transition active:scale-90 cursor-pointer">－</button>
+                            <input type="number" min="0" max="99" value="${count}" onchange="setSubjectPushCount('${subj}', this.value)"
+                                class="w-10 text-center py-0.5 text-xs font-mono font-black rounded border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-500">
+                            <button type="button" onclick="adjustSubjectPushCount('${subj}', 1)" aria-label="增加" class="w-6 h-6 rounded-lg bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-black text-xs flex items-center justify-center transition active:scale-90 cursor-pointer">＋</button>
+                            <span class="text-[11px] text-slate-500 font-bold ml-0.5">項</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function adjustSubjectPushCount(subj, delta) {
+            const cur = subjectPushCountMap[subj] || 0;
+            const next = Math.max(0, cur + delta);
+            subjectPushCountMap[subj] = next;
+            renderSubjectCounters();
+            updateLinePushMessagePreview();
+        }
+
+        function setSubjectPushCount(subj, val) {
+            const num = parseInt(val, 10);
+            subjectPushCountMap[subj] = isNaN(num) ? 0 : Math.max(0, num);
+            renderSubjectCounters();
+            updateLinePushMessagePreview();
+        }
+
+        function updateLinePushMessagePreview() {
+            const previewContainer = document.getElementById('lineModalPreviewSummary');
+            if (!previewContainer) return;
+
+            const lines = [];
+            for (const [subj, count] of Object.entries(subjectPushCountMap)) {
+                if (count > 0) {
+                    lines.push(`<div>• ${subj}：有（ ${count} ）項成績更新</div>`);
+                }
+            }
+
+            if (lines.length === 0) {
+                previewContainer.innerHTML = `<div>• 平時成績：有（ 1 ）項成績更新</div>`;
+            } else {
+                previewContainer.innerHTML = lines.join('');
+            }
+        }
 
         function getStudentBoundParentsCount(token) {
             return lineStudentBindingMap[String(token || '').toUpperCase()] || 0;
@@ -3240,12 +3418,21 @@ function testGitHubConnection() {
             try {
                 const sep = apiUrl.includes('?') ? '&' : '?';
                 const parentBaseUrl = window.location.href.replace(/\/[^\/]*$/, '/parent.html');
-                const url = `${apiUrl}${sep}action=sendLineNotification&key=${encodeURIComponent(teacherKey)}&token=${encodeURIComponent(token)}&gasUrl=${encodeURIComponent(apiUrl)}&parentBaseUrl=${encodeURIComponent(parentBaseUrl)}&nocache=1&t=${Date.now()}`;
+                const sinceDate = document.getElementById('linePushSinceDate')?.value || '';
+                const subjectCountsStr = JSON.stringify(subjectPushCountMap);
+                const countsParam = `&sinceDate=${encodeURIComponent(sinceDate)}&subjectCounts=${encodeURIComponent(subjectCountsStr)}`;
+                const url = `${apiUrl}${sep}action=sendLineNotification&key=${encodeURIComponent(teacherKey)}&token=${encodeURIComponent(token)}${countsParam}&gasUrl=${encodeURIComponent(apiUrl)}&parentBaseUrl=${encodeURIComponent(parentBaseUrl)}&nocache=1&t=${Date.now()}`;
 
                 const res = await fetch(url, { redirect: 'follow', cache: 'no-store' });
                 const data = await res.json();
 
                 if (data.status === 'success' || data.success === true) {
+                    if (data.lastPushTimestamp) {
+                        currentLastPushTimestamp = data.lastPushTimestamp;
+                        currentLastPushDate = data.lastPushDate || currentLastPushTimestamp.split(' ')[0];
+                        const lastTimeText = document.getElementById('lineLastPushTimeText');
+                        if (lastTimeText) lastTimeText.textContent = currentLastPushTimestamp;
+                    }
                     alert(`🎉【發送成功】\n\n已成功將【平時成績已更新】通知推送至 ${name} 的家長 LINE（共送達 ${data.successCount} 則訊息）！`);
                 } else {
                     alert(`⚠️【發送失敗】\n\n${data.message || '無法送達訊息，可能家長尚未綁定或已封鎖官方帳號。'}`);
@@ -3315,6 +3502,24 @@ function testGitHubConnection() {
                 }
 
                 currentLinePushStatus = data;
+                currentLastPushTimestamp = data.lastPushTimestamp || '';
+                currentLastPushDate = data.lastPushDate || (currentLastPushTimestamp ? currentLastPushTimestamp.split(' ')[0] : '');
+
+                const lastTimeText = document.getElementById('lineLastPushTimeText');
+                if (lastTimeText) {
+                    lastTimeText.textContent = currentLastPushTimestamp ? currentLastPushTimestamp : '首次推播（無歷史紀錄）';
+                }
+
+                const dateInput = document.getElementById('linePushSinceDate');
+                if (dateInput && !dateInput.value) {
+                    if (currentLastPushDate) {
+                        dateInput.value = currentLastPushDate;
+                    } else {
+                        dateInput.value = new Date().toISOString().split('T')[0];
+                    }
+                }
+
+                initSubjectCounters(data.subjectsMeta);
 
                 // 更新個別綁定字典
                 lineStudentBindingMap = {};
@@ -3462,12 +3667,21 @@ function testGitHubConnection() {
             try {
                 const sep = apiUrl.includes('?') ? '&' : '?';
                 const parentBaseUrl = window.location.href.replace(/\/[^\/]*$/, '/parent.html');
-                const url = `${apiUrl}${sep}action=sendLineNotification&key=${encodeURIComponent(teacherKey)}${targetTokensParam}&gasUrl=${encodeURIComponent(apiUrl)}&parentBaseUrl=${encodeURIComponent(parentBaseUrl)}&nocache=1&t=${Date.now()}`;
+                const sinceDate = document.getElementById('linePushSinceDate')?.value || '';
+                const subjectCountsStr = JSON.stringify(subjectPushCountMap);
+                const countsParam = `&sinceDate=${encodeURIComponent(sinceDate)}&subjectCounts=${encodeURIComponent(subjectCountsStr)}`;
+                const url = `${apiUrl}${sep}action=sendLineNotification&key=${encodeURIComponent(teacherKey)}${targetTokensParam}${countsParam}&gasUrl=${encodeURIComponent(apiUrl)}&parentBaseUrl=${encodeURIComponent(parentBaseUrl)}&nocache=1&t=${Date.now()}`;
 
                 const res = await fetch(url, { redirect: 'follow', cache: 'no-store' });
                 const data = await res.json();
 
                 if (data.status === 'success' || data.success === true) {
+                    if (data.lastPushTimestamp) {
+                        currentLastPushTimestamp = data.lastPushTimestamp;
+                        currentLastPushDate = data.lastPushDate || currentLastPushTimestamp.split(' ')[0];
+                        const lastTimeText = document.getElementById('lineLastPushTimeText');
+                        if (lastTimeText) lastTimeText.textContent = currentLastPushTimestamp;
+                    }
                     if (alertBox) {
                         alertBox.className = 'p-3.5 rounded-2xl bg-emerald-50 border border-emerald-300 text-xs text-emerald-950 font-bold block space-y-1';
                         alertBox.innerHTML = `

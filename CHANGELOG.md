@@ -4,6 +4,37 @@
 
 ---
 
+## [v3.6.0] - 2026-10-29 📅 方案 B：成績更新採計基準 ‧ 自動追蹤前次推播時間 ‧ 各科更新項目微調
+
+### 🎯 核心新功能與升級
+1. **成績更新採計基準面板（方案 B）**：
+   - 於 LINE 推播中心新增「📅 成績更新採計基準」獨立控制卡片。
+   - 自動自後端 GAS 讀取並展示「🕒 前次推播時間：YYYY-MM-DD HH:mm:ss」（首次推播時標記為「首次推播」）。
+   - 提供「基準日期選取器」，自動預設帶入前次推播日期（或今日），並提供「帶入前次推播日期」與「設為今日」快捷鍵。
+2. **各科目通知項目數即時微調（Stepper ＋ / － 控制）**：
+   - 自動動態偵測現有成績分頁科目（國語、數學、英語等），提供獨立計數器微調「有（ N ）項成績更新」。
+   - 支援將特定科目設為 0 項，以在本次通知中排除該科目。
+3. **符合官方規範之即時訊息預覽與發送**：
+   - 即時連動更新擬真 LINE 預覽訊息泡泡，格式嚴格遵循規範：
+     ```text
+     📊 【平時成績更新通知】
+     王○華 家長您好：
+     目前平時評量成績摘要：
+     • 國語：有（ 2 ）項成績更新
+     • 數學：有（ 1 ）項成績更新
+     • 英語：有（ 1 ）項成績更新
+     🔗 點此開啟明細查看：
+     https://chy23.github.io/MPScore-Daily/parent.html?t=...
+     （由 平時成績管理系統 自動發送）
+     ```
+   - 姓名自動遮罩保護個資（如王○華），絕不洩漏細項分數。
+4. **Google Apps Script 後端推播時間記憶與計數過濾 (`gas/Code.gs`)**：
+   - 於 `PropertiesService.getScriptProperties()` 儲存 `LAST_SCORE_PUSH_TIMESTAMP` 與 `LAST_SCORE_PUSH_DATE`。
+   - `getLinePushStatus_` 返回 `lastPushTimestamp`, `lastPushDate`, 及各科摘要 `subjectsMeta`。
+   - `executeLineScorePushNotifications_` 支援接收 `sinceDate` 與 `subjectCounts`，發送成功後自動更新前次推播時間戳記。
+
+---
+
 ## [v3.5.0] - 2026-10-29 🚀 接入 School LINE Hub 統一中樞 ‧ 免 Token、免跨表、自動發送各科成績摘要
 
 ### 🎯 核心新功能與升級

@@ -2669,30 +2669,116 @@ function initLineSettingsCellsOnRoster_(sSheet) {
 }
 
 /**
+ * 遮罩學生姓名（姓名第 2 字改為 ○）保護個資
+ */
+function maskStudentName_(name) {
+  if (!name) return "";
+  var str = name.toString().trim();
+  if (str.length === 2) return str.substring(0, 1) + "○";
+  if (str.length >= 3) return str.substring(0, 1) + "○" + str.substring(2);
+  return str;
+}
+
+/**
+ * 自評量欄位標題解析日期（支援 YYYY-MM-DD, M/D, M-D, M月D日 等格式）
+ */
+function extractDateFromTitle_(title, referenceYear) {
+  if (!title) return null;
+  var str = title.toString().trim();
+  referenceYear = referenceYear || (new Date()).getFullYear();
+
+  // Pattern 1: YYYY-MM-DD or YYYY/MM/DD
+  var m1 = str.match(/(20\d{2})[\/\-\.](0?[1-9]|1[0-2])[\/\-\.](0?[1-9]|[12]\d|3[01])/);
+  if (m1) {
+    return new Date(parseInt(m1[1], 10), parseInt(m1[2], 10) - 1, parseInt(m1[3], 10));
+  }
+
+  // Pattern 2: MM/DD or MM-DD or M/D (例如 10/24, 10-25)
+  var m2 = str.match(/(0?[1-9]|1[0-2])[\/\-\.](0?[1-9]|[12]\d|3[01])/);
+  if (m2) {
+    return new Date(referenceYear, parseInt(m2[1], 10) - 1, parseInt(m2[2], 10));
+  }
+
+  // Pattern 3: M月D日 或 MM月DD日
+  var m3 = str.match(/(0?[1-9]|1[0-2])\s*月\s*(0?[1-9]|[12]\d|3[01])\s*日?/);
+  if (m3) {
+    return new Date(referenceYear, parseInt(m3[1], 10) - 1, parseInt(m3[2], 10));
+  }
+
+  return null;
+}
+
+/**
  * 依學生代碼與座號，自各科目成績分頁提取即時成績摘要 (Score Summary)
+ * 支援方案 B：依自訂項目計數 (subjectCounts) 或基準日期 (sinceDate) 計算各科更新項目數
  * 送出給 School LINE Hub 作為推播內文
  */
-function generateStudentScoreSummary_(studentToken, studentSeat, studentName) {
+function generateStudentScoreSummary_(studentToken, studentSeat, studentName, options) {
+  options = options || {};
   var summaryLines = [];
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheets = ss.getSheets();
-    for (var i = 0; i < sheets.length; i++) {
-      var sh = sheets[i];
-      if (isSystemSheet(sh.getName())) continue;
-      var parsed = parseDailySubjectSheet(sh);
-      if (parsed) {
-        var sSeat = normalizeSeatNumber(studentSeat);
-        var stSubj = parsed.studentMap[sSeat] || parsed.studentMap['NAME_' + studentName];
-        if (stSubj && stSubj.totalScoresCount > 0) {
-          summaryLines.push('• ' + stSubj.subject + '：有（ ' + stSubj.totalScoresCount + ' ）項成績更新');
-        } else if (stSubj) {
-          summaryLines.push('• ' + stSubj.subject + '：有（ 1 ）項成績更新');
+  var customCounts = options.subjectCounts || null;
+  if (typeof customCounts === 'string') {
+    try {
+      customCounts = JSON.parse(customCounts);
+    } catch (e) {
+      customCounts = null;
+    }
+  }
+
+  // 1. 若有指定各科更新項目計數 (subjectCounts)
+  if (customCounts && typeof customCounts === 'object') {
+    for (var subj in customCounts) {
+      if (customCounts.hasOwnProperty(subj)) {
+        var cnt = parseInt(customCounts[subj], 10);
+        if (!isNaN(cnt) && cnt > 0) {
+          summaryLines.push('• ' + subj + '：有（ ' + cnt + ' ）項成績更新');
         }
       }
     }
-  } catch (e) {
-    Logger.log('計算成績摘要失敗: ' + e.toString());
+  }
+
+  // 2. 若無指定各科項目計數，則自動自試算表各科目分頁提取（並支援 sinceDate 日期過濾）
+  if (summaryLines.length === 0) {
+    try {
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      var sheets = ss.getSheets();
+      var sinceDateStr = options.sinceDate || '';
+
+      for (var i = 0; i < sheets.length; i++) {
+        var sh = sheets[i];
+        if (isSystemSheet(sh.getName())) continue;
+        var parsed = parseDailySubjectSheet(sh);
+        if (parsed) {
+          var sSeat = normalizeSeatNumber(studentSeat);
+          var stSubj = parsed.studentMap[sSeat] || parsed.studentMap['NAME_' + studentName];
+          var count = 0;
+
+          if (sinceDateStr && parsed.assessments && parsed.assessments.length > 0) {
+            for (var a = 0; a < parsed.assessments.length; a++) {
+              var aDate = extractDateFromTitle_(parsed.assessments[a].name);
+              if (aDate) {
+                var aDateStr = Utilities.formatDate(aDate, Session.getScriptTimeZone() || 'Asia/Taipei', 'yyyy-MM-dd');
+                if (aDateStr >= sinceDateStr) {
+                  count++;
+                }
+              }
+            }
+          }
+
+          if (count === 0) {
+            if (stSubj && stSubj.totalScoresCount > 0) {
+              count = stSubj.totalScoresCount;
+            } else {
+              count = 1;
+            }
+          }
+
+          summaryLines.push('• ' + (parsed.subjectTitle || sh.getName()) + '：有（ ' + count + ' ）項成績更新');
+        }
+      }
+    } catch (e) {
+      Logger.log('計算成績摘要失敗: ' + e.toString());
+    }
   }
 
   if (summaryLines.length === 0) {
@@ -2783,6 +2869,51 @@ function getLinePushStatus_() {
 
   var hubConnected = testRes && (testRes.status === 'success' || summaryRes.status === 'success');
 
+  // 3. 取得前次推播紀錄與各科目資訊（方案 B 基準追蹤）
+  var props = PropertiesService.getScriptProperties();
+  var lastPushTimestamp = props.getProperty('LAST_SCORE_PUSH_TIMESTAMP') || '';
+  var lastPushDate = props.getProperty('LAST_SCORE_PUSH_DATE') || '';
+  if (!lastPushDate && lastPushTimestamp) {
+    lastPushDate = lastPushTimestamp.split(' ')[0];
+  }
+
+  var subjectsMeta = [];
+  try {
+    var allSheets = ss.getSheets();
+    for (var sIdx = 0; sIdx < allSheets.length; sIdx++) {
+      var sh = allSheets[sIdx];
+      if (isSystemSheet(sh.getName())) continue;
+      var parsed = parseDailySubjectSheet(sh);
+      if (parsed) {
+        var assessments = parsed.assessments || [];
+        var recentCount = 0;
+        if (lastPushDate) {
+          for (var aIdx = 0; aIdx < assessments.length; aIdx++) {
+            var aDate = extractDateFromTitle_(assessments[aIdx].name);
+            if (aDate) {
+              var aDateStr = Utilities.formatDate(aDate, Session.getScriptTimeZone() || 'Asia/Taipei', 'yyyy-MM-dd');
+              if (aDateStr >= lastPushDate) {
+                recentCount++;
+              }
+            }
+          }
+        }
+        if (recentCount === 0 && assessments.length > 0) {
+          recentCount = 1;
+        }
+
+        subjectsMeta.push({
+          name: parsed.subjectTitle || sh.getName(),
+          sheetName: sh.getName(),
+          totalAssessments: assessments.length,
+          defaultCount: recentCount
+        });
+      }
+    }
+  } catch (metaErr) {
+    Logger.log('取得科目評量資訊失敗: ' + metaErr.toString());
+  }
+
   return {
     status: 'success',
     success: true,
@@ -2797,6 +2928,9 @@ function getLinePushStatus_() {
     boundStudentsCount: boundStudentsCount,
     boundParentsCount: totalBoundParents,
     students: studentsList,
+    lastPushTimestamp: lastPushTimestamp,
+    lastPushDate: lastPushDate,
+    subjectsMeta: subjectsMeta,
     diagnostic: {
       hubUrl: config.hubUrl,
       appId: config.appId,
@@ -2809,6 +2943,7 @@ function getLinePushStatus_() {
 
 /**
  * 執行平時成績更新推播（接入 School LINE Hub 中樞）
+ * 支援方案 B：接收 sinceDate 與 subjectCounts，動態組裝符合規範之成績通知訊息
  */
 function executeLineScorePushNotifications_(params) {
   params = params || {};
@@ -2879,6 +3014,11 @@ function executeLineScorePushNotifications_(params) {
   var gasUrl = (params.gasUrl || params.api || '').toString().trim() || ScriptApp.getService().getUrl() || '';
   var parentBaseUrl = (params.parentBaseUrl || '').toString().trim() || 'https://chy23.github.io/MPScore-Daily/parent.html';
 
+  var summaryOptions = {
+    sinceDate: params.sinceDate || '',
+    subjectCounts: params.subjectCounts || null
+  };
+
   // 組裝推播目標，直接送出座號、姓名與成績摘要給中樞發送
   var targets = [];
   for (var stIdx = 0; stIdx < studentsToNotify.length; stIdx++) {
@@ -2889,7 +3029,15 @@ function executeLineScorePushNotifications_(params) {
     }
 
     // 計算各科成績摘要
-    var scoreSummary = generateStudentScoreSummary_(stItem.token, stItem.seat, stItem.name);
+    var scoreSummary = generateStudentScoreSummary_(stItem.token, stItem.seat, stItem.name, summaryOptions);
+    var maskedName = maskStudentName_(stItem.name);
+
+    var customMsg = '📊 【平時成績更新通知】\n' +
+      maskedName + ' 家長您好：\n' +
+      scoreSummary + '\n' +
+      '🔗 點此開啟明細查看：\n' +
+      studentUrl + '\n' +
+      '（由 平時成績管理系統 自動發送）';
 
     targets.push({
       seatNo: stItem.seat,
@@ -2897,7 +3045,8 @@ function executeLineScorePushNotifications_(params) {
       token: stItem.token,
       title: '📊 【平時成績更新通知】',
       body: scoreSummary,
-      url: studentUrl
+      url: studentUrl,
+      customMessage: customMsg
     });
   }
 
@@ -2923,6 +3072,24 @@ function executeLineScorePushNotifications_(params) {
   var skippedCount = (hubResult && typeof hubResult.skippedCount === 'number') ? hubResult.skippedCount : 0;
 
   var isSuccess = (sentCount > 0);
+  var nowFormatted = '';
+  var nowDateFormatted = '';
+
+  // 若發送成功，記錄本次推播時間戳記作為下一次的「前次推播時間」
+  if (isSuccess) {
+    var now = new Date();
+    var tz = Session.getScriptTimeZone() || 'Asia/Taipei';
+    nowFormatted = Utilities.formatDate(now, tz, 'yyyy-MM-dd HH:mm:ss');
+    nowDateFormatted = Utilities.formatDate(now, tz, 'yyyy-MM-dd');
+    try {
+      var saveProps = PropertiesService.getScriptProperties();
+      saveProps.setProperty('LAST_SCORE_PUSH_TIMESTAMP', nowFormatted);
+      saveProps.setProperty('LAST_SCORE_PUSH_DATE', nowDateFormatted);
+    } catch (saveErr) {
+      Logger.log('儲存推播時間失敗: ' + saveErr.toString());
+    }
+  }
+
   var msg = '';
   if (isSuccess) {
     msg = '成功透過 School LINE Hub 發送 ' + sentCount + ' 則成績通知！';
@@ -2941,6 +3108,8 @@ function executeLineScorePushNotifications_(params) {
     failCount: failedCount,
     skippedCount: skippedCount,
     studentCount: studentsToNotify.length,
+    lastPushTimestamp: nowFormatted,
+    lastPushDate: nowDateFormatted,
     hubDetails: hubResult.details || [],
     message: msg
   };
