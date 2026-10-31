@@ -1,6 +1,6 @@
 /**
  * MPScore-Daily - 學生平時成績歷程系統 GitHub 自動熱更新引導核心
- * 網站作者 / 系統規劃：楊家驊老師 (Chiahua Yang)
+ * 網站作者 / 系統規劃：新北市林口區麗園國小 楊家驊老師 (Chiahua Yang)
  *
  * 只要在 Apps Script 貼上這段程式碼，未來 GitHub (chy23/MPScore-Daily) 有任何演算法或功能更新，
  * 您的 Google 試算表都會全自動即時抓取最新版，免去重複手動貼代碼的麻煩！
