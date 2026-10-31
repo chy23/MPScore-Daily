@@ -31,6 +31,7 @@ function onOpen() {
     .addItem('📢 發送【平時成績已更新】LINE 通知給已綁定家長', 'sendLineScoreUpdateNotificationMenu')
     .addSeparator()
     .addItem('📊 查看全班各科平時總均與分項平均統計', 'previewClassStatistics')
+    .addItem('➕ 新增 1 欄評量（自動建立今日日期與下拉選單）', 'addNewAssessmentColumnMenu')
     .addItem('📐 自動整理欄寬與表格排版（方案 C 版面）', 'autoFormatAndResizeAllSheets')
     .addItem('🔄 將現有成績分頁轉換為「方案 C 版面」', 'convertAllSubjectSheetsToSchemeC')
     .addItem('🚀 立即更新雲端資料（改完分數點此）', 'clearSystemCache')
@@ -1419,7 +1420,8 @@ function parseDailySubjectSheet(sheet) {
     var titleCandidates = data[0].filter(function(cell) {
       if (!cell || cell instanceof Date) return false;
       var s = cell.toString().trim();
-      if (s.indexOf('GMT') !== -1 || s.indexOf('台北標準時間') !== -1 || s.indexOf('UTC') !== -1) return false;
+      if (s.indexOf('GMT') !== -1 || s.indexOf('台北標準時間') !== -1 || s.indexOf('UTC') !== -1 || s.indexOf('+0800') !== -1) return false;
+      if (/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b/i.test(s) || /^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(s)) return false;
       return s && s !== '📌 學生名單' && s !== '📌 登記日期' && s !== '座號' && s !== '姓名' && !extractDateFromTitle_(s);
     });
     if (titleCandidates.length > 0) sheetTitle = titleCandidates[0].toString().trim();
@@ -1520,6 +1522,7 @@ function parseDailySubjectSheet(sheet) {
     colDifficulties[cIdx] = computeTestDifficultyIndex_(colScoresList[cIdx]);
     if (colCounts[cIdx] > 0 && colDifficulties[cIdx]) {
       subjectAssessments.push({
+        colIdx: itemCols[k].colIdx + 1,
         name: itemCols[k].title,
         date: itemCols[k].date,
         unit: itemCols[k].unitCode || '平時',
@@ -1794,18 +1797,31 @@ function parseDailySubjectSheet(sheet) {
     subjectShortName: inferSubjectShortName(sheetName, sheetTitle),
     classOverallAverage: subjectClassAvg,
     assessments: subjectAssessments,
+    itemCols: itemCols,
     studentMap: studentMap
   };
 }
 
 /**
  * 保留教師輸入之工作表分頁名稱作為科目顯示名稱（教師輸入什麼科目名稱，網站就顯示什麼科目名稱！）
+ * 內建嚴密防護，徹底杜絕 GMT、台北標準時間、UTC 或日期字串洩漏作為科目名稱
  */
 function inferSubjectShortName(sheetName, sheetTitle) {
+  var isDateOrTimezoneString = function(s) {
+    if (!s) return true;
+    var str = s.toString().trim();
+    if (!str) return true;
+    if (str.indexOf('GMT') !== -1 || str.indexOf('台北標準時間') !== -1 || str.indexOf('UTC') !== -1 || str.indexOf('+0800') !== -1) return true;
+    if (/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b/i.test(str)) return true;
+    if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(str)) return true;
+    return false;
+  };
+
   var exactName = (sheetName || '').toString().trim();
-  if (exactName && exactName.indexOf('GMT') === -1) return exactName;
-  if (sheetTitle && sheetTitle.indexOf('GMT') === -1 && sheetTitle.indexOf('台北標準時間') === -1) {
-    return sheetTitle.toString().trim();
+  if (exactName && !isDateOrTimezoneString(exactName)) return exactName;
+  var title = (sheetTitle || '').toString().trim();
+  if (title && !isDateOrTimezoneString(title)) {
+    return title;
   }
   return '平時成績';
 }
@@ -2536,6 +2552,34 @@ function previewClassStatistics() {
 }
 
 /**
+ * ➕ 新增 1 欄評量項目（方案 C 專用：自動在右側建立新欄、填入今日日期、日曆選取器與作業/考試下拉選單）
+ */
+function addNewAssessmentColumnMenu() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getActiveSheet();
+    var sheetName = sheet.getName();
+    if (isSystemSheet(sheetName)) {
+      SpreadsheetApp.getUi().alert('⚠️ 請先切換至欲新增評量的「科目分頁」（如國語、數學），再執行此功能。');
+      return;
+    }
+
+    var lastCol = sheet.getLastColumn();
+    var targetCol = Math.max(3, lastCol + 1);
+
+    // 格式化新欄位表頭（第 1 列當日日期 + requireDate、第 2 列作業/考試下拉選單、第 3 列項目標題）
+    setupSchemeCColumnHeader_(sheet, targetCol, '新評量項目');
+
+    // 選取並聚焦第 3 列標題儲存格，讓教師直接輸入自訂名稱
+    sheet.setActiveRange(sheet.getRange(3, targetCol));
+
+    SpreadsheetApp.getActiveSpreadsheet().toast('已成功於第 ' + targetCol + ' 欄建立新評量欄位！已自動填入今日日期與作業/考試下拉選單。', '🎉 新增評量欄位成功', 4);
+  } catch (err) {
+    SpreadsheetApp.getUi().alert('新增欄位失敗：' + err.toString());
+  }
+}
+
+/**
  * 針對方案 C 格式化指定欄位的表頭
  * - 第 1 列：自動填入當日日期（或保留自訂日期）＋ 啟用 requireDate 日曆選取器（雙擊彈出日曆）＋ yyyy/MM/dd 格式
  * - 第 2 列：自動建立「作業 / 考試 / 不計分」下拉選單（requireValueInList 顯示下拉箭頭 ▼）＋ 智慧類別判定
@@ -2553,19 +2597,24 @@ function setupSchemeCColumnHeader_(sheet, colIdx, optItemTitle, optDateVal, optT
     var titleCell = sheet.getRange(3, colIdx);
     var itemTitle = (optItemTitle !== undefined && optItemTitle !== null ? optItemTitle : titleCell.getValue() || '').toString().trim();
     if (!itemTitle) {
-      // 若第 3 列為空，但第 4 列有分數，給予預設名稱
-      var scoreVal = sheet.getRange(4, colIdx).getValue();
-      if (scoreVal !== '' && scoreVal !== null && scoreVal !== undefined) {
-        itemTitle = '項目' + (colIdx - 2);
-        titleCell.setValue(itemTitle);
+      // 若第 3 列為空，檢查第 4 列起是否有任何學生成績
+      var lr = sheet.getLastRow();
+      if (lr >= 4) {
+        var colVals = sheet.getRange(4, colIdx, Math.min(lr - 3, 35), 1).getValues();
+        for (var vi = 0; vi < colVals.length; vi++) {
+          if (colVals[vi][0] !== '' && colVals[vi][0] !== null && colVals[vi][0] !== undefined) {
+            itemTitle = '項目' + (colIdx - 2);
+            titleCell.setValue(itemTitle);
+            break;
+          }
+        }
       }
     }
 
-    // 若第 1 列、第 2 列、第 3 列皆無任何內容且第 4 列亦無分數，則不主動格式化空白欄位
+    // 若第 1 列、第 2 列、第 3 列皆無任何內容且下方亦無分數，且無傳入參數，則不格式化完全空白的遠端欄位
     var curDateRaw = sheet.getRange(1, colIdx).getValue();
     var curTypeRaw = sheet.getRange(2, colIdx).getValue();
-    var curScoreRaw = sheet.getRange(4, colIdx).getValue();
-    if (!itemTitle && !curDateRaw && !curTypeRaw && !curScoreRaw && optDateVal === undefined && optTypeVal === undefined) {
+    if (!itemTitle && !curDateRaw && !curTypeRaw && optDateVal === undefined && optTypeVal === undefined && optItemTitle === undefined) {
       return;
     }
 
@@ -3151,9 +3200,12 @@ function generateStudentScoreSummary_(studentToken, studentSeat, studentName, op
           var stSubj = parsed.studentMap[sSeat] || parsed.studentMap['NAME_' + studentName];
           var count = 0;
 
-          if (sinceDateStr && parsed.assessments && parsed.assessments.length > 0) {
-            for (var a = 0; a < parsed.assessments.length; a++) {
-              var aDate = extractDateFromTitle_(parsed.assessments[a].date) || extractDateFromTitle_(parsed.assessments[a].name);
+          var colsToScan = (parsed.itemCols && parsed.itemCols.length > 0) ? parsed.itemCols : (parsed.assessments || []);
+
+          if (sinceDateStr && colsToScan.length > 0) {
+            for (var a = 0; a < colsToScan.length; a++) {
+              var aItem = colsToScan[a];
+              var aDate = extractDateFromTitle_(aItem.date) || extractDateFromTitle_(aItem.title || aItem.name);
               if (aDate) {
                 var aDateStr = Utilities.formatDate(aDate, Session.getScriptTimeZone() || 'Asia/Taipei', 'yyyy-MM-dd');
                 if (aDateStr >= sinceDateStr) {
@@ -3163,7 +3215,7 @@ function generateStudentScoreSummary_(studentToken, studentSeat, studentName, op
             }
           }
 
-          if (count === 0) {
+          if (count === 0 && !sinceDateStr) {
             if (stSubj && stSubj.totalScoresCount > 0) {
               count = stSubj.totalScoresCount;
             } else {
@@ -3171,8 +3223,10 @@ function generateStudentScoreSummary_(studentToken, studentSeat, studentName, op
             }
           }
 
-          var subjName = parsed.subjectShortName || parsed.sheetName || sh.getName();
-          summaryLines.push('• ' + subjName + '：有（ ' + count + ' ）項成績更新');
+          if (count > 0 || !sinceDateStr) {
+            var subjName = parsed.subjectShortName || parsed.sheetName || sh.getName();
+            summaryLines.push('• ' + subjName + '：有（ ' + (count > 0 ? count : 1) + ' ）項成績更新');
+          }
         }
       }
     } catch (e) {
@@ -3383,6 +3437,29 @@ function getLinePushStatus_(params) {
     docProps = PropertiesService.getDocumentProperties();
   } catch (e) {}
 
+  // 方案 B：預先讀取【成績異動日誌】分頁之最新紀錄
+  var scoreLogMap = {};
+  try {
+    var logSheet = ss.getSheetByName('成績異動日誌');
+    if (logSheet && logSheet.getLastRow() > 1) {
+      var logData = logSheet.getRange(2, 1, Math.min(logSheet.getLastRow() - 1, 300), 3).getValues();
+      for (var lIdx = 0; lIdx < logData.length; lIdx++) {
+        var logTimeStr = logData[lIdx][0];
+        var logSubj = (logData[lIdx][1] || '').toString().trim();
+        var logItem = (logData[lIdx][2] || '').toString().trim();
+        if (logTimeStr && logSubj && logItem) {
+          var logD = extractDateFromTitle_(logTimeStr);
+          if (logD) {
+            var lKey = logSubj + '_' + logItem;
+            if (!scoreLogMap[lKey] || logD > scoreLogMap[lKey]) {
+              scoreLogMap[lKey] = logD;
+            }
+          }
+        }
+      }
+    }
+  } catch (logMapErr) {}
+
   var subjectsMeta = [];
   try {
     var allSheets = ss.getSheets();
@@ -3391,40 +3468,60 @@ function getLinePushStatus_(params) {
       if (isSystemSheet(sh.getName())) continue;
       var parsed = parseDailySubjectSheet(sh);
       if (parsed) {
-        var assessments = parsed.assessments || [];
+        var colsToScan = (parsed.itemCols && parsed.itemCols.length > 0) ? parsed.itemCols : (parsed.assessments || []);
         var updatedCount = 0;
         var latestColDateStr = '';
 
         // 遍歷所有評量欄位，抓取試算表的更新時間
-        for (var aIdx = 0; aIdx < assessments.length; aIdx++) {
-          var item = assessments[aIdx];
-          var colIdx = item.colIdx !== undefined ? item.colIdx : (aIdx + 3);
+        for (var aIdx = 0; aIdx < colsToScan.length; aIdx++) {
+          var item = colsToScan[aIdx];
+          var colIdx1 = item.colIdx !== undefined ? (item.colIdx + 1) : (aIdx + 3);
           var colDate = null;
           var colDateStr = '';
 
           // 0. 方案 C：優先自第 1 列登記日期 (item.date) 提取
           if (item.date) {
-            var directDate = extractDateFromTitle_(item.date.toString());
+            var directDate = extractDateFromTitle_(item.date);
             if (directDate) {
               colDate = directDate;
             }
           }
 
-          // 1. 嘗試從欄位標題解析日期 (例如 10/24, 2026-10-28, 10月29日)
+          // 0.1 若物件中無日期，直接讀取試算表第 1 列儲存格
           if (!colDate) {
-            var titleDate = extractDateFromTitle_(item.name);
+            try {
+              var r1Val = sh.getRange(1, colIdx1).getValue();
+              if (r1Val) {
+                var r1Date = extractDateFromTitle_(r1Val);
+                if (r1Date) colDate = r1Date;
+              }
+            } catch (r1Err) {}
+          }
+
+          // 1. 嘗試從【成績異動日誌】抓取更新時間（方案 B 核心）
+          var itemTitleName = item.title || item.name || '';
+          if (!colDate && scoreLogMap && itemTitleName) {
+            var sKey = sh.getName() + '_' + itemTitleName;
+            if (scoreLogMap[sKey]) {
+              colDate = scoreLogMap[sKey];
+            }
+          }
+
+          // 2. 嘗試從欄位標題解析日期 (例如 10/24, 2026-10-28, 10月29日)
+          if (!colDate && itemTitleName) {
+            var titleDate = extractDateFromTitle_(itemTitleName);
             if (titleDate) {
               colDate = titleDate;
             }
           }
 
-          // 2. 嘗試從儲存格備註 (Note) 抓取更新時間（檢查第 3 列或第 2 列標題儲存格）
+          // 3. 嘗試從儲存格備註 (Note) 抓取更新時間（檢查第 3 列或第 2 列標題儲存格）
           if (!colDate) {
             try {
-              var headerCell = sh.getRange(3, colIdx);
+              var headerCell = sh.getRange(3, colIdx1);
               var note = headerCell.getNote();
               if (!note) {
-                headerCell = sh.getRange(2, colIdx);
+                headerCell = sh.getRange(2, colIdx1);
                 note = headerCell.getNote();
               }
               if (note) {
@@ -3434,10 +3531,10 @@ function getLinePushStatus_(params) {
             } catch (nErr) {}
           }
 
-          // 3. 嘗試從 DocumentProperties 抓取記錄的欄位編輯時間
+          // 4. 嘗試從 DocumentProperties 抓取記錄的欄位編輯時間
           if (!colDate && docProps) {
             try {
-              var propTime = docProps.getProperty('EDIT_' + sh.getName() + '_' + colIdx);
+              var propTime = docProps.getProperty('EDIT_' + sh.getName() + '_' + colIdx1);
               if (propTime) {
                 var propDate = extractDateFromTitle_(propTime);
                 if (propDate) colDate = propDate;
@@ -3462,9 +3559,8 @@ function getLinePushStatus_(params) {
           }
         }
 
-        // 若該科目有評量，但欄位標題無日期：
-        // 檢驗試算表檔案最後修改時間 (ssLastUpdatedStr)
-        if (updatedCount === 0 && assessments.length > 0) {
+        // 若該科目有評量，但欄位標題無日期：檢驗試算表檔案最後修改時間 (ssLastUpdatedStr)
+        if (updatedCount === 0 && colsToScan.length > 0) {
           if (ssLastUpdatedStr && targetSinceDate) {
             var fileDateStr = ssLastUpdatedStr.split(' ')[0];
             if (fileDateStr >= targetSinceDate) {
@@ -3480,7 +3576,7 @@ function getLinePushStatus_(params) {
         subjectsMeta.push({
           name: cleanSubjName,
           sheetName: sh.getName(),
-          totalAssessments: assessments.length,
+          totalAssessments: colsToScan.length,
           defaultCount: updatedCount,
           latestUpdate: latestColDateStr || (ssLastUpdatedStr ? ssLastUpdatedStr.split(' ')[0] : '')
         });
