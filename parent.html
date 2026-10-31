@@ -425,13 +425,76 @@
             </section>
 
             <!-- 2. 科目切換橫向膠囊列 (Subject Switcher：米藍、米綠相間，使用行動裝置友善「點選」用語) -->
-            <section class="space-y-2.5">
+            <section class="space-y-3">
                 <div class="flex items-center justify-between px-1">
                     <h2 class="text-xs font-extrabold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                         <span>📚</span> 選擇科目查看平時成績明細（點選切換科目）
                     </h2>
                     <span id="subjectCountTag" class="text-xs font-bold text-teal-800">共 -- 科平時成績</span>
                 </div>
+
+                <!-- 🎯 學年、學期、期中/期末 下拉式智慧分類篩選器（預設自動顯示最新學期與階段） -->
+                <div id="periodFilterCard" class="p-3 sm:p-3.5 rounded-2xl bg-white/95 backdrop-blur-md border border-slate-200/90 shadow-2xs space-y-2.5">
+                    <div class="flex items-center justify-between gap-2 flex-wrap text-xs">
+                        <div class="flex items-center gap-1.5 font-black text-slate-800">
+                            <span>📅</span>
+                            <span>學期與評量階段切換：</span>
+                            <span id="filterActiveBadge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-sky-100 text-sky-800 border border-sky-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-sky-600 animate-pulse"></span>
+                                <span id="filterActiveBadgeText">最新評量</span>
+                            </span>
+                        </div>
+                        <button type="button" onclick="resetToLatestPeriod()" id="btnResetLatestPeriod"
+                            class="text-[11px] font-bold text-sky-700 hover:text-sky-900 flex items-center gap-1 transition active:scale-95 cursor-pointer">
+                            <span>⚡</span>
+                            <span class="underline underline-offset-2">查看最新評量</span>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2">
+                        <!-- 學年下拉選單 -->
+                        <div>
+                            <label for="filterYearSelect" class="block text-[10.5px] font-extrabold text-slate-500 mb-1">學年度</label>
+                            <div class="relative">
+                                <select id="filterYearSelect" onchange="onPeriodFilterChange()"
+                                    class="w-full appearance-none bg-slate-50 hover:bg-slate-100 border border-slate-300 text-slate-800 font-bold text-xs rounded-xl py-2 pl-2.5 pr-6 focus:outline-none focus:ring-2 focus:ring-sky-500 transition cursor-pointer">
+                                    <option value="all">全部學年</option>
+                                </select>
+                                <span class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[10px] text-slate-400">▼</span>
+                            </div>
+                        </div>
+
+                        <!-- 學期下拉選單 -->
+                        <div>
+                            <label for="filterSemSelect" class="block text-[10.5px] font-extrabold text-slate-500 mb-1">學期</label>
+                            <div class="relative">
+                                <select id="filterSemSelect" onchange="onPeriodFilterChange()"
+                                    class="w-full appearance-none bg-slate-50 hover:bg-slate-100 border border-slate-300 text-slate-800 font-bold text-xs rounded-xl py-2 pl-2.5 pr-6 focus:outline-none focus:ring-2 focus:ring-sky-500 transition cursor-pointer">
+                                    <option value="all">全部學期</option>
+                                    <option value="1">第 1 學期 (上)</option>
+                                    <option value="2">第 2 學期 (下)</option>
+                                </select>
+                                <span class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[10px] text-slate-400">▼</span>
+                            </div>
+                        </div>
+
+                        <!-- 評量階段下拉選單 (期中 / 期末) -->
+                        <div>
+                            <label for="filterStageSelect" class="block text-[10.5px] font-extrabold text-slate-500 mb-1">評量階段</label>
+                            <div class="relative">
+                                <select id="filterStageSelect" onchange="onPeriodFilterChange()"
+                                    class="w-full appearance-none bg-slate-50 hover:bg-slate-100 border border-slate-300 text-slate-800 font-bold text-xs rounded-xl py-2 pl-2.5 pr-6 focus:outline-none focus:ring-2 focus:ring-sky-500 transition cursor-pointer">
+                                    <option value="all">全部階段</option>
+                                    <option value="期中">期中評量</option>
+                                    <option value="期末">期末評量</option>
+                                    <option value="平時">平時常態</option>
+                                </select>
+                                <span class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[10px] text-slate-400">▼</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="subjectTabsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <!-- JS 動態渲染各科平時總均卡片（米藍、米綠相間） -->
                 </div>
@@ -1124,28 +1187,219 @@
             return `${chars[0]}${'○'.repeat(chars.length - 2)}${chars[chars.length - 1]}`;
         }
 
-        function renderPortfolio(payload) {
-            currentPortfolio = payload;
-            const st = payload.student;
-            const rawOriginalName = String(st.rawName || st.name || '').trim();
-            const maskedName = maskStudentName(rawOriginalName);
-            st.name = maskedName;
-            if (st.teacherAdvice && rawOriginalName && rawOriginalName.length >= 2) {
-                st.teacherAdvice = String(st.teacherAdvice).split(rawOriginalName).join(maskedName);
+        // =========================================================================
+        // 學年、學期與評量階段智慧篩選器 (支援 115-1, 115-2, 期中, 期末並自動顯示最新)
+        // =========================================================================
+        let currentFilterYear = 'all';
+        let currentFilterSemester = 'all';
+        let currentFilterStage = 'all';
+        let latestPeriodInfo = null;
+
+        function parseSubjectMeta(name) {
+            const str = String(name || '').trim();
+            let year = '';
+            let semester = '';
+            let stage = '';
+            let cleanName = str;
+
+            // 1. 匹配學年度與學期 (例如 115-1, 115_1, 115/1, 115-2, 115學年度第1學期, 115上, 115下)
+            const m1 = str.match(/(\d{2,3})\s*[-_／/]\s*([12])/);
+            if (m1) {
+                year = m1[1];
+                semester = m1[2];
+            } else {
+                const mYear = str.match(/(\d{2,3})\s*學年/);
+                if (mYear) year = mYear[1];
+                const mSem = str.match(/第?\s*([12一二上下一])\s*學期/) || str.match(/(\d{2,3})\s*([上下])/);
+                if (mSem) {
+                    if (mSem[1] === '1' || mSem[1] === '一' || mSem[1] === '上' || mSem[2] === '上') semester = '1';
+                    else if (mSem[1] === '2' || mSem[1] === '二' || mSem[1] === '下' || mSem[2] === '下') semester = '2';
+                    if (!year && mSem[1] && /^\d{2,3}$/.test(mSem[1])) year = mSem[1];
+                }
             }
-            const subjects = st.subjects || [];
 
-            document.getElementById('loadingSection').classList.add('hidden');
-            document.getElementById('errorSection').classList.add('hidden');
-            document.getElementById('portfolioContainer').classList.remove('hidden');
+            // 2. 評量階段判定 (期中 / 期末 / 平時)
+            if (str.includes('期中') || str.includes('第一次段考') || str.includes('第一次定評') || str.includes('段考一')) {
+                stage = '期中';
+            } else if (str.includes('期末') || str.includes('第二次段考') || str.includes('第二次定評') || str.includes('段考二') || str.includes('第三次段考')) {
+                stage = '期末';
+            } else {
+                stage = '平時';
+            }
 
-            // 1. 渲染 Hero 區塊（家長端顯示去識別化姓名）
-            document.getElementById('heroClassSeat').textContent = `${st.className || '本班'} ‧ ${st.seatNo}號`;
-            document.getElementById('heroUpdatedAt').textContent = `資料更新：${payload.updatedAt || '最新學期平時成績'}`;
-            document.getElementById('heroStudentName').textContent = maskedName;
+            // 3. 純淨科目名稱提取 (移除學期學年與期中期末字首，保留科目本名)
+            cleanName = str
+                .replace(/\d{2,3}\s*[-_／/]\s*[12]/g, '')
+                .replace(/\d{2,3}\s*學年(度)?/g, '')
+                .replace(/第?\s*[12一二上下]\s*學期/g, '')
+                .replace(/\d{2,3}[上下]/g, '')
+                .replace(/期中/g, '')
+                .replace(/期末/g, '')
+                .replace(/第[一二三123]次段考/g, '')
+                .replace(/平時成績紀錄/g, '平時')
+                .trim();
 
-            // 計算跨科平時總均與最佳科目
-            const validSubjs = subjects.filter(s => s.overallAverage !== null && !isNaN(s.overallAverage));
+            if (!cleanName || cleanName === '平時') {
+                cleanName = str;
+            }
+
+            return {
+                raw: str,
+                year: year || 'all',
+                semester: semester || 'all',
+                stage: stage || 'all',
+                cleanName: cleanName
+            };
+        }
+
+        function getStageWeight(stage) {
+            if (stage === '期末') return 3;
+            if (stage === '期中') return 2;
+            if (stage === '平時') return 1;
+            return 0;
+        }
+
+        function comparePeriods(a, b) {
+            const yA = parseInt(a.year, 10) || 0;
+            const yB = parseInt(b.year, 10) || 0;
+            if (yA !== yB) return yB - yA; // 最新學年排前 (115 > 114)
+
+            const sA = parseInt(a.semester, 10) || 0;
+            const sB = parseInt(b.semester, 10) || 0;
+            if (sA !== sB) return sB - sA; // 下學期 2 > 上學期 1
+
+            const wA = getStageWeight(a.stage);
+            const wB = getStageWeight(b.stage);
+            return wB - wA; // 期末 > 期中 > 平時
+        }
+
+        function getPeriodLabel(y, s, st) {
+            const parts = [];
+            if (y && y !== 'all') parts.push(`${y}學年`);
+            if (s && s !== 'all') parts.push(s === '1' ? '第1學期(上)' : '第2學期(下)');
+            if (st && st !== 'all') parts.push(`${st}評量`);
+            return parts.length > 0 ? parts.join(' ‧ ') : '全部學期評量';
+        }
+
+        function initPeriodFilters(subjects) {
+            subjects.forEach((s, idx) => {
+                s.meta = parseSubjectMeta(s.subject || s.sheetName);
+                s.originalIdx = idx;
+            });
+
+            const periodCombinations = [];
+            const seenCombo = new Set();
+            const yearSet = new Set();
+            const semSet = new Set();
+            const stageSet = new Set();
+
+            subjects.forEach(s => {
+                if (s.meta.year !== 'all') yearSet.add(s.meta.year);
+                if (s.meta.semester !== 'all') semSet.add(s.meta.semester);
+                if (s.meta.stage !== 'all') stageSet.add(s.meta.stage);
+
+                const key = `${s.meta.year}_${s.meta.semester}_${s.meta.stage}`;
+                if (!seenCombo.has(key)) {
+                    seenCombo.add(key);
+                    periodCombinations.push({
+                        year: s.meta.year,
+                        semester: s.meta.semester,
+                        stage: s.meta.stage
+                    });
+                }
+            });
+
+            periodCombinations.sort(comparePeriods);
+
+            // 一開始就自動選取「最新」評量階段
+            if (periodCombinations.length > 0) {
+                latestPeriodInfo = periodCombinations[0];
+                currentFilterYear = latestPeriodInfo.year;
+                currentFilterSemester = latestPeriodInfo.semester;
+                currentFilterStage = latestPeriodInfo.stage;
+            } else {
+                latestPeriodInfo = { year: 'all', semester: 'all', stage: 'all' };
+                currentFilterYear = 'all';
+                currentFilterSemester = 'all';
+                currentFilterStage = 'all';
+            }
+
+            // 動態產生學年下拉選單選項
+            const yearSelect = document.getElementById('filterYearSelect');
+            if (yearSelect) {
+                const sortedYears = Array.from(yearSet).sort((a, b) => parseInt(b, 10) - parseInt(a, 10));
+                yearSelect.innerHTML = `<option value="all">全部學年</option>` +
+                    sortedYears.map(y => `<option value="${y}">${y} 學年度</option>`).join('');
+                yearSelect.value = currentFilterYear;
+            }
+
+            // 動態產生學期下拉選單選項
+            const semSelect = document.getElementById('filterSemSelect');
+            if (semSelect) {
+                const semOptions = [`<option value="all">全部學期</option>`];
+                if (semSet.has('1')) semOptions.push(`<option value="1">第 1 學期 (上)</option>`);
+                if (semSet.has('2')) semOptions.push(`<option value="2">第 2 學期 (下)</option>`);
+                semSelect.innerHTML = semOptions.join('');
+                semSelect.value = currentFilterSemester;
+            }
+
+            // 動態產生評量階段下拉選單選項
+            const stageSelect = document.getElementById('filterStageSelect');
+            if (stageSelect) {
+                const stageOptions = [`<option value="all">全部階段</option>`];
+                if (stageSet.has('期中')) stageOptions.push(`<option value="期中">期中評量</option>`);
+                if (stageSet.has('期末')) stageOptions.push(`<option value="期末">期末評量</option>`);
+                if (stageSet.has('平時')) stageOptions.push(`<option value="平時">平時常態</option>`);
+                stageSelect.innerHTML = stageOptions.join('');
+                stageSelect.value = currentFilterStage;
+            }
+        }
+
+        function getFilteredSubjects() {
+            const all = (currentPortfolio && currentPortfolio.student && currentPortfolio.student.subjects) || [];
+            return all.filter(s => {
+                if (currentFilterYear !== 'all' && s.meta.year !== 'all' && s.meta.year !== currentFilterYear) return false;
+                if (currentFilterSemester !== 'all' && s.meta.semester !== 'all' && s.meta.semester !== currentFilterSemester) return false;
+                if (currentFilterStage !== 'all' && s.meta.stage !== 'all' && s.meta.stage !== currentFilterStage) return false;
+                return true;
+            });
+        }
+
+        function onPeriodFilterChange() {
+            const yearSelect = document.getElementById('filterYearSelect');
+            const semSelect = document.getElementById('filterSemSelect');
+            const stageSelect = document.getElementById('filterStageSelect');
+
+            if (yearSelect) currentFilterYear = yearSelect.value;
+            if (semSelect) currentFilterSemester = semSelect.value;
+            if (stageSelect) currentFilterStage = stageSelect.value;
+
+            applyPeriodFilter();
+        }
+
+        function resetToLatestPeriod() {
+            if (!latestPeriodInfo) return;
+            currentFilterYear = latestPeriodInfo.year;
+            currentFilterSemester = latestPeriodInfo.semester;
+            currentFilterStage = latestPeriodInfo.stage;
+
+            const yearSelect = document.getElementById('filterYearSelect');
+            const semSelect = document.getElementById('filterSemSelect');
+            const stageSelect = document.getElementById('filterStageSelect');
+            if (yearSelect) yearSelect.value = currentFilterYear;
+            if (semSelect) semSelect.value = currentFilterSemester;
+            if (stageSelect) stageSelect.value = currentFilterStage;
+
+            applyPeriodFilter();
+        }
+
+        function renderHeroStats(filteredSubjs) {
+            const st = currentPortfolio.student;
+            const subjsToCalc = (filteredSubjs && filteredSubjs.length > 0)
+                ? filteredSubjs
+                : (st.subjects || []);
+
+            const validSubjs = subjsToCalc.filter(s => s.overallAverage !== null && !isNaN(s.overallAverage));
             if (validSubjs.length > 0) {
                 const totalAvg = validSubjs.reduce((acc, s) => acc + s.overallAverage, 0) / validSubjs.length;
                 const totalClassAvg = validSubjs.reduce((acc, s) => acc + (s.classOverallAverage || s.overallAverage), 0) / validSubjs.length;
@@ -1171,20 +1425,68 @@
                 document.getElementById('heroOverallBadge').textContent = '尚無成績';
                 document.getElementById('heroDiffClass').textContent = '--';
                 document.getElementById('heroClassAvgLabel').textContent = '尚無班均';
-                const firstSubjName = subjects[0] ? subjects[0].subject : '平時科目';
+                const firstSubjName = subjsToCalc[0] ? subjsToCalc[0].subject : '平時科目';
                 document.getElementById('heroBestSubject').textContent = `${getSubjectIcon(firstSubjName)} ${firstSubjName}`;
                 document.getElementById('heroBestSubjectScore').textContent = '尚無平時成績';
             }
+        }
 
+        function applyPeriodFilter() {
+            const filteredSubjs = getFilteredSubjects();
+            const badgeText = document.getElementById('filterActiveBadgeText');
+            const isLatest = latestPeriodInfo &&
+                currentFilterYear === latestPeriodInfo.year &&
+                currentFilterSemester === latestPeriodInfo.semester &&
+                currentFilterStage === latestPeriodInfo.stage;
+
+            const periodLabel = getPeriodLabel(currentFilterYear, currentFilterSemester, currentFilterStage);
+            if (badgeText) {
+                badgeText.textContent = isLatest ? `最新 ‧ ${periodLabel}` : periodLabel;
+            }
+
+            document.getElementById('heroUpdatedAt').textContent = `${periodLabel} ‧ 平時評量統計`;
+
+            // 更新 Hero 總均統計（依目前選定之學期/階段動態結算）
+            renderHeroStats(filteredSubjs);
+
+            // 更新科目卡片清單
+            renderSubjectTabs(filteredSubjs);
+
+            // 若目前選中的科目不在篩選範圍內，自動切換至篩選後的第一個科目
+            if (filteredSubjs.length > 0) {
+                const stillValid = filteredSubjs.some(s => s.originalIdx === currentSubjectIdx);
+                if (!stillValid) {
+                    currentSubjectIdx = filteredSubjs[0].originalIdx;
+                }
+                renderActiveSubjectModules();
+            }
+        }
+
+        function renderPortfolio(payload) {
+            currentPortfolio = payload;
+            const st = payload.student;
+            const rawOriginalName = String(st.rawName || st.name || '').trim();
+            const maskedName = maskStudentName(rawOriginalName);
+            st.name = maskedName;
+            if (st.teacherAdvice && rawOriginalName && rawOriginalName.length >= 2) {
+                st.teacherAdvice = String(st.teacherAdvice).split(rawOriginalName).join(maskedName);
+            }
+            const subjects = st.subjects || [];
+
+            document.getElementById('loadingSection').classList.add('hidden');
+            document.getElementById('errorSection').classList.add('hidden');
+            document.getElementById('portfolioContainer').classList.remove('hidden');
+
+            // 1. 渲染 Hero 區塊基底（家長端顯示去識別化姓名）
+            document.getElementById('heroClassSeat').textContent = `${st.className || '本班'} ‧ ${st.seatNo}號`;
+            document.getElementById('heroStudentName').textContent = maskedName;
             document.getElementById('heroStatsBox').classList.toggle('hidden', !displayFlags.showOverallHero);
 
-            // 2. 渲染科目切換膠囊列
-            document.getElementById('subjectCountTag').textContent = `共 ${subjects.length} 科平時成績`;
-            renderSubjectTabs();
+            // 2. 初始化學年、學期、期中/期末篩選器（自動選定最新階段！）
+            initPeriodFilters(subjects);
 
-            // 3. 渲染當前選中科目之所有分析模組
-            if (currentSubjectIdx >= subjects.length) currentSubjectIdx = 0;
-            renderActiveSubjectModules();
+            // 3. 套用篩選並渲染 Hero 與科目清單
+            applyPeriodFilter();
 
             // 4. 渲染教師平時成績診斷建議（預設不勾選隱藏，僅在教師勾選時顯示）
             const adviceSec = document.getElementById('sectionAdvice');
@@ -1196,9 +1498,29 @@
             }
         }
 
-        function renderSubjectTabs() {
-            const subjects = currentPortfolio.student.subjects || [];
+        function renderSubjectTabs(filteredSubjs) {
+            const subjects = (filteredSubjs !== undefined) ? filteredSubjs : getFilteredSubjects();
             const container = document.getElementById('subjectTabsContainer');
+            if (!container) return;
+
+            document.getElementById('subjectCountTag').textContent = `共 ${subjects.length} 科平時成績`;
+
+            if (subjects.length === 0) {
+                container.className = 'grid grid-cols-1 gap-3.5';
+                container.innerHTML = `
+                    <div class="p-6 text-center rounded-2xl bg-slate-50 border-2 border-dashed border-slate-200 space-y-2">
+                        <div class="text-2xl">🔍</div>
+                        <div class="text-xs font-black text-slate-700">所選學期或評量階段尚無平時成績資料</div>
+                        <div class="text-[11px] text-slate-500">請透過上方下拉選單切換至其他學期，或點擊下方按鈕直接返回最新評量</div>
+                        <button type="button" onclick="resetToLatestPeriod()" class="mt-2 px-3.5 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-black transition active:scale-95 shadow-xs cursor-pointer inline-flex items-center gap-1.5">
+                            <span>⚡</span>
+                            <span>返回最新評量科目</span>
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
             if (subjects.length <= 1) {
                 container.className = 'grid grid-cols-1 gap-3.5';
             } else if (subjects.length === 2) {
@@ -1207,9 +1529,10 @@
                 container.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5';
             }
 
-            container.innerHTML = subjects.map((subj, idx) => {
-                const isActive = idx === currentSubjectIdx;
-                const isBlue = idx % 2 === 0;
+            container.innerHTML = subjects.map((subj, localIdx) => {
+                const targetIdx = subj.originalIdx !== undefined ? subj.originalIdx : localIdx;
+                const isActive = targetIdx === currentSubjectIdx;
+                const isBlue = localIdx % 2 === 0;
                 
                 // 框格界線與底色樣式 (加強邊框線條與陰影，突顯可點擊按鈕質感)
                 const cardThemeClass = isActive
@@ -1253,7 +1576,7 @@
                     : `<div class="w-7 h-7 rounded-full bg-white border-2 border-slate-300 text-slate-400 flex items-center justify-center font-bold text-sm shrink-0 group-hover:bg-sky-500 group-hover:text-white group-hover:border-sky-500 transition-all shadow-2xs">›</div>`;
 
                 return `
-                    <button type="button" onclick="selectSubject(${idx})"
+                    <button type="button" onclick="selectSubject(${targetIdx})"
                         aria-pressed="${isActive}"
                         class="subject-tab-btn group relative w-full text-left p-4 sm:p-4.5 flex items-center justify-between gap-3 ${cardThemeClass}">
                         <div class="space-y-1.5 min-w-0 flex-1">
@@ -1285,7 +1608,7 @@
             currentCategoryFilter = 'all';
             currentChartMetric = 'all';
             if (typeof hideLeaveNoticeBanner === 'function') hideLeaveNoticeBanner();
-            renderSubjectTabs();
+            renderSubjectTabs(getFilteredSubjects());
             renderActiveSubjectModules();
         }
 
