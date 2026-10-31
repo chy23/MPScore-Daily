@@ -118,6 +118,55 @@
             border: 1px solid #B2DBC7;
         }
 
+        /* 科目切換專用卡片：顯著 2px~2.5px 邊框線條、立體浮起陰影與明確點選切換引導 */
+        .subject-tab-btn {
+            cursor: pointer;
+            position: relative;
+            outline: none;
+            border-radius: 1.25rem;
+            transition: all 180ms cubic-bezier(0.22, 1, 0.36, 1);
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .subject-tab-inactive-blue {
+            background: linear-gradient(135deg, #F0F7FD 0%, #FFFFFF 100%);
+            border: 2px solid #7DD3FC; /* 顯著天藍外框線 */
+            box-shadow: 0 4px 14px -3px rgba(2, 132, 199, 0.12), 0 2px 5px -1px rgba(0, 0, 0, 0.04);
+        }
+        .subject-tab-inactive-blue:hover {
+            border-color: #0284C7;
+            background: linear-gradient(135deg, #E0F2FE 0%, #FFFFFF 100%);
+            box-shadow: 0 8px 20px -3px rgba(2, 132, 199, 0.22), 0 3px 8px -1px rgba(0, 0, 0, 0.06);
+            transform: translateY(-2px);
+        }
+
+        .subject-tab-inactive-green {
+            background: linear-gradient(135deg, #F0FDF5 0%, #FFFFFF 100%);
+            border: 2px solid #86EFAC; /* 顯著翡翠綠外框線 */
+            box-shadow: 0 4px 14px -3px rgba(5, 150, 105, 0.12), 0 2px 5px -1px rgba(0, 0, 0, 0.04);
+        }
+        .subject-tab-inactive-green:hover {
+            border-color: #059669;
+            background: linear-gradient(135deg, #DCFCE7 0%, #FFFFFF 100%);
+            box-shadow: 0 8px 20px -3px rgba(5, 150, 105, 0.22), 0 3px 8px -1px rgba(0, 0, 0, 0.06);
+            transform: translateY(-2px);
+        }
+
+        .subject-tab-active-blue {
+            background: linear-gradient(135deg, #E0F2FE 0%, #F0F9FF 50%, #EBF8FF 100%) !important;
+            border: 2.5px solid #0284C7 !important; /* 2.5px 粗邊框強烈識別 */
+            box-shadow: 0 12px 28px -4px rgba(2, 132, 199, 0.32), 0 0 0 3.5px rgba(14, 165, 233, 0.30) !important;
+            transform: translateY(-1px);
+        }
+
+        .subject-tab-active-green {
+            background: linear-gradient(135deg, #DCFCE7 0%, #F0FDF5 50%, #E8FBF0 100%) !important;
+            border: 2.5px solid #059669 !important; /* 2.5px 粗邊框強烈識別 */
+            box-shadow: 0 12px 28px -4px rgba(5, 150, 105, 0.32), 0 0 0 3.5px rgba(16, 185, 129, 0.30) !important;
+            transform: translateY(-1px);
+        }
+
         .subject-pill-active-blue {
             background: linear-gradient(135deg, #E0F0FA 0%, #F0F8FD 100%) !important;
             border-color: #0284c7 !important;
@@ -1161,13 +1210,16 @@
             container.innerHTML = subjects.map((subj, idx) => {
                 const isActive = idx === currentSubjectIdx;
                 const isBlue = idx % 2 === 0;
-                const baseCardClass = isBlue ? 'subcard-cream-blue' : 'subcard-cream-green';
-                const activeClass = isActive
-                    ? (isBlue ? 'subject-pill-active-blue' : 'subject-pill-active-green')
-                    : (isBlue ? 'hover:border-sky-400/90 opacity-95 hover:opacity-100' : 'hover:border-emerald-400/90 opacity-95 hover:opacity-100');
+                
+                // 框格界線與底色樣式 (加強邊框線條與陰影，突顯可點擊按鈕質感)
+                const cardThemeClass = isActive
+                    ? (isBlue ? 'subject-tab-active-blue' : 'subject-tab-active-green')
+                    : (isBlue ? 'subject-tab-inactive-blue' : 'subject-tab-inactive-green');
+
                 const scoreColorClass = isActive
                     ? (isBlue ? 'text-sky-700' : 'text-emerald-700')
                     : 'text-slate-800';
+
                 const icon = getSubjectIcon(subj.subject);
                 const avgText = subj.overallAverage !== null ? subj.overallAverage.toFixed(1) : '--';
                 const hasPersonalScore = subj.overallAverage !== null && !isNaN(subj.overallAverage);
@@ -1184,23 +1236,44 @@
                 const diffHtml = hasPersonalScore ? formatDiffTag(subj.diffFromClassAvg) : '';
                 const badgeInfo = getScoreBadgeInfo(subj.overallAverage);
 
+                // 明顯的可點擊狀態膠囊標籤
+                const statusBadgeHtml = isActive
+                    ? `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black text-white shadow-2xs ${isBlue ? 'bg-sky-600' : 'bg-emerald-600'}">
+                        <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                        <span>正在檢視</span>
+                       </span>`
+                    : `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold text-slate-600 bg-white/95 border border-slate-300 shadow-2xs group-hover:text-sky-700 group-hover:border-sky-400 group-hover:bg-sky-50 transition">
+                        <span>點選切換</span>
+                        <span class="text-xs">➔</span>
+                       </span>`;
+
+                // 右側箭頭 / 打勾互動圖示
+                const actionIconHtml = isActive
+                    ? `<div class="w-7 h-7 rounded-full text-white flex items-center justify-center font-black text-xs shadow-xs shrink-0 ${isBlue ? 'bg-sky-600' : 'bg-emerald-600'}">✓</div>`
+                    : `<div class="w-7 h-7 rounded-full bg-white border-2 border-slate-300 text-slate-400 flex items-center justify-center font-bold text-sm shrink-0 group-hover:bg-sky-500 group-hover:text-white group-hover:border-sky-500 transition-all shadow-2xs">›</div>`;
+
                 return `
-                    <button onclick="selectSubject(${idx})"
-                        class="text-left p-4 rounded-2xl transition-all duration-200 flex items-center justify-between gap-3 ${baseCardClass} ${activeClass}">
+                    <button type="button" onclick="selectSubject(${idx})"
+                        aria-pressed="${isActive}"
+                        class="subject-tab-btn group relative w-full text-left p-4 sm:p-4.5 flex items-center justify-between gap-3 ${cardThemeClass}">
                         <div class="space-y-1.5 min-w-0 flex-1">
                             <div class="flex items-center gap-2 flex-wrap">
                                 <span class="text-xl shrink-0">${icon}</span>
-                                <span class="font-black text-slate-800 text-base sm:text-lg leading-snug break-words">${subj.subject}</span>
+                                <span class="font-black text-slate-900 text-base sm:text-lg leading-snug break-words">${subj.subject}</span>
+                                ${statusBadgeHtml}
                             </div>
                             <div class="flex items-center gap-2 flex-wrap text-xs text-slate-600 font-mono">
                                 <span class="text-xs font-sans font-bold px-2 py-0.5 rounded-full border whitespace-nowrap shrink-0 ${badgeInfo.badgeClass}">${badgeInfo.label}</span>
-                                <span class="whitespace-nowrap">${classAvgText}</span>
+                                <span class="whitespace-nowrap font-sans">${classAvgText}</span>
                                 ${diffHtml}
                             </div>
                         </div>
-                        <div class="text-right shrink-0 pl-2">
-                            <div class="text-xs font-bold text-slate-600 whitespace-nowrap">平時總均</div>
-                            <div class="text-2xl font-black font-mono tabular-nums display-score ${scoreColorClass}">${avgText}</div>
+                        <div class="flex items-center gap-2.5 shrink-0 pl-1">
+                            <div class="text-right">
+                                <div class="text-[11px] font-bold text-slate-500 whitespace-nowrap">平時總均</div>
+                                <div class="text-2xl font-black font-mono tabular-nums display-score ${scoreColorClass}">${avgText}</div>
+                            </div>
+                            ${actionIconHtml}
                         </div>
                     </button>
                 `;
