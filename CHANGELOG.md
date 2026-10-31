@@ -4,6 +4,23 @@
 
 ---
 
+## [v3.9.1] - 2026-10-31 🐛 徹底修復「未登錄成績科目殘留其他科目舊資料」之切換例外問題
+
+### 🎯 核心問題修復與資料隔離強化
+1. **根本原因分析**：
+   - 在家長端 `parent.html` 的科目模組渲染函式 `renderActiveSubjectModules()` 中，當切換至尚無評量登記之科目（如 `115-1期中社會平時`，其 `activePillars.length === 0`）時，程式碼誤調用了已廢棄不存在的函式 `renderItemsList(subj)`，導致瀏覽器於背景觸發 JavaScript 執行時期例外（`ReferenceError: renderItemsList is not defined`）。
+   - 該未攔截的例外中斷了後續 DOM 清理與渲染流程，致使先前面板所渲染的上一科目（如 `數學平時`）之「最高分表現項目 / 建議複習加強項目（診斷分析帶）」、「評量類別篩選標籤」與「各次評量得分明細卡片與表格」未被清空，造成家長誤以為未評量科目抓取到其他分頁成績。
+2. **修復措施與嚴格隔離**：
+   - 修正為正確的模組更新調用：`renderChartTabsForSubject(subj, activePillars)`、`renderUnitTrendChart(subj)`、`renderUnitDiagnosticStrip(subj)`、`renderScoreItemCards(subj, activePillars)`、`renderUnitMatrixTable(subj)` 與 `switchScoreViewMode(currentScoreViewMode)`。
+   - 當科目無評量項目（`items.length === 0`）時：
+     - **診斷分析帶**：完整清空（`strip.innerHTML = ''`），不再殘留任何上一科目的強弱項分析。
+     - **走勢圖分類標籤**：清空分項按鈕，繪圖區顯示溫和友善的空狀態提示：「本科尚無平時評量成績走勢」。
+     - **得分明細卡片**：顯示「本科尚無平時評量成績明細（目前試算表尚未登錄平時成績項目，老師登錄後系統將即時自動更新）」。
+     - **成績列表總表**：顯示「尚無平時成績資料」。
+   - 在切換科目與銷毀圖表時同步關閉假別提示橫幅（`hideLeaveNoticeBanner()`），確保各科目檢視畫面 100% 獨立隔離、資料純淨不互相干擾。
+
+---
+
 ## [v3.9.0] - 2026-10-31 📅 學年、學期與期中/期末下拉式分類篩選器 ‧ 啟動自動定位最新評量階段
 
 ### 🎯 核心功能與多學期架構支援

@@ -1672,8 +1672,12 @@
                         <div class="text-xs text-slate-500">目前試算表尚未登錄本科成績，老師登錄後系統將即時自動更新。</div>
                     </div>
                 `;
+                renderChartTabsForSubject(subj, activePillars);
                 renderUnitTrendChart(subj);
-                renderItemsList(subj);
+                renderUnitDiagnosticStrip(subj);
+                renderScoreItemCards(subj, activePillars);
+                renderUnitMatrixTable(subj);
+                switchScoreViewMode(currentScoreViewMode);
                 return;
             }
 
@@ -1781,6 +1785,11 @@
             if (!tabContainer) return;
 
             const items = subj.items || [];
+            if (items.length === 0) {
+                tabContainer.innerHTML = '';
+                return;
+            }
+
             const hwCount = items.filter(it => it.assessmentType === '作業').length;
             const examCount = items.filter(it => it.assessmentType === '考試').length;
 
@@ -1946,6 +1955,7 @@
                 unitChartInstance.destroy();
                 unitChartInstance = null;
             }
+            hideLeaveNoticeBanner();
 
             // 若本科完全無任何平時成績項目，顯示溫和友善的空狀態提示，不顯示空坐標軸
             const wrapper = canvasEl ? canvasEl.parentElement : null;
