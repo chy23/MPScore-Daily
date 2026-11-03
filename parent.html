@@ -611,6 +611,11 @@
                 <div id="unitDiagnosticStrip" class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     <!-- JS 自動計算本科最佳表現項目與待加強項目 -->
                 </div>
+
+                <!-- 🛡️ 試卷難易度抗壓表現分析（Difficulty-Aware Badge）動態總覽面板 -->
+                <div id="difficultyResilienceBox" class="pt-1">
+                    <!-- JS 自動交叉比對各次評量難易度 P* 與個人表現，渲染抗壓表現總覽與徽章明細 -->
+                </div>
             </section>
 
             <!-- 5. 模組三（米藍色區塊）：各次平時成績得分明細（每個項目旁直接顯示「作業」或「考試」） -->
@@ -1108,22 +1113,26 @@
             const classMean = (diff.mean !== null && diff.mean !== undefined && !isNaN(diff.mean)) ? Number(diff.mean) : null;
             const delta = classMean !== null ? Number((score - classMean).toFixed(1)) : 0;
 
-            // 1. 試卷偏難 (50 <= P* < 65) 或 極具挑戰 (P* < 50)
-            if (pStarScore < 65) {
-                if (score >= 80 || (score >= 70 && delta >= 8) || delta >= 12) {
+            // 1. 試卷偏難 (50 <= P* < 65)、極具挑戰 (P* < 50)，或中偏難挑戰卷 (65 <= P* < 72 且大幅領先班均 >= +10 分，如班均 65.3 考 82 分)
+            if (pStarScore < 65 || (pStarScore < 72 && score >= 80 && delta >= 10)) {
+                if (score >= 78 || (score >= 70 && delta >= 6) || delta >= 10) {
                     return {
                         key: 'resilient_star',
+                        tier: 'resilient',
+                        showBanner: true,
                         icon: '🏅',
                         shortLabel: '逆風抗壓',
-                        label: '🏅 抗壓逆風表現',
+                        label: '🏅 逆風抗壓表現',
                         badgeClass: 'bg-amber-100 text-amber-950 border-amber-400 hover:bg-amber-200/80 ring-1 ring-amber-300/60',
                         bannerClass: 'bg-amber-50/95 border-amber-300 text-amber-950',
-                        description: `本項試卷全班普遍${diff.shortLabel}（P* ${diff.indexScore} 分${classMean !== null ? `，班均 ${classMean.toFixed(1)} 分` : ''}），孩子依然取得 ${score} 分${delta > 0 ? `（高於班均 +${delta.toFixed(1)} 分）` : ''}，展現優異的進階思維與抗壓能力！`
+                        description: `逆風抗壓肯定：本項評量整體難度較高（P* ${diff.indexScore} 分${classMean !== null ? `，全班平均 ${classMean.toFixed(1)} 分` : ''}），孩子依然取得 ${score} 分${delta > 0 ? `（大幅領先班均 +${delta.toFixed(1)} 分）` : ''}，展現極佳的融會貫通與抗壓實力！`
                     };
                 }
-                if (delta >= -2 || score >= 70) {
+                if (delta >= -3 || score >= 68) {
                     return {
                         key: 'steady_defense',
+                        tier: 'resilient',
+                        showBanner: true,
                         icon: '🛡️',
                         shortLabel: '難卷穩健',
                         label: '🛡️ 非戰之罪 ‧ 難卷穩健',
@@ -1134,6 +1143,8 @@
                 }
                 return {
                     key: 'hard_test_reassure',
+                    tier: 'resilient',
+                    showBanner: true,
                     icon: '🛡️',
                     shortLabel: '難題免氣餒',
                     label: '🛡️ 試卷偏難溫馨提示',
@@ -1143,33 +1154,98 @@
                 };
             }
 
-            // 2. 試卷適中 (65 <= P* < 80) 且表現拔尖
-            if (pStarScore >= 65 && pStarScore < 80 && score >= 90 && delta >= 10) {
+            // 2. 試卷適中 (65 <= P* < 80)
+            if (pStarScore >= 65 && pStarScore < 80) {
+                if ((score >= 85 && delta >= 6) || (score >= 90 && delta >= 3)) {
+                    return {
+                        key: 'moderate_ace',
+                        tier: 'ace',
+                        showBanner: true,
+                        icon: '🌟',
+                        shortLabel: '實力拔尖',
+                        label: '🌟 實力拔尖表現',
+                        badgeClass: 'bg-emerald-100 text-emerald-950 border-emerald-400 hover:bg-emerald-200/80 ring-1 ring-emerald-300/60',
+                        bannerClass: 'bg-emerald-50/95 border-emerald-300 text-emerald-950',
+                        description: `實力拔尖肯定：在難度適中的標準鑑別評量（${classMean !== null ? `班均 ${classMean.toFixed(1)} 分，` : ''}P* ${diff.indexScore} 分）中取得 ${score} 分高標${delta > 0 ? `（領先班均 +${delta.toFixed(1)} 分）` : ''}，單元核心觀念掌握極為透徹！`
+                    };
+                }
+                if (delta >= 0 || score >= 82) {
+                    return {
+                        key: 'moderate_ahead',
+                        tier: 'ace',
+                        showBanner: true,
+                        icon: '✨',
+                        shortLabel: '穩健超前',
+                        label: '✨ 適中卷穩健超前',
+                        badgeClass: 'bg-sky-50 text-sky-900 border-sky-300 hover:bg-sky-100',
+                        bannerClass: 'bg-sky-50/90 border-sky-200/90 text-sky-950',
+                        description: `穩健超前表現：本項評量難度適中（${classMean !== null ? `班均 ${classMean.toFixed(1)} 分，` : ''}P* ${diff.indexScore} 分），個人得分 ${score} 分${delta >= 0 ? `（高於班均 +${delta.toFixed(1)} 分）` : ''}，應試發揮相當穩定！`
+                    };
+                }
+                if (delta >= -6 || score >= 75) {
+                    return {
+                        key: 'moderate_solid',
+                        tier: 'mastery',
+                        showBanner: false,
+                        icon: '🌿',
+                        shortLabel: '中堅達標',
+                        label: '🌿 標準難度中堅達標',
+                        badgeClass: 'bg-teal-50 text-teal-800 border-teal-300 hover:bg-teal-100',
+                        bannerClass: 'bg-teal-50/90 border-teal-200/90 text-teal-950',
+                        description: `本項評量難度適中（${classMean !== null ? `班均 ${classMean.toFixed(1)} 分，` : ''}P* ${diff.indexScore} 分），個人得分 ${score} 分維持班級常模水準，建議針對零星錯題進行訂正鞏固。`
+                    };
+                }
                 return {
-                    key: 'moderate_ace',
-                    icon: '🌟',
-                    shortLabel: '實力拔尖',
-                    label: '🌟 實力拔尖表現',
+                    key: 'moderate_review',
+                    tier: 'careful',
+                    showBanner: true,
+                    icon: '🌱',
+                    shortLabel: '建議複習',
+                    label: '🌱 建議優先釐清觀念',
+                    badgeClass: 'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100',
+                    bannerClass: 'bg-amber-50/90 border-amber-200/90 text-amber-950',
+                    description: `複習建議：本項標準難度評量（${classMean !== null ? `班均 ${classMean.toFixed(1)} 分，` : ''}P* ${diff.indexScore} 分）得分 ${score} 分，建議考前優先針對本單元錯題重新演練。`
+                };
+            }
+
+            // 3. 試卷偏易 (P* >= 80)
+            if (score >= 95 || (score >= 90 && delta >= 1)) {
+                return {
+                    key: 'easy_mastery',
+                    tier: 'mastery',
+                    showBanner: false,
+                    icon: '💎',
+                    shortLabel: '精熟滿貫',
+                    label: '💎 基礎題精熟滿貫',
                     badgeClass: 'bg-emerald-50 text-emerald-900 border-emerald-300 hover:bg-emerald-100',
                     bannerClass: 'bg-emerald-50/90 border-emerald-200/90 text-emerald-950',
-                    description: `在難度適中的標準評量（${classMean !== null ? `班均 ${classMean.toFixed(1)} 分` : `P* ${diff.indexScore} 分`}）中取得 ${score} 分高標（領先班均 +${delta.toFixed(1)} 分），單元核心觀念掌握極為透徹！`
+                    description: `基礎題型把握度極高（個人 ${score} 分${classMean !== null ? ` / 班均 ${classMean.toFixed(1)} 分` : ''}），細心度與熟練度俱佳！`
                 };
             }
-
-            // 3. 試卷偏易 (P* >= 80) 但意外失分
-            if (pStarScore >= 80 && score < 80 && delta <= -8) {
+            if (score >= 85 || delta >= -4) {
                 return {
-                    key: 'easy_careful',
-                    icon: '🔍',
-                    shortLabel: '宜再細心',
-                    label: '🔍 基礎題型宜再細心',
-                    badgeClass: 'bg-rose-50 text-rose-900 border-rose-300 hover:bg-rose-100',
-                    bannerClass: 'bg-rose-50/90 border-rose-200/90 text-rose-950',
-                    description: `細心度溫馨提醒：本次評量多為基礎核心題型（${classMean !== null ? `班均 ${classMean.toFixed(1)} 分` : `P* ${diff.indexScore} 分`}），建議與孩子一起檢視是否因粗心計算或漏看題目而失分，把基本分穩穩拿回來。`
+                    key: 'easy_steady',
+                    tier: 'mastery',
+                    showBanner: false,
+                    icon: '✅',
+                    shortLabel: '基礎穩固',
+                    label: '✅ 基礎評量發揮穩固',
+                    badgeClass: 'bg-teal-50 text-teal-800 border-teal-300 hover:bg-teal-100',
+                    bannerClass: 'bg-teal-50/90 border-teal-200/90 text-teal-950',
+                    description: `基礎核心評量發揮穩定（個人 ${score} 分${classMean !== null ? ` / 班均 ${classMean.toFixed(1)} 分` : ''}），日常基本功扎實。`
                 };
             }
-
-            return null;
+            return {
+                key: 'easy_careful',
+                tier: 'careful',
+                showBanner: true,
+                icon: '🔍',
+                shortLabel: '宜再細心',
+                label: '🔍 基礎題型宜再細心',
+                badgeClass: 'bg-rose-50 text-rose-900 border-rose-300 hover:bg-rose-100',
+                bannerClass: 'bg-rose-50/90 border-rose-200/90 text-rose-950',
+                description: `細心度溫馨提醒：本次評量多為基礎核心題型（${classMean !== null ? `班均 ${classMean.toFixed(1)} 分` : `P* ${diff.indexScore} 分`}），建議與孩子一起檢視是否因粗心計算或漏看題目而失分，把基本分穩穩拿回來。`
+            };
         }
 
         function formatDifficultyResilienceBadgeHtml(item, isCompact = false) {
@@ -2196,6 +2272,7 @@
                 renderChartTabsForSubject(subj, activePillars);
                 renderUnitTrendChart(subj);
                 renderUnitDiagnosticStrip(subj);
+                renderDifficultyResilienceSummary(subj);
                 renderScoreItemCards(subj, activePillars);
                 renderUnitMatrixTable(subj);
                 switchScoreViewMode(currentScoreViewMode);
@@ -2297,6 +2374,7 @@
             renderChartTabsForSubject(subj, activePillars);
             renderUnitTrendChart(subj);
             renderUnitDiagnosticStrip(subj);
+            renderDifficultyResilienceSummary(subj);
 
             // C. 渲染各次評量得分明細（卡片檢視 + 列表檢視）
             renderScoreItemCards(subj, activePillars);
@@ -2858,7 +2936,7 @@
             const bestResilienceBadge = formatDifficultyResilienceBadgeHtml(bestItem, true);
             const weakResilienceInfo = resolveDifficultyResilienceBadge(weakestItem);
             const weakResilienceBadge = formatDifficultyResilienceBadgeHtml(weakestItem, true);
-            const weakReassuranceHtml = (weakResilienceInfo && (weakResilienceInfo.key === 'steady_defense' || weakResilienceInfo.key === 'resilient_star' || weakResilienceInfo.key === 'hard_test_reassure'))
+            const weakReassuranceHtml = (weakResilienceInfo && weakResilienceInfo.showBanner)
                 ? `<div class="text-[11px] font-bold text-teal-800 mt-1 flex items-center gap-1"><span>${weakResilienceInfo.icon}</span><span>${weakResilienceInfo.description}</span></div>`
                 : '';
 
@@ -2894,6 +2972,190 @@
                         </div>
                     </div>
                     <div class="text-right font-mono font-black text-lg text-sky-700 tabular-nums shrink-0">${weakestItem.score} 分</div>
+                </div>
+            `;
+        }
+
+        // =========================================================================
+        // 3.5 試卷難易度抗壓表現（Difficulty-Aware Badge）專屬總覽面板
+        // =========================================================================
+        function renderDifficultyResilienceSummary(subj) {
+            const box = document.getElementById('difficultyResilienceBox');
+            if (!box) return;
+
+            const validItems = (subj && Array.isArray(subj.items) ? subj.items : []).filter(it => {
+                if (it.isLeave || resolveItemLeave(it)) return false;
+                return it.score !== null && it.score !== undefined && !isNaN(it.score);
+            });
+
+            if (validItems.length === 0) {
+                box.innerHTML = '';
+                return;
+            }
+
+            const analyzed = validItems.map(it => {
+                const diff = resolveItemDifficulty(it);
+                const res = resolveDifficultyResilienceBadge(it);
+                return { item: it, diff, res };
+            }).filter(entry => entry.diff && entry.res);
+
+            if (analyzed.length === 0) {
+                box.innerHTML = '';
+                return;
+            }
+
+            const counts = {
+                resilient: analyzed.filter(a => a.res.tier === 'resilient').length,
+                ace: analyzed.filter(a => a.res.tier === 'ace').length,
+                mastery: analyzed.filter(a => a.res.tier === 'mastery').length,
+                careful: analyzed.filter(a => a.res.tier === 'careful').length
+            };
+
+            let headlineBadge = {
+                icon: '💎',
+                title: '基礎精熟穩固',
+                badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300'
+            };
+            if (counts.resilient > 0 && analyzed.some(a => a.res.key === 'resilient_star')) {
+                headlineBadge = {
+                    icon: '🏅',
+                    title: '逆風抗壓優異',
+                    badgeClass: 'bg-amber-100 text-amber-950 border-amber-400 ring-1 ring-amber-300/60'
+                };
+            } else if (counts.ace > 0 && analyzed.some(a => a.res.key === 'moderate_ace')) {
+                headlineBadge = {
+                    icon: '🌟',
+                    title: '實力拔尖超前',
+                    badgeClass: 'bg-emerald-100 text-emerald-950 border-emerald-400 ring-1 ring-emerald-300/60'
+                };
+            } else if (counts.resilient > 0) {
+                headlineBadge = {
+                    icon: '🛡️',
+                    title: '難卷穩健發揮',
+                    badgeClass: 'bg-teal-100 text-teal-900 border-teal-300'
+                };
+            } else if (counts.ace > 0) {
+                headlineBadge = {
+                    icon: '✨',
+                    title: '標準卷穩健超前',
+                    badgeClass: 'bg-sky-100 text-sky-900 border-sky-300'
+                };
+            }
+
+            const tierCards = [
+                {
+                    key: 'resilient',
+                    icon: '🏅',
+                    title: '逆風抗壓 / 難卷穩健',
+                    sub: '偏難或挑戰卷中穩定發揮',
+                    count: counts.resilient,
+                    activeClass: 'bg-amber-50/95 border-amber-400 text-amber-950 ring-2 ring-amber-300/60 shadow-xs',
+                    idleClass: 'bg-slate-50/80 border-slate-200/80 text-slate-500 opacity-75'
+                },
+                {
+                    key: 'ace',
+                    icon: '🌟',
+                    title: '實力拔尖 / 穩健超前',
+                    sub: '適中鑑別卷中超越班均',
+                    count: counts.ace,
+                    activeClass: 'bg-emerald-50/95 border-emerald-400 text-emerald-950 ring-2 ring-emerald-300/60 shadow-xs',
+                    idleClass: 'bg-slate-50/80 border-slate-200/80 text-slate-500 opacity-75'
+                },
+                {
+                    key: 'mastery',
+                    icon: '💎',
+                    title: '精熟滿貫 / 基礎穩固',
+                    sub: '基礎偏易卷中細心把握',
+                    count: counts.mastery,
+                    activeClass: 'bg-sky-50/95 border-sky-400 text-sky-950 ring-2 ring-sky-300/60 shadow-xs',
+                    idleClass: 'bg-slate-50/80 border-slate-200/80 text-slate-500 opacity-75'
+                },
+                {
+                    key: 'careful',
+                    icon: '🔍',
+                    title: '宜再細心 / 建議複習',
+                    sub: '留意審題細心與錯題訂正',
+                    count: counts.careful,
+                    activeClass: 'bg-rose-50/95 border-rose-300 text-rose-950 ring-2 ring-rose-200/60 shadow-xs',
+                    idleClass: 'bg-slate-50/80 border-slate-200/80 text-slate-500 opacity-75'
+                }
+            ];
+
+            const itemsRowsHtml = analyzed.map(({ item, diff, res }) => {
+                const diffBadgeHtml = formatDifficultyBadgeHtml(item, true);
+                const resBadgeHtml = formatDifficultyResilienceBadgeHtml(item, true);
+                const deltaTag = formatDiffTag(item.diffFromClass);
+                const classAvgText = (displayFlags.showClassNorm && item.classAvg !== null && !isNaN(item.classAvg))
+                    ? `班均 ${item.classAvg.toFixed(1)} 分`
+                    : '';
+
+                return `
+                    <div class="p-3 rounded-xl bg-white/95 border border-slate-200/90 hover:border-teal-300 transition flex flex-col gap-1.5 shadow-2xs">
+                        <div class="flex items-center justify-between gap-2 flex-wrap">
+                            <div class="flex items-center gap-1.5 flex-wrap min-w-0">
+                                <span class="font-black text-slate-800 text-xs sm:text-sm">${item.name}</span>
+                                ${formatAssessmentTypeBadge(item.assessmentType)}
+                                ${diffBadgeHtml}
+                                ${resBadgeHtml}
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0 font-mono">
+                                ${classAvgText ? `<span class="text-xs text-slate-500">${classAvgText}</span>` : ''}
+                                ${deltaTag}
+                                <span class="text-sm sm:text-base font-black text-slate-900 tabular-nums">${item.score} 分</span>
+                            </div>
+                        </div>
+                        <div class="text-[11px] text-slate-600 leading-relaxed flex items-start gap-1.5 pl-0.5">
+                            <span class="shrink-0">${res.icon}</span>
+                            <span>${res.description}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            box.innerHTML = `
+                <div class="p-4 sm:p-5 rounded-2xl bg-white/95 border-2 border-teal-300/90 shadow-sm space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-200/80 pb-3">
+                        <div class="flex items-start sm:items-center gap-2.5">
+                            <span class="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-teal-600 text-white flex items-center justify-center text-lg shadow-xs shrink-0">🛡️</span>
+                            <div>
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h4 class="font-black text-slate-800 text-sm sm:text-base">試卷難易度抗壓表現（Difficulty-Aware Badge）</h4>
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-extrabold border ${headlineBadge.badgeClass}">
+                                        <span>${headlineBadge.icon}</span>
+                                        <span>${headlineBadge.title}</span>
+                                    </span>
+                                </div>
+                                <p class="text-xs text-slate-500 mt-0.5">交叉比對「試卷難易度 P*」與「個人得分 vs. 班級平均」，消除只看絕對分數高低的盲點（*難易度以班級成績估計。）</p>
+                            </div>
+                        </div>
+                        <button type="button" onclick="expandAndScrollToMethodology()" class="text-[11px] font-bold text-teal-700 hover:text-teal-900 hover:underline self-start sm:self-auto shrink-0 cursor-pointer">
+                            查看交叉評定標準 ℹ️
+                        </button>
+                    </div>
+
+                    <!-- 四大抗壓與實力表現統計格 -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                        ${tierCards.map(tc => `
+                            <div class="p-2.5 rounded-xl border transition flex flex-col justify-between ${tc.count > 0 ? tc.activeClass : tc.idleClass}">
+                                <div class="flex items-center justify-between gap-1">
+                                    <span class="text-xs font-black">${tc.icon} ${tc.title}</span>
+                                    <span class="font-mono text-sm font-black px-1.5 py-0.5 rounded-md bg-white/80 border border-current/20">${tc.count} 項</span>
+                                </div>
+                                <div class="text-[10.5px] mt-1 leading-snug opacity-85">${tc.sub}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <!-- 各次評量「試卷難易度 ✕ 抗壓表現」交叉明細列表 -->
+                    <div class="space-y-2">
+                        <div class="text-xs font-extrabold text-slate-700 flex items-center justify-between">
+                            <span>📌 本科各次評量「難易度 ✕ 抗壓表現」逐項診斷（共 ${analyzed.length} 項）：</span>
+                            <span class="text-[11px] font-normal text-slate-500">點擊徽章可查看 P* 計算公式</span>
+                        </div>
+                        <div class="space-y-2 max-h-80 overflow-y-auto pr-0.5 custom-scrollbar">
+                            ${itemsRowsHtml}
+                        </div>
+                    </div>
                 </div>
             `;
         }
