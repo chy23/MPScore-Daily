@@ -43,6 +43,9 @@
     - 家長端新增「學年、學期、期中/期末」三層級階梯式下拉分類篩選器，並預設鎖定最新評量階段！
     - 家長端科目切換卡片升級為 2.5px 高對比線條、浮起立體投影與明確「點選切換 ➔」導引標籤。
     - 徹底修復未登錄成績科目切換時之 DOM 隔離問題，空狀態友善提示，絕不殘留其他科目資料。
+  • 2026-11-03：【學習型態雙維度象限與試卷難易度抗壓回饋】
+    - 新增「學習型態雙維度分析（作業態度 vs. 考試發揮）」，自動歸納雙軌全能、潛力爆發、踏實努力、攜手築基四象限。
+    - 新增「試卷難易度抗壓表現回饋（Difficulty-Aware Badge）」，交叉比對試卷難易度 P* 與班均表現，頒發逆風抗壓、難卷穩健（非戰之罪）、實力拔尖等溫馨徽章。
   ==========================================================================
 -->
 
@@ -571,6 +574,11 @@
                 <div id="pillarsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <!-- JS 動態渲染本科實際存在的分項平均卡（米綠、米藍相間） -->
                 </div>
+
+                <!-- 🧭 學習型態雙維度分析（📝 作業態度 vs. 🎯 考試發揮）動態診斷區塊 -->
+                <div id="learningStyleDualBox" class="pt-1">
+                    <!-- JS 動態計算並渲染作業與考試雙維度交叉診斷與親師共育建議 -->
+                </div>
             </section>
 
             <!-- 4. 模組二（米綠色區塊）：各項平時成績表現走勢與班均對比圖 -->
@@ -709,7 +717,7 @@
                                 <h3 class="font-black text-slate-800 text-sm sm:text-base">本站選用之統計方法與計算方式說明</h3>
                                 <span class="text-[11px] font-extrabold text-teal-900 bg-teal-100/90 border border-teal-200 px-2 py-0.5 rounded-full">教育測驗與統計規範</span>
                             </div>
-                            <p class="text-xs text-slate-600 mt-0.5">點擊展開查看：考卷難易度指數（P* 方法三抗極端值校正）、分項平均、常模差值與走勢內插公式</p>
+                            <p class="text-xs text-slate-600 mt-0.5">點擊展開查看：考卷難易度指數（P* 方法三抗極端值校正）、學習型態雙維度象限、試卷難度抗壓回饋與走勢內插公式</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-2 self-end sm:self-auto shrink-0">
@@ -779,6 +787,32 @@
                             <li><b>嚴格標記免計</b>：內插值僅供維持折線視覺連貫與點擊定位，提示框與卡片均嚴格顯示假別（如 <code class="font-mono">💊 病假（請假不計分）</code>）。</li>
                         </ul>
                     </div>
+
+                    <!-- 方法 5：學習型態雙維度分析（作業態度 vs. 考試發揮） -->
+                    <div class="p-4 rounded-2xl subcard-cream-blue space-y-2">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="font-black text-sky-950 text-xs sm:text-sm">5. 學習型態雙維度分析（作業態度 vs. 考試發揮 四象限模型）</span>
+                            <span class="px-2 py-0.5 rounded-md bg-sky-100 text-sky-800 font-bold text-[11px] shrink-0">學習歷程特質診斷</span>
+                        </div>
+                        <ul class="list-disc list-inside space-y-1 text-slate-700">
+                            <li><b>雙向度均分計算</b>：分別結算有效「📝 平時作業均分 <code class="font-mono font-bold text-sky-900 bg-white/80 px-1 rounded">X̄_hw</code>（習作＋作業卷）」與「🎯 臨場考試均分 <code class="font-mono font-bold text-sky-900 bg-white/80 px-1 rounded">X̄_exam</code>（語詞測驗＋單元卷）」，並對比各向度班均差值 <code class="font-mono">Δ_hw</code>、<code class="font-mono">Δ_exam</code>。</li>
+                            <li><b>四象限特質歸納</b>：
+                                <span class="inline-block mt-0.5">🌟 <b>雙軌全能型</b>（作業與考試皆達精熟穩健）、💡 <b>潛力爆發型</b>（考試理解佳但作業相對偏低 <code class="font-mono">X̄_exam − X̄_hw ≥ 5</code>）、🌱 <b>踏實努力型</b>（作業認真工整但臨場考試落差 <code class="font-mono">X̄_hw − X̄_exam ≥ 8</code>）、🤝 <b>攜手築基型</b>（雙向度基礎穩步扎根中）。</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- 方法 6：試卷難易度抗壓表現（Difficulty-Aware Badge） -->
+                    <div class="p-4 rounded-2xl subcard-cream-green space-y-2">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="font-black text-emerald-950 text-xs sm:text-sm">6. 試卷難易度抗壓表現回饋（Difficulty-Aware 交叉評定模型）</span>
+                            <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-[11px] shrink-0">難度常模交叉回饋</span>
+                        </div>
+                        <ul class="list-disc list-inside space-y-1 text-slate-700">
+                            <li><b>抗壓與非戰之罪判定</b>：結合試卷難易度指數 <code class="font-mono font-bold text-emerald-900 bg-white/80 px-1 rounded">P*</code> 與學生班均差值 <code class="font-mono font-bold text-emerald-900 bg-white/80 px-1 rounded">Δ = S − X̄</code> 進行交叉診斷：</li>
+                            <li><b>四類溫暖回饋</b>：於偏難或極具挑戰試卷（<code class="font-mono">P* &lt; 65</code>）考取高分（<code class="font-mono">S ≥ 80</code> 或領先班均 <code class="font-mono">Δ ≥ +8</code>）授予「<b>🏅 逆風抗壓</b>」；得分達班均附近（<code class="font-mono">Δ ≥ −2</code>）標註「<b>🛡️ 難卷穩健守成（非戰之罪）</b>」；適中試卷大幅領先標註「<b>🌟 實力拔尖</b>」；偏易試卷失常則溫馨提醒「<b>🔍 宜再細心</b>」。</li>
+                        </ul>
+                    </div>
                 </div>
             </details>
         </section>
@@ -838,10 +872,11 @@
          *  - 2026/10/29 智慧推播：School LINE Hub 統一中樞、手機即時模擬器、方案 B 異動日誌、方案 C 表頭架構
          *  - 2026/10/30 試算表自動化：方案 C 欄位新增自動填入日期、彈出日曆選取器、下拉驗證
          *  - 2026/10/31 階段導航與隔離：3 欄式學年/學期/階段下拉分類篩選器、預設定位最新階段、未登錄科目徹底隔離
+         *  - 2026/11/03 雙維度與抗壓分析：新增「學習型態雙維度四象限分析（作業態度 vs. 考試發揮）」與「試卷難易度抗壓表現回饋徽章」
          * =========================================================================
          */
         console.info(
-            '%c MPScore-Daily %c 建立於新北市林口區麗園國小 楊家驊老師 %c v3.9.1 ',
+            '%c MPScore-Daily %c 建立於新北市林口區麗園國小 楊家驊老師 %c v4.0.0 ',
             'background:#0284C7;color:#fff;font-weight:bold;padding:3px 6px;border-radius:4px 0 0 4px;',
             'background:#0D9488;color:#fff;font-weight:bold;padding:3px 6px;',
             'background:#10B981;color:#fff;font-weight:bold;padding:3px 6px;border-radius:0 4px 4px 0;'
@@ -1058,6 +1093,109 @@
             `;
         }
 
+        // =========================================================================
+        // 1.6 試卷難易度抗壓表現（Difficulty-Aware Badge）交叉評定模型
+        // =========================================================================
+        function resolveDifficultyResilienceBadge(item) {
+            if (!item || item.isLeave || resolveItemLeave(item)) return null;
+            const score = (item.score !== null && item.score !== undefined && !isNaN(item.score)) ? Number(item.score) : null;
+            if (score === null) return null;
+
+            const diff = resolveItemDifficulty(item);
+            if (!diff || diff.indexScore === null || diff.indexScore === undefined) return null;
+
+            const pStarScore = Number(diff.indexScore);
+            const classMean = (diff.mean !== null && diff.mean !== undefined && !isNaN(diff.mean)) ? Number(diff.mean) : null;
+            const delta = classMean !== null ? Number((score - classMean).toFixed(1)) : 0;
+
+            // 1. 試卷偏難 (50 <= P* < 65) 或 極具挑戰 (P* < 50)
+            if (pStarScore < 65) {
+                if (score >= 80 || (score >= 70 && delta >= 8) || delta >= 12) {
+                    return {
+                        key: 'resilient_star',
+                        icon: '🏅',
+                        shortLabel: '逆風抗壓',
+                        label: '🏅 抗壓逆風表現',
+                        badgeClass: 'bg-amber-100 text-amber-950 border-amber-400 hover:bg-amber-200/80 ring-1 ring-amber-300/60',
+                        bannerClass: 'bg-amber-50/95 border-amber-300 text-amber-950',
+                        description: `本項試卷全班普遍${diff.shortLabel}（P* ${diff.indexScore} 分${classMean !== null ? `，班均 ${classMean.toFixed(1)} 分` : ''}），孩子依然取得 ${score} 分${delta > 0 ? `（高於班均 +${delta.toFixed(1)} 分）` : ''}，展現優異的進階思維與抗壓能力！`
+                    };
+                }
+                if (delta >= -2 || score >= 70) {
+                    return {
+                        key: 'steady_defense',
+                        icon: '🛡️',
+                        shortLabel: '難卷穩健',
+                        label: '🛡️ 非戰之罪 ‧ 難卷穩健',
+                        badgeClass: 'bg-teal-50 text-teal-900 border-teal-300 hover:bg-teal-100',
+                        bannerClass: 'bg-teal-50/90 border-teal-200/90 text-teal-950',
+                        description: `非戰之罪溫馨備註：該次為高難度深廣測驗（${classMean !== null ? `全班平均 ${classMean.toFixed(1)} 分，` : ''}P* ${diff.indexScore} 分），${score} 分實屬班級前段穩健表現，請家長多加肯定鼓勵！`
+                    };
+                }
+                return {
+                    key: 'hard_test_reassure',
+                    icon: '🛡️',
+                    shortLabel: '難題免氣餒',
+                    label: '🛡️ 試卷偏難溫馨提示',
+                    badgeClass: 'bg-sky-50 text-sky-900 border-sky-300 hover:bg-sky-100',
+                    bannerClass: 'bg-sky-50/90 border-sky-200/90 text-sky-950',
+                    description: `試卷偏難溫馨提示：該次試卷整體難度較高（${classMean !== null ? `全班平均僅 ${classMean.toFixed(1)} 分，` : ''}P* ${diff.indexScore} 分），全班普遍面臨挑戰；建議先不苛責分數，陪伴孩子釐清基礎錯題即可。`
+                };
+            }
+
+            // 2. 試卷適中 (65 <= P* < 80) 且表現拔尖
+            if (pStarScore >= 65 && pStarScore < 80 && score >= 90 && delta >= 10) {
+                return {
+                    key: 'moderate_ace',
+                    icon: '🌟',
+                    shortLabel: '實力拔尖',
+                    label: '🌟 實力拔尖表現',
+                    badgeClass: 'bg-emerald-50 text-emerald-900 border-emerald-300 hover:bg-emerald-100',
+                    bannerClass: 'bg-emerald-50/90 border-emerald-200/90 text-emerald-950',
+                    description: `在難度適中的標準評量（${classMean !== null ? `班均 ${classMean.toFixed(1)} 分` : `P* ${diff.indexScore} 分`}）中取得 ${score} 分高標（領先班均 +${delta.toFixed(1)} 分），單元核心觀念掌握極為透徹！`
+                };
+            }
+
+            // 3. 試卷偏易 (P* >= 80) 但意外失分
+            if (pStarScore >= 80 && score < 80 && delta <= -8) {
+                return {
+                    key: 'easy_careful',
+                    icon: '🔍',
+                    shortLabel: '宜再細心',
+                    label: '🔍 基礎題型宜再細心',
+                    badgeClass: 'bg-rose-50 text-rose-900 border-rose-300 hover:bg-rose-100',
+                    bannerClass: 'bg-rose-50/90 border-rose-200/90 text-rose-950',
+                    description: `細心度溫馨提醒：本次評量多為基礎核心題型（${classMean !== null ? `班均 ${classMean.toFixed(1)} 分` : `P* ${diff.indexScore} 分`}），建議與孩子一起檢視是否因粗心計算或漏看題目而失分，把基本分穩穩拿回來。`
+                };
+            }
+
+            return null;
+        }
+
+        function formatDifficultyResilienceBadgeHtml(item, isCompact = false) {
+            const res = resolveDifficultyResilienceBadge(item);
+            if (!res) return '';
+            const encodedName = encodeURIComponent(item.name || '');
+            if (isCompact) {
+                return `
+                    <button type="button" onclick="openDifficultyDetailModal('${encodedName}')"
+                        title="${res.description}（*難易度以班級成績估計。）"
+                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-extrabold border shadow-2xs transition active:scale-95 cursor-pointer ${res.badgeClass}">
+                        <span>${res.icon}</span>
+                        <span>${res.shortLabel}</span>
+                    </button>
+                `;
+            }
+            return `
+                <button type="button" onclick="openDifficultyDetailModal('${encodedName}')"
+                    title="${res.description}（*難易度以班級成績估計。）"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-extrabold border shadow-2xs transition active:scale-95 cursor-pointer ${res.badgeClass}">
+                    <span>${res.icon}</span>
+                    <span>${res.shortLabel}</span>
+                </button>
+            `;
+        }
+
         function openDifficultyDetailModal(encodedItemName) {
             if (!currentPortfolio || !currentPortfolio.student || !currentPortfolio.student.subjects) return;
             const subj = currentPortfolio.student.subjects[currentSubjectIdx];
@@ -1078,6 +1216,7 @@
             const studentScoreStr = leaveInfo
                 ? `${leaveInfo.icon} ${leaveInfo.type}（請假免計分）`
                 : (item.score !== null && item.score !== undefined ? `${item.score} 分` : '尚無成績');
+            const resilienceInfo = resolveDifficultyResilienceBadge(item);
 
             body.innerHTML = `
                 <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3">
@@ -1088,11 +1227,28 @@
                             ${formatAssessmentTypeBadge(item.assessmentType)}
                         </div>
                     </div>
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-black border shadow-xs ${styleClass}">
-                        <span>${diff.icon}</span>
-                        <span>${diff.shortLabel}</span>
-                    </span>
+                    <div class="flex flex-col items-end gap-1 shrink-0">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black border shadow-xs ${styleClass}">
+                            <span>${diff.icon}</span>
+                            <span>${diff.shortLabel}</span>
+                        </span>
+                        ${resilienceInfo ? `
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[11px] font-extrabold border ${resilienceInfo.badgeClass}">
+                                <span>${resilienceInfo.icon}</span>
+                                <span>${resilienceInfo.shortLabel}</span>
+                            </span>
+                        ` : ''}
+                    </div>
                 </div>
+
+                ${resilienceInfo ? `
+                    <div class="p-3.5 rounded-2xl border ${resilienceInfo.bannerClass} space-y-1 text-xs leading-relaxed shadow-2xs">
+                        <div class="font-black flex items-center gap-1.5 text-sm">
+                            <span>${resilienceInfo.label}</span>
+                        </div>
+                        <p class="font-medium">${resilienceInfo.description}</p>
+                    </div>
+                ` : ''}
 
                 <div class="grid grid-cols-3 gap-2.5 text-center">
                     <div class="p-2.5 rounded-xl bg-sky-50/70 border border-sky-200/80">
@@ -1631,6 +1787,10 @@
                 }
                 const diffHtml = hasPersonalScore ? formatDiffTag(subj.diffFromClassAvg) : '';
                 const badgeInfo = getScoreBadgeInfo(subj.overallAverage);
+                const styleAnalysis = hasPersonalScore ? analyzeSubjectLearningStyle(subj) : null;
+                const styleTagHtml = (styleAnalysis && styleAnalysis.isDual)
+                    ? `<span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[11px] font-sans font-extrabold border whitespace-nowrap shrink-0 ${styleAnalysis.badgeClass}" title="${styleAnalysis.title}">${styleAnalysis.icon} ${styleAnalysis.shortLabel}</span>`
+                    : '';
 
                 // 明顯的可點擊狀態膠囊標籤
                 const statusBadgeHtml = isActive
@@ -1660,6 +1820,7 @@
                             </div>
                             <div class="flex items-center gap-2 flex-wrap text-xs text-slate-600 font-mono">
                                 <span class="text-xs font-sans font-bold px-2 py-0.5 rounded-full border whitespace-nowrap shrink-0 ${badgeInfo.badgeClass}">${badgeInfo.label}</span>
+                                ${styleTagHtml}
                                 <span class="whitespace-nowrap font-sans">${classAvgText}</span>
                                 ${diffHtml}
                             </div>
@@ -1698,6 +1859,292 @@
                 }
                 return p.count && p.count > 0;
             });
+        }
+
+        // =========================================================================
+        // 學習型態雙維度分析（📝 作業態度 vs. 🎯 考試發揮 四象限模型）
+        // =========================================================================
+        function analyzeSubjectLearningStyle(subj) {
+            if (!subj) return null;
+            const rawItems = Array.isArray(subj.items) ? subj.items : [];
+            const validItems = rawItems.filter(it => {
+                if (!it || it.isLeave || resolveItemLeave(it)) return false;
+                return it.score !== null && it.score !== undefined && !isNaN(it.score);
+            });
+
+            let hwItems = [];
+            let examItems = [];
+
+            if (validItems.length > 0) {
+                validItems.forEach(it => {
+                    const aType = it.assessmentType || inferAssessmentTypeClient(it.name, it.category);
+                    if (aType === '考試' || aType === '測驗') {
+                        examItems.push(it);
+                    } else {
+                        hwItems.push(it);
+                    }
+                });
+            } else if (Array.isArray(subj.pillars)) {
+                subj.pillars.forEach(p => {
+                    if (p && p.average !== null && p.average !== undefined && !isNaN(p.average) && (p.count || 0) > 0) {
+                        const pType = p.assessmentType || (p.key === 'quiz' ? '考試' : '作業');
+                        const pseudoItem = {
+                            score: Number(p.average),
+                            classAvg: (p.classAverage !== null && p.classAverage !== undefined && !isNaN(p.classAverage)) ? Number(p.classAverage) : null,
+                            weight: p.count || 1
+                        };
+                        if (pType === '考試') examItems.push(pseudoItem);
+                        else hwItems.push(pseudoItem);
+                    }
+                });
+            }
+
+            const calcDimStats = (arr) => {
+                if (!arr || arr.length === 0) return { count: 0, avg: null, classAvg: null, diff: null };
+                let totalScore = 0, totalWeight = 0;
+                let totalClass = 0, classWeight = 0;
+                arr.forEach(i => {
+                    const w = i.weight || 1;
+                    totalScore += Number(i.score) * w;
+                    totalWeight += w;
+                    if (i.classAvg !== null && i.classAvg !== undefined && !isNaN(i.classAvg)) {
+                        totalClass += Number(i.classAvg) * w;
+                        classWeight += w;
+                    }
+                });
+                const avg = totalWeight > 0 ? Number((totalScore / totalWeight).toFixed(1)) : null;
+                const classAvg = classWeight > 0 ? Number((totalClass / classWeight).toFixed(1)) : null;
+                const diff = (avg !== null && classAvg !== null) ? Number((avg - classAvg).toFixed(1)) : null;
+                return { count: totalWeight, avg, classAvg, diff };
+            };
+
+            const hw = calcDimStats(hwItems);
+            const exam = calcDimStats(examItems);
+
+            if (hw.count === 0 && exam.count === 0) return null;
+
+            // 單維度狀態（目前僅有作業，或僅有考試）
+            if (hw.count > 0 && exam.count === 0) {
+                const isHigh = hw.avg >= 85;
+                return {
+                    isDual: false,
+                    mode: 'hw_only',
+                    key: isHigh ? 'hw_excellent' : 'hw_accumulating',
+                    icon: '📝',
+                    shortLabel: isHigh ? '作業態度扎實' : '作業累積中',
+                    title: isHigh ? '📝 平時作業表現扎實（尚無考試項目）' : '📝 平時作業持續累積中（尚無考試項目）',
+                    badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-300',
+                    pillClass: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+                    hw,
+                    exam,
+                    rawGap: null,
+                    summary: `目前本科已登錄 ${hw.count} 次平時作業（均分 ${hw.avg.toFixed(1)} 分），尚無考試測驗紀錄。${isHigh ? '孩子平時習作與作業完成度極佳，學習態度值得肯定！' : '隨著學期推進登錄測驗成績後，系統將自動啟動「作業態度 vs. 考試發揮」雙維度交叉診斷。'}`,
+                    advice: `親師共育切入點：持續保持每日作業按時完成與確實訂正的好習慣，為後續單元測驗打下穩固基礎。`
+                };
+            }
+
+            if (exam.count > 0 && hw.count === 0) {
+                const isHigh = exam.avg >= 85;
+                return {
+                    isDual: false,
+                    mode: 'exam_only',
+                    key: isHigh ? 'exam_excellent' : 'exam_accumulating',
+                    icon: '🎯',
+                    shortLabel: isHigh ? '測驗發揮穩健' : '測驗累積中',
+                    title: isHigh ? '🎯 平時測驗發揮穩健（尚無作業項目）' : '🎯 平時測驗持續累積中（尚無作業項目）',
+                    badgeClass: 'bg-sky-50 text-sky-800 border-sky-300',
+                    pillClass: 'bg-sky-100 text-sky-900 border-sky-300',
+                    hw,
+                    exam,
+                    rawGap: null,
+                    summary: `目前本科已登錄 ${exam.count} 次平時測驗（均分 ${exam.avg.toFixed(1)} 分），尚無平時作業紀錄。${isHigh ? '孩子在單元測驗中展現良好的理解力與穩定度！' : '待後續登錄習作或作業成績後，系統將自動啟動「作業態度 vs. 考試發揮」雙維度交叉診斷。'}`,
+                    advice: `親師共育切入點：每次小考後可陪伴孩子檢視錯題觀念，並留意是否有因試卷難度較高（可參考下方試卷難易度抗壓標籤）而受影響之項目。`
+                };
+            }
+
+            // 雙維度交叉分析（同時具備作業與考試）
+            const rawGap = Number((hw.avg - exam.avg).toFixed(1));
+            const normGap = (hw.diff !== null && exam.diff !== null) ? Number((hw.diff - exam.diff).toFixed(1)) : rawGap;
+
+            const hwStrong = hw.avg >= 85 || (hw.avg >= 80 && (hw.diff === null || hw.diff >= 0));
+            const examStrong = exam.avg >= 85 || (exam.avg >= 80 && (exam.diff === null || exam.diff >= 0));
+
+            // 象限 1：💡 潛力爆發型（考試強、但作業相對偏低或漏寫馬虎）
+            if ((!hwStrong && examStrong) || (exam.avg - hw.avg >= 5 && hw.avg < 88) || (normGap <= -5 && hw.avg < 88 && examStrong)) {
+                return {
+                    isDual: true,
+                    mode: 'dual',
+                    key: 'potential',
+                    icon: '💡',
+                    shortLabel: '潛力爆發型',
+                    title: '💡 潛力爆發型（考場理解力佳 ‧ 作業可更扎實）',
+                    badgeClass: 'bg-amber-50 text-amber-900 border-amber-300',
+                    pillClass: 'bg-amber-100 text-amber-900 border-amber-300',
+                    hw,
+                    exam,
+                    rawGap,
+                    summary: `孩子在測驗考試表現亮眼（考試均分 ${exam.avg.toFixed(1)} 分），顯示課堂概念理解力極佳！惟平時作業均分（${hw.avg.toFixed(1)} 分）相對偏低，可能偶有作業漏寫、粗心或訂正未臻完整。`,
+                    advice: `親師共育切入點：孩子具備很棒的學科理解潛能！建議家長平日多協助檢視習作與作業卷的完成度與字跡細節，把日常基本功當作習慣扎穩，成績將更上層樓。`
+                };
+            }
+
+            // 象限 2：🌱 踏實努力型（平時作業極為認真，但考試容易緊張或失常）
+            if ((hwStrong && !examStrong) || (hw.avg - exam.avg >= 8 && exam.avg < 85) || (normGap >= 6 && exam.avg < 85 && hwStrong)) {
+                return {
+                    isDual: true,
+                    mode: 'dual',
+                    key: 'diligent',
+                    icon: '🌱',
+                    shortLabel: '踏實努力型',
+                    title: '🌱 踏實努力型（平時態度認真 ‧ 臨場發揮可強化）',
+                    badgeClass: 'bg-sky-50 text-sky-900 border-sky-300',
+                    pillClass: 'bg-sky-100 text-sky-900 border-sky-300',
+                    hw,
+                    exam,
+                    rawGap,
+                    summary: `孩子平時習作與作業卷非常認真工整（作業均分 ${hw.avg.toFixed(1)} 分），學習態度值得高度肯定！惟測驗考試均分（${exam.avg.toFixed(1)} 分）與平時有落差，較易受限時應試緊張或綜合變化題型影響。`,
+                    advice: `親師共育切入點：請先大大肯定孩子平時的努力付出！考前可陪伴孩子針對錯題進行「遮答獨立重算」或小範圍計時練習，幫助孩子把平時累積的努力穩定轉化為考場自信。`
+                };
+            }
+
+            // 象限 3：🌟 雙軌全能型（作業認真、考試穩定）
+            if (hwStrong && examStrong) {
+                return {
+                    isDual: true,
+                    mode: 'dual',
+                    key: 'all_rounder',
+                    icon: '🌟',
+                    shortLabel: '雙軌全能型',
+                    title: '🌟 雙軌全能型（平時作業扎實 ‧ 考試發揮穩健）',
+                    badgeClass: 'bg-emerald-50 text-emerald-900 border-emerald-300',
+                    pillClass: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+                    hw,
+                    exam,
+                    rawGap,
+                    summary: `孩子在「平時作業態度（均分 ${hw.avg.toFixed(1)} 分）」與「臨場考試發揮（均分 ${exam.avg.toFixed(1)} 分）」雙向度表現優異且均衡，展現極佳的自主學習節奏與穩定實力！`,
+                    advice: `親師共育切入點：孩子已建立良好的日常作業與考前複習習慣，請持續給予正向肯定，並可鼓勵孩子嘗試跨單元延伸思考題。`
+                };
+            }
+
+            // 象限 4：🤝 攜手築基型（雙向度皆在起步累積中）
+            return {
+                isDual: true,
+                mode: 'dual',
+                key: 'foundation_building',
+                icon: '🤝',
+                shortLabel: '攜手築基型',
+                title: '🤝 攜手築基型（基礎穩步扎根 ‧ 親師溫暖陪伴）',
+                badgeClass: 'bg-teal-50 text-teal-900 border-teal-300',
+                pillClass: 'bg-teal-100 text-teal-900 border-teal-300',
+                hw,
+                exam,
+                rawGap,
+                summary: `目前平時作業（均分 ${hw.avg.toFixed(1)} 分）與測驗考試（均分 ${exam.avg.toFixed(1)} 分）皆處於基礎累積階段，需要更多結構化的鷹架引導與核心觀念釐清。`,
+                advice: `親師共育切入點：建議從每日落實「作業即時訂正」與「核心課本例題熟練」開始，先求小單元穩步達標，親師攜手陪伴孩子逐步累積學習成就感。`
+            };
+        }
+
+        function renderLearningStyleDualAnalysis(subj) {
+            const box = document.getElementById('learningStyleDualBox');
+            if (!box) return;
+
+            const styleInfo = analyzeSubjectLearningStyle(subj);
+            if (!styleInfo) {
+                box.innerHTML = '';
+                return;
+            }
+
+            const { hw, exam } = styleInfo;
+            const hwAvgStr = hw.avg !== null ? `${hw.avg.toFixed(1)}` : '--';
+            const examAvgStr = exam.avg !== null ? `${exam.avg.toFixed(1)}` : '--';
+            const hwBarW = hw.avg !== null ? Math.min(100, Math.max(15, hw.avg)) : 0;
+            const examBarW = exam.avg !== null ? Math.min(100, Math.max(15, exam.avg)) : 0;
+            const hwClassText = (displayFlags.showClassNorm && hw.classAvg !== null) ? `班均 ${hw.classAvg.toFixed(1)}` : (hw.count > 0 ? `共 ${hw.count} 次` : '尚無項目');
+            const examClassText = (displayFlags.showClassNorm && exam.classAvg !== null) ? `班均 ${exam.classAvg.toFixed(1)}` : (exam.count > 0 ? `共 ${exam.count} 次` : '尚無項目');
+            const hwDiffTag = hw.avg !== null ? formatDiffTag(hw.diff) : '';
+            const examDiffTag = exam.avg !== null ? formatDiffTag(exam.diff) : '';
+
+            box.innerHTML = `
+                <div class="p-4 sm:p-5 rounded-2xl bg-white/95 border-2 border-sky-200/90 shadow-xs space-y-3.5">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-7 h-7 rounded-xl bg-sky-100 text-sky-800 flex items-center justify-center text-sm font-black shrink-0">🧭</span>
+                            <div>
+                                <div class="text-xs sm:text-sm font-black text-slate-800">學習型態雙維度分析（作業態度 vs. 考試發揮）</div>
+                                <div class="text-[11px] text-slate-500">交叉比對日常作業（習作、作業卷）與臨場測驗（語詞、單元卷）表現特質</div>
+                            </div>
+                        </div>
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold border shadow-2xs self-start sm:self-auto ${styleInfo.pillClass}">
+                            <span>${styleInfo.title}</span>
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <!-- 左欄：平時作業向度 -->
+                        <div class="p-3.5 rounded-xl subcard-cream-green space-y-2">
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-900 border border-emerald-300">📝 平時作業態度</span>
+                                    <span class="text-xs text-slate-600 font-bold">採計 ${hw.count} 次</span>
+                                </div>
+                                <div class="flex items-center gap-1 text-xs font-mono text-slate-600">
+                                    <span>${hwClassText}</span>
+                                    ${hwDiffTag}
+                                </div>
+                            </div>
+                            <div class="flex items-baseline justify-between">
+                                <div class="text-xs text-slate-600">含習作、作業卷等日常練習</div>
+                                <div>
+                                    <span class="text-xl sm:text-2xl font-black font-mono tabular-nums text-emerald-800">${hwAvgStr}</span>
+                                    <span class="text-xs font-bold text-slate-600 ml-0.5">分</span>
+                                </div>
+                            </div>
+                            <div class="h-2 w-full rounded-full bg-white border border-emerald-200 overflow-hidden">
+                                <div class="h-full rounded-full bg-gradient-to-r from-emerald-400 to-teal-500 transition-all duration-500" style="width: ${hwBarW}%"></div>
+                            </div>
+                        </div>
+
+                        <!-- 右欄：臨場考試向度 -->
+                        <div class="p-3.5 rounded-xl subcard-cream-blue space-y-2">
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-extrabold bg-sky-100 text-sky-900 border border-sky-300">🎯 臨場考試發揮</span>
+                                    <span class="text-xs text-slate-600 font-bold">採計 ${exam.count} 次</span>
+                                </div>
+                                <div class="flex items-center gap-1 text-xs font-mono text-slate-600">
+                                    <span>${examClassText}</span>
+                                    ${examDiffTag}
+                                </div>
+                            </div>
+                            <div class="flex items-baseline justify-between">
+                                <div class="text-xs text-slate-600">含語詞聽寫、單元測驗卷等小考</div>
+                                <div>
+                                    <span class="text-xl sm:text-2xl font-black font-mono tabular-nums text-sky-800">${examAvgStr}</span>
+                                    <span class="text-xs font-bold text-slate-600 ml-0.5">分</span>
+                                </div>
+                            </div>
+                            <div class="h-2 w-full rounded-full bg-white border border-sky-200 overflow-hidden">
+                                <div class="h-full rounded-full bg-gradient-to-r from-sky-400 to-sky-600 transition-all duration-500" style="width: ${examBarW}%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 診斷結論與親師共育建議 -->
+                    <div class="p-3.5 rounded-xl bg-slate-50/90 border border-slate-200/90 text-xs text-slate-700 leading-relaxed space-y-1.5">
+                        <div class="flex items-start gap-2">
+                            <span class="text-base shrink-0 mt-0.5">${styleInfo.icon}</span>
+                            <div>
+                                <span class="font-extrabold text-slate-900">學習歷程特質剖析：</span>
+                                <span>${styleInfo.summary}</span>
+                            </div>
+                        </div>
+                        <div class="pt-1.5 border-t border-slate-200/80 flex items-start gap-2 text-slate-800 font-bold">
+                            <span class="text-sm shrink-0">🤝</span>
+                            <span>${styleInfo.advice}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         function renderActiveSubjectModules() {
@@ -1745,6 +2192,7 @@
                         <div class="text-xs text-slate-500">目前試算表尚未登錄本科成績，老師登錄後系統將即時自動更新。</div>
                     </div>
                 `;
+                renderLearningStyleDualAnalysis(subj);
                 renderChartTabsForSubject(subj, activePillars);
                 renderUnitTrendChart(subj);
                 renderUnitDiagnosticStrip(subj);
@@ -1841,6 +2289,9 @@
                     </div>
                 `;
             }).join('');
+
+            // A2. 動態渲染「學習型態雙維度分析（作業態度 vs. 考試發揮）」
+            renderLearningStyleDualAnalysis(subj);
 
             // B. 動態渲染走勢圖分項切換按鈕（試算表沒有的類別絕不出現！）與走勢圖
             renderChartTabsForSubject(subj, activePillars);
@@ -1970,18 +2421,26 @@
             if (!noticeEl || !diffInfo) return;
             const styleClass = getDifficultyBadgeStyle(diffInfo.color);
             const encodedName = encodeURIComponent(itemObj.name || '');
+            const resilienceInfo = resolveDifficultyResilienceBadge(itemObj);
+            const resilienceBadgeHtml = formatDifficultyResilienceBadgeHtml(itemObj, false);
             noticeEl.className = `p-3.5 rounded-2xl border shadow-sm flex items-center justify-between gap-3 bg-white border-sky-200`;
             noticeEl.innerHTML = `
                 <div class="flex items-center gap-2.5 min-w-0">
-                    <span class="text-2xl shrink-0">${diffInfo.icon}</span>
+                    <span class="text-2xl shrink-0">${resilienceInfo ? resilienceInfo.icon : diffInfo.icon}</span>
                     <div class="min-w-0">
                         <div class="text-xs font-black flex items-center gap-2 flex-wrap text-slate-900">
                             <span>${itemObj.name}</span>
                             <span class="px-2 py-0.5 rounded-full text-xs font-black border ${styleClass}">試卷難易度：${diffInfo.shortLabel}* (P* ${diffInfo.indexScore} 分)</span>
+                            ${resilienceBadgeHtml}
                         </div>
                         <div class="text-xs text-slate-600 mt-0.5">
                             班級平均 <b>${diffInfo.mean.toFixed(1)}</b> 分、中位數 <b>${diffInfo.median.toFixed(1)}</b> 分${diffInfo.isSkewed ? '（⚖️ 已啟動抗極端值加權校正）' : ''}。<span class="text-slate-500 font-bold">*難易度以班級成績估計。</span>
                         </div>
+                        ${resilienceInfo ? `
+                            <div class="text-xs font-bold text-slate-800 mt-1">
+                                ${resilienceInfo.icon} ${resilienceInfo.description}
+                            </div>
+                        ` : ''}
                     </div>
                 </div>
                 <button onclick="openDifficultyDetailModal('${encodedName}')" class="shrink-0 text-xs font-bold px-3 py-1.5 rounded-xl bg-sky-50 text-sky-800 border border-sky-200 shadow-xs hover:bg-sky-100 transition active:scale-95 cursor-pointer">
@@ -2396,6 +2855,13 @@
                 ? `（班均 ${weakestItem.classAvg.toFixed(1)} 分）`
                 : '';
 
+            const bestResilienceBadge = formatDifficultyResilienceBadgeHtml(bestItem, true);
+            const weakResilienceInfo = resolveDifficultyResilienceBadge(weakestItem);
+            const weakResilienceBadge = formatDifficultyResilienceBadgeHtml(weakestItem, true);
+            const weakReassuranceHtml = (weakResilienceInfo && (weakResilienceInfo.key === 'steady_defense' || weakResilienceInfo.key === 'resilient_star' || weakResilienceInfo.key === 'hard_test_reassure'))
+                ? `<div class="text-[11px] font-bold text-teal-800 mt-1 flex items-center gap-1"><span>${weakResilienceInfo.icon}</span><span>${weakResilienceInfo.description}</span></div>`
+                : '';
+
             strip.innerHTML = `
                 <div class="p-3.5 rounded-2xl subcard-cream-green flex items-center justify-between gap-3">
                     <div class="flex items-center gap-2.5 min-w-0">
@@ -2405,6 +2871,7 @@
                             <div class="text-xs sm:text-sm font-black text-slate-800 flex items-center gap-1.5 flex-wrap">
                                 <span>${bestItem.name}</span>
                                 ${formatAssessmentTypeBadge(bestItem.assessmentType)}
+                                ${bestResilienceBadge}
                                 <span class="text-xs font-normal text-slate-600">${bestDiff}</span>
                             </div>
                         </div>
@@ -2420,8 +2887,10 @@
                             <div class="text-xs sm:text-sm font-black text-slate-800 flex items-center gap-1.5 flex-wrap">
                                 <span>${weakestItem.name}</span>
                                 ${formatAssessmentTypeBadge(weakestItem.assessmentType)}
+                                ${weakResilienceBadge}
                                 <span class="text-xs font-normal text-slate-600">${weakDiff}</span>
                             </div>
+                            ${weakReassuranceHtml}
                         </div>
                     </div>
                     <div class="text-right font-mono font-black text-lg text-sky-700 tabular-nums shrink-0">${weakestItem.score} 分</div>
@@ -2475,6 +2944,7 @@
                     ? '<span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-slate-100 text-slate-500 border border-slate-200">請假免計</span>'
                     : (hasScore ? formatDiffTag(item.diffFromClass) : '<span class="text-slate-400">--</span>');
                 const difficultyBadgeHtml = formatDifficultyBadgeHtml(item, true);
+                const resilienceBadgeHtml = hasScore ? formatDifficultyResilienceBadgeHtml(item, true) : '';
                 const typeBadge = formatAssessmentTypeBadge(item.assessmentType);
                 const rowBg = idx % 2 === 0 ? 'bg-[#F2F8FC] hover:bg-[#E5F1FA]' : 'bg-[#F1F8F4] hover:bg-[#E3F3EA]';
 
@@ -2506,7 +2976,10 @@
                             ${classAvgStr}
                         </td>
                         <td class="py-3 px-3 text-center whitespace-nowrap">
-                            ${difficultyBadgeHtml}
+                            <div class="inline-flex items-center justify-center gap-1 flex-wrap">
+                                ${difficultyBadgeHtml}
+                                ${resilienceBadgeHtml}
+                            </div>
                         </td>
                         <td class="py-3 px-4 text-right whitespace-nowrap">
                             ${diffHtml}
@@ -2606,6 +3079,8 @@
                     ? `班級平均 ${item.classAvg.toFixed(1)} 分`
                     : `${item.categoryLabel}`;
                 const difficultyBadgeHtml = formatDifficultyBadgeHtml(item, false);
+                const resilienceInfo = hasScore ? resolveDifficultyResilienceBadge(item) : null;
+                const resilienceBadgeHtml = hasScore ? formatDifficultyResilienceBadgeHtml(item, false) : '';
                 const typeBadgeHtml = formatAssessmentTypeBadge(item.assessmentType);
                 const itemCardClass = idx % 2 === 0
                     ? 'subcard-cream-blue hover:border-sky-400/90'
@@ -2627,20 +3102,29 @@
                 `;
 
                 return `
-                    <div class="p-3.5 rounded-2xl ${itemCardClass} flex items-center justify-between gap-3 transition">
-                        <div class="space-y-1.5 min-w-0 flex-1">
-                            <div class="flex items-center gap-1.5 flex-wrap">
-                                <span class="text-sm shrink-0">${item.categoryIcon || '📊'}</span>
-                                <span class="font-extrabold text-slate-800 text-sm break-words">${item.name}</span>
-                                ${typeBadgeHtml}
+                    <div class="p-3.5 rounded-2xl ${itemCardClass} flex flex-col justify-between gap-2.5 transition">
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="space-y-1.5 min-w-0 flex-1">
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span class="text-sm shrink-0">${item.categoryIcon || '📊'}</span>
+                                    <span class="font-extrabold text-slate-800 text-sm break-words">${item.name}</span>
+                                    ${typeBadgeHtml}
+                                </div>
+                                <div class="flex items-center gap-1.5 text-xs text-slate-600 font-mono flex-wrap">
+                                    <span>${classNormText}</span>
+                                    ${diffHtml}
+                                    ${difficultyBadgeHtml}
+                                    ${resilienceBadgeHtml}
+                                </div>
                             </div>
-                            <div class="flex items-center gap-1.5 text-xs text-slate-600 font-mono flex-wrap">
-                                <span>${classNormText}</span>
-                                ${diffHtml}
-                                ${difficultyBadgeHtml}
-                            </div>
+                            ${scoreBoxHtml}
                         </div>
-                        ${scoreBoxHtml}
+                        ${resilienceInfo ? `
+                            <div class="pt-2 border-t border-slate-200/70 flex items-start gap-1.5 text-[11px] leading-snug rounded-xl px-2.5 py-1.5 border font-medium ${resilienceInfo.bannerClass}">
+                                <span class="shrink-0">${resilienceInfo.icon}</span>
+                                <span>${resilienceInfo.description}</span>
+                            </div>
+                        ` : ''}
                     </div>
                 `;
             }).join('');

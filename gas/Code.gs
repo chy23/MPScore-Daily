@@ -1837,7 +1837,7 @@ function inferSubjectShortName(sheetName, sheetTitle) {
 }
 
 /**
- * 產生個人化平時成績診斷分析評語
+ * 產生個人化平時成績診斷分析評語（整合：學習型態雙維度四象限分析 ＆ 試卷難易度抗壓表現回饋）
  */
 function buildDailyScoreDiagnosticAdvice(stRecord) {
   var sub = stRecord.subjectShortName || '本科';
@@ -1845,6 +1845,8 @@ function buildDailyScoreDiagnosticAdvice(stRecord) {
 
   var pMap = stRecord.pillarsMap || {};
   var wb = pMap.workbook ? pMap.workbook.average : null;
+  var hw = pMap.homework ? pMap.homework.average : null;
+  var fd = pMap.foundation ? pMap.foundation.average : null;
   var qz = pMap.quiz ? pMap.quiz.average : null;
 
   if (stRecord.overallAverage !== null) {
@@ -1860,7 +1862,31 @@ function buildDailyScoreDiagnosticAdvice(stRecord) {
     }
   }
 
-  if (wb !== null && qz !== null && (wb - qz >= 8)) {
+  // 一、學習型態雙維度分析（作業態度 vs. 考試發揮）
+  var hwVals = [];
+  if (wb !== null && wb !== undefined) hwVals.push(Number(wb));
+  if (hw !== null && hw !== undefined) hwVals.push(Number(hw));
+  var examVals = [];
+  if (fd !== null && fd !== undefined) examVals.push(Number(fd));
+  if (qz !== null && qz !== undefined) examVals.push(Number(qz));
+
+  if (hwVals.length > 0 && examVals.length > 0) {
+    var hwAvg = Number((hwVals.reduce(function(a, b) { return a + b; }, 0) / hwVals.length).toFixed(1));
+    var examAvg = Number((examVals.reduce(function(a, b) { return a + b; }, 0) / examVals.length).toFixed(1));
+    var gap = Number((hwAvg - examAvg).toFixed(1));
+    var isHwGood = hwAvg >= 85;
+    var isExamGood = examAvg >= 85;
+
+    if (isHwGood && isExamGood && gap < 8 && (examAvg - hwAvg) < 5) {
+      parts.push('學習型態屬於「🌟 雙軌全能型」（平時作業均 ' + hwAvg + ' 分、隨堂測驗均 ' + examAvg + ' 分），日常練習與應試發揮皆穩定出色！');
+    } else if ((examAvg - hwAvg >= 5 && examAvg >= 80) || (!isHwGood && isExamGood)) {
+      parts.push('學習型態屬於「💡 潛力爆發型」（隨堂測驗均 ' + examAvg + ' 分高於平時作業均 ' + hwAvg + ' 分），理解力與應試力強，若平時作業與訂正細節再多一分細心，表現將更完美！');
+    } else if ((gap >= 8 && hwAvg >= 80) || (isHwGood && !isExamGood)) {
+      parts.push('學習型態屬於「🌱 踏實努力型」（平時作業均 ' + hwAvg + ' 分高於隨堂測驗均 ' + examAvg + ' 分），平時練習態度認真，考前建議針對錯題進行遮蓋重練與變化題演練，協助將努力轉化為應試信心。');
+    } else {
+      parts.push('學習型態屬於「🤝 攜手築基型」（平時作業均 ' + hwAvg + ' 分、隨堂測驗均 ' + examAvg + ' 分），建議先從隨堂作業確實訂正與課本核心基礎題著手，一步步穩固學習地基。');
+    }
+  } else if (wb !== null && qz !== null && (wb - qz >= 8)) {
     parts.push('從分項平均觀察，習作平時平均（' + wb + '分）明顯高於單元測驗卷平均（' + qz + '分），代表平時隨堂練習認真，但面對綜合測驗卷變化題型時較易失分，考前建議多練習綜合應用題。');
   } else if (qz !== null && qz >= 90) {
     parts.push('單元測驗卷平均達 ' + qz + ' 分，顯示各課核心觀念融會貫通，應試穩定度極佳！');
@@ -1881,18 +1907,24 @@ function buildDailyScoreDiagnosticAdvice(stRecord) {
     }
   }
 
+  // 五、試卷難易度抗壓表現（Difficulty-Aware Badge）
   if (stRecord.items && stRecord.items.length > 0) {
     var hardTestsWellDone = [];
+    var hardTestsReassure = [];
     for (var hi = 0; hi < stRecord.items.length; hi++) {
       var it = stRecord.items[hi];
       if (!it.isLeave && it.score !== null && it.difficulty && (it.difficulty.level === 'hard' || it.difficulty.level === 'challenging')) {
-        if (it.classAvg !== null && it.score >= it.classAvg) {
-          hardTestsWellDone.push(it.name + '（難度' + it.difficulty.label + '，得分 ' + it.score + ' 分高於班均）');
+        if (it.classAvg !== null && (it.score >= 80 || it.score >= it.classAvg)) {
+          hardTestsWellDone.push(it.name + '（難度' + it.difficulty.label + '，得分 ' + it.score + ' 分）');
+        } else {
+          hardTestsReassure.push(it.name + '（班均 ' + (it.classAvg !== null ? it.classAvg + ' 分' : '偏低') + '）');
         }
       }
     }
     if (hardTestsWellDone.length > 0) {
-      parts.push('值得一提的是，在難度較高的評量如「' + hardTestsWellDone.slice(0, 2).join('、') + '」中仍能保持超越班均的表現，抗壓與融會貫通能力值得肯定！（*難易度以班級成績估計。）');
+      parts.push('值得一提的是，在難度較高的評量如「' + hardTestsWellDone.slice(0, 2).join('、') + '」中仍展現優異的「🏅 逆風抗壓」實力，融會貫通能力值得肯定！（*難易度以班級成績估計。）');
+    } else if (hardTestsReassure.length > 0) {
+      parts.push('部分進階評量如「' + hardTestsReassure.slice(0, 2).join('、') + '」整體試卷難度偏高，分數波動屬正常挑戰現象，請家長多予鼓勵免氣餒！（*難易度以班級成績估計。）');
     }
   }
 

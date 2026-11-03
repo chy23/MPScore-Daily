@@ -42,6 +42,9 @@
     - 家長端新增「學年、學期、期中/期末」三層級階梯式下拉分類篩選器，並預設鎖定最新評量階段！
     - 家長端科目切換卡片升級為 2.5px 高對比線條、浮起立體投影與明確「點選切換 ➔」導引標籤。
     - 徹底修復未登錄成績科目切換時之 DOM 隔離問題，空狀態友善提示，絕不殘留其他科目資料。
+  • 2026-11-03：【學習型態雙維度象限與試卷難易度抗壓回饋】
+    - 新增「學習型態雙維度分析（作業態度 vs. 考試發揮）」，自動歸納雙軌全能、潛力爆發、踏實努力、攜手築基四象限。
+    - 新增「試卷難易度抗壓表現回饋（Difficulty-Aware Badge）」，交叉比對試卷難易度 P* 與班均表現，頒發逆風抗壓、難卷穩健（非戰之罪）、實力拔尖等溫馨徽章。
   ==========================================================================
 -->
 
@@ -1188,7 +1191,7 @@
                                 <h3 class="text-sm sm:text-base font-black text-slate-900">本站選用之統計方法與計算方式說明</h3>
                                 <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-sky-800 border border-sky-200">統計透明化公開標準</span>
                             </div>
-                            <p class="text-[11px] text-slate-500 mt-0.5">點擊展開查看：試卷難易度評估（P* 方法三抗極端值校正）、分項平均、常模差值與走勢內插公式</p>
+                            <p class="text-[11px] text-slate-500 mt-0.5">點擊展開查看：試卷難易度評估（P* 方法三抗極端值校正）、學習型態雙維度象限、試卷難度抗壓回饋與走勢內插公式</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-2 self-end sm:self-auto shrink-0">
@@ -1259,6 +1262,35 @@
                                 為維持學習曲線連續性，折線圖遇請假項目時採用<strong>前後有效評量線性插補（Linear Interpolation）</strong>繪製過渡軌跡點並標示假別徽章；該插補值僅供圖表視覺連線，<strong>絕不計入任何實際平均分數</strong>。
                             </p>
                         </div>
+                    </div>
+
+                    <!-- 方法 5：學習型態雙維度分析（作業態度 vs. 考試發揮） -->
+                    <div class="p-3.5 rounded-2xl bg-[#F5FAFD] border border-sky-200/80 space-y-1.5">
+                        <div class="flex items-center justify-between gap-2 flex-wrap">
+                            <span class="font-black text-sky-950 text-xs sm:text-sm">5. 學習型態雙維度分析（作業態度 vs. 考試發揮 四象限模型）</span>
+                            <span class="px-2 py-0.5 rounded-md bg-sky-100 text-sky-800 font-bold text-[11px]">學習歷程特質診斷</span>
+                        </div>
+                        <p class="text-slate-600">
+                            分別結算有效「<strong>📝 平時作業均分 X̄_hw</strong>（習作＋作業卷）」與「<strong>🎯 臨場考試均分 X̄_exam</strong>（語詞測驗＋單元卷）」，歸納為四大親師共育學習特質：<br>
+                            • <strong>🌟 雙軌全能型</strong>（作業扎實且考場穩健）<br>
+                            • <strong>💡 潛力爆發型</strong>（考試理解力強，惟作業均分偏低 <span class="font-mono">X̄_exam − X̄_hw ≥ 5</span>）<br>
+                            • <strong>🌱 踏實努力型</strong>（平時作業認真工整，惟臨場考試有落差 <span class="font-mono">X̄_hw − X̄_exam ≥ 8</span>）<br>
+                            • <strong>🤝 攜手築基型</strong>（雙向度皆在基礎扎根階段，需親師共同搭鷹架陪伴）
+                        </p>
+                    </div>
+
+                    <!-- 方法 6：試卷難易度抗壓表現（Difficulty-Aware Badge） -->
+                    <div class="p-3.5 rounded-2xl bg-[#F4FAF6] border border-emerald-200/80 space-y-1.5">
+                        <div class="flex items-center justify-between gap-2 flex-wrap">
+                            <span class="font-black text-emerald-950 text-xs sm:text-sm">6. 試卷難易度抗壓表現回饋（Difficulty-Aware 交叉評定模型）</span>
+                            <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-[11px]">難度常模交叉回饋</span>
+                        </div>
+                        <p class="text-slate-600">
+                            結合試卷難易度指數 <span class="font-mono">P*</span> 與學生班均差值 <span class="font-mono">Δ = S − X̄</span> 給予溫暖回饋，化解分數焦慮：<br>
+                            • <strong>🏅 逆風抗壓</strong>：於偏難或極具挑戰試卷（<span class="font-mono">P* &lt; 65</span>）考取高分（<span class="font-mono">S ≥ 80</span> 或領先班均 <span class="font-mono">Δ ≥ +8</span>）。<br>
+                            • <strong>🛡️ 難卷穩健（非戰之罪）</strong>：高難度試卷（<span class="font-mono">P* &lt; 65</span>）得分達班均附近（<span class="font-mono">Δ ≥ −2</span> 或 <span class="font-mono">S ≥ 70</span>），肯定穩定表現。<br>
+                            • <strong>🌟 實力拔尖 / 🔍 宜再細心</strong>：適中試卷大幅領先班均給予拔尖肯定；偏易試卷失常則提醒檢視粗心失分。
+                        </p>
                     </div>
                 </div>
             </details>
@@ -2680,10 +2712,11 @@
          *  - 2026/10/29 智慧推播：School LINE Hub 統一中樞、手機即時模擬器、方案 B 異動日誌、方案 C 表頭架構
          *  - 2026/10/30 試算表自動化：方案 C 欄位新增自動填入日期、彈出日曆選取器、下拉驗證
          *  - 2026/10/31 階段導航與隔離：3 欄式學年/學期/階段下拉分類篩選器、預設定位最新階段、未登錄科目徹底隔離
+         *  - 2026/11/03 雙維度與抗壓分析：新增「學習型態雙維度四象限分析（作業態度 vs. 考試發揮）」與「試卷難易度抗壓表現回饋徽章」
          * =========================================================================
          */
         console.info(
-            '%c MPScore-Daily %c 建立於新北市林口區麗園國小 楊家驊老師 %c v3.9.1 ',
+            '%c MPScore-Daily %c 建立於新北市林口區麗園國小 楊家驊老師 %c v4.0.0 ',
             'background:#0284C7;color:#fff;font-weight:bold;padding:3px 6px;border-radius:4px 0 0 4px;',
             'background:#0D9488;color:#fff;font-weight:bold;padding:3px 6px;',
             'background:#10B981;color:#fff;font-weight:bold;padding:3px 6px;border-radius:0 4px 4px 0;'
@@ -3377,12 +3410,36 @@ function testGitHubConnection() {
             return parts.join(sep);
         }
 
+        function inferTeacherLearningStyleBadge(pillarsObj) {
+            if (!pillarsObj) return '';
+            const hwVals = [pillarsObj.workbook, pillarsObj.homework].filter(v => v !== null && v !== undefined && !isNaN(v)).map(Number);
+            const examVals = [pillarsObj.foundation, pillarsObj.quiz].filter(v => v !== null && v !== undefined && !isNaN(v)).map(Number);
+            if (hwVals.length === 0 || examVals.length === 0) return '';
+
+            const hwAvg = hwVals.reduce((a, b) => a + b, 0) / hwVals.length;
+            const examAvg = examVals.reduce((a, b) => a + b, 0) / examVals.length;
+            const hwStrong = hwAvg >= 85;
+            const examStrong = examAvg >= 85;
+
+            if ((!hwStrong && examStrong) || (examAvg - hwAvg >= 5 && hwAvg < 88)) {
+                return `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10.5px] font-bold bg-amber-50 text-amber-900 border border-amber-200" title="學習型態：💡 潛力爆發型（作業均 ${hwAvg.toFixed(1)} ‧ 考試均 ${examAvg.toFixed(1)}）">💡潛力爆發</span>`;
+            }
+            if ((hwStrong && !examStrong) || (hwAvg - examAvg >= 8 && examAvg < 85)) {
+                return `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10.5px] font-bold bg-sky-50 text-sky-900 border border-sky-200" title="學習型態：🌱 踏實努力型（作業均 ${hwAvg.toFixed(1)} ‧ 考試均 ${examAvg.toFixed(1)}）">🌱踏實努力</span>`;
+            }
+            if (hwStrong && examStrong) {
+                return `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10.5px] font-bold bg-emerald-50 text-emerald-900 border border-emerald-200" title="學習型態：🌟 雙軌全能型（作業均 ${hwAvg.toFixed(1)} ‧ 考試均 ${examAvg.toFixed(1)}）">🌟雙軌全能</span>`;
+            }
+            return `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10.5px] font-bold bg-teal-50 text-teal-900 border border-teal-200" title="學習型態：🤝 攜手築基型（作業均 ${hwAvg.toFixed(1)} ‧ 考試均 ${examAvg.toFixed(1)}）">🤝攜手築基</span>`;
+        }
+
         // Apple HIG Accessibility: 同時提供方向符號 (▲/▼/＝) 與色彩，並將螢幕最小字級提升至 text-xs (12px)
         function formatSubjectTableCell(subjObj) {
             if (!subjObj || subjObj.overallAverage === null || subjObj.overallAverage === undefined) {
                 return `<span class="text-slate-400 font-mono">--</span>`;
             }
             const pText = buildExistingPillarSummaryText(subjObj.pillars, ' ‧ ');
+            const styleBadge = inferTeacherLearningStyleBadge(subjObj.pillars);
             const diff = subjObj.diffFromClassAvg;
             let diffBadge = '';
             if (diff !== null && diff !== undefined && !isNaN(diff)) {
@@ -3401,6 +3458,7 @@ function testGitHubConnection() {
                     ${diffBadge}
                 </div>
                 ${pText ? `<div class="text-xs font-mono text-slate-600 mt-0.5">${pText}</div>` : ''}
+                ${styleBadge ? `<div class="mt-0.5">${styleBadge}</div>` : ''}
             `;
         }
 
