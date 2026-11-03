@@ -3608,6 +3608,121 @@ function testGitHubConnection() {
             return '平時成績';
         }
 
+        // 將評量欄位日期（支援 YYYY/MM/DD、YYYY-MM-DD、ISO 字串或標題內日期）統一轉為台北時區 YYYY-MM-DD
+        function parseAssessmentDateToYMD(rawVal, fallbackTitle = '') {
+            const tryExtract = val => {
+                if (!val) return '';
+                const str = String(val).trim();
+                if (!str) return '';
+
+                // 1. 直接匹配 YYYY-MM-DD 或 YYYY/MM/DD
+                const mFull = str.match(/(\d{4})[-/年.](\d{1,2})[-/月.](\d{1,2})/);
+                if (mFull && !str.includes('T')) {
+                    const y = mFull[1];
+                    const mo = String(mFull[2]).padStart(2, '0');
+                    const da = String(mFull[3]).padStart(2, '0');
+                    return `${y}-${mo}-${da}`;
+                }
+
+                // 2. ISO 時間字串或可解析之 Date 字串（轉換為 Asia/Taipei 本地日期）
+                if (str.includes('T') || str.includes('GMT') || /^\d{4}-\d{2}-\d{2}/.test(str)) {
+                    const d = new Date(str);
+                    if (!isNaN(d.getTime())) {
+                        try {
+                            const parts = new Intl.DateTimeFormat('en-CA', {
+                                timeZone: 'Asia/Taipei',
+                                year: 'numeric',
+                                month: '2-digit',
+                                day: '2-digit'
+                            }).formatToParts(d);
+                            const y = parts.find(p => p.type === 'year')?.value;
+                            const mo = parts.find(p => p.type === 'month')?.value;
+                            const da = parts.find(p => p.type === 'day')?.value;
+                            if (y && mo && da) return `${y}-${mo}-${da}`;
+                        } catch (e) {
+                            const y = d.getFullYear();
+                            const mo = String(d.getMonth() + 1).padStart(2, '0');
+                            const da = String(d.getDate()).padStart(2, '0');
+                            return `${y}-${mo}-${da}`;
+                        }
+                    }
+                }
+
+                // 3. 短日期格式 MM/DD 或 MM月DD日
+                const mShort = str.match(/(?:^|[^\d])(\d{1,2})[-/月](\d{1,2})(?:日|號|$|[^\d])/);
+                if (mShort) {
+                    const mo = parseInt(mShort[1], 10);
+                    const da = parseInt(mShort[2], 10);
+                    if (mo >= 1 && mo <= 12 && da >= 1 && da <= 31) {
+                        const y = new Date().getFullYear();
+                        return `${y}-${String(mo).padStart(2, '0')}-${String(da).padStart(2, '0')}`;
+                    }
+                }
+                return '';
+            };
+
+            return tryExtract(rawVal) || tryExtract(fallbackTitle);
+        }
+
+        /**
+         * 🛡️ 嚴格過濾空白成績欄位：僅計算「實際有學生分數（非空白）」之評量欄位更新數
+         * 即使試算表預先建立了表頭與第 1 列日期（如 2026/10/30），只要該欄學生分數為空白，一律不計入成績更新數量！
+         */
+        function computeVerifiedNonBlankUpdateCount(subjMeta, targetSinceDateStr) {
+            if (!subjMeta) return 0;
+            const validName = cleanSubjectDisplayName(subjMeta.name, subjMeta.sheetName);
+            const sheetKey = subjMeta.sheetName || validName;
+            const rawCount = (typeof subjMeta.defaultCount === 'number' && !isNaN(subjMeta.defaultCount))
+                ? Math.max(0, subjMeta.defaultCount)
+                : 0;
+            const cleanTargetDate = String(targetSinceDateStr || '').trim().replace(/\//g, '-');
+
+            // 1. 檢查全班學生名冊：若該科目所有學生皆尚無任何有效平時總均（全科空白），更新數必為 0！
+            if (Array.isArray(currentRoster) && currentRoster.length > 0) {
+                const anyStudentScored = currentRoster.some(st =>
+                    Array.isArray(st.subjects) && st.subjects.some(sub =>
+                        (sub.subject === sheetKey || sub.subject === validName) &&
+                        sub.overallAverage !== null && sub.overallAverage !== undefined && !isNaN(sub.overallAverage)
+                    )
+                );
+                if (!anyStudentScored) {
+                    return 0;
+                }
+            }
+
+            // 2. 檢查 currentSubjectAssessmentsMap（僅包含有實際學生得分 colCounts > 0 之非空白評量欄）
+            const mapObj = currentSubjectAssessmentsMap || {};
+            const nonBlankList = mapObj[sheetKey] || mapObj[validName] || null;
+            if (Array.isArray(nonBlankList)) {
+                if (nonBlankList.length === 0) {
+                    return 0;
+                }
+
+                // 若非空白評量欄位帶有日期，直接以非空白欄位之日期進行精準比對（徹底排除空白欄位的日期干擾）
+                const datedNonBlank = nonBlankList.map(a => ({
+                    ...a,
+                    ymd: parseAssessmentDateToYMD(a.date, a.name)
+                }));
+                const hasDatedItems = datedNonBlank.some(a => Boolean(a.ymd));
+
+                if (cleanTargetDate && hasDatedItems) {
+                    const matchedNonBlankCount = datedNonBlank.filter(a => a.ymd && a.ymd >= cleanTargetDate).length;
+                    return matchedNonBlankCount;
+                }
+
+                // 更新項目數絕對不可超過該科實際有分數（非空白）的欄位總數
+                return Math.min(rawCount, nonBlankList.length);
+            }
+
+            // 3. 若後端已回傳 scoredAssessmentsCount，亦確保不超過非空白欄位數
+            if (typeof subjMeta.scoredAssessmentsCount === 'number') {
+                if (subjMeta.scoredAssessmentsCount <= 0) return 0;
+                return Math.min(rawCount, subjMeta.scoredAssessmentsCount);
+            }
+
+            return rawCount;
+        }
+
         async function fetchSubjectCountsForSinceDate(targetDate) {
             if (isFetchingSubjectCounts) return;
             const apiUrl = (localStorage.getItem('mpdaily_api_url') || (document.getElementById('apiUrlInput') ? document.getElementById('apiUrlInput').value.trim() : '')).trim();
@@ -3625,22 +3740,38 @@ function testGitHubConnection() {
             isFetchingSubjectCounts = true;
             if (statusTip) {
                 statusTip.className = 'text-[11px] font-bold text-sky-700 flex items-center gap-1.5 animate-pulse block';
-                statusTip.innerHTML = `<span>⏳ 正在抓取試算表更新時間並計算各科項數...</span>`;
+                statusTip.innerHTML = `<span>⏳ 正在抓取試算表更新時間並計算各科項數（自動排除空白成績欄）...</span>`;
             }
 
             try {
                 const sep = apiUrl.includes('?') ? '&' : '?';
-                const url = `${apiUrl}${sep}action=getLineStatus&key=${encodeURIComponent(teacherKey)}&sinceDate=${encodeURIComponent(targetDate || '')}&nocache=1&t=${Date.now()}`;
-                const res = await fetch(url, { redirect: 'follow', cache: 'no-store' });
+                const statusUrl = `${apiUrl}${sep}action=getLineStatus&key=${encodeURIComponent(teacherKey)}&sinceDate=${encodeURIComponent(targetDate || '')}&nocache=1&t=${Date.now()}`;
+                const printUrl = `${apiUrl}${sep}action=getStudentsForPrint&key=${encodeURIComponent(teacherKey)}&nocache=1&v=8&t=${Date.now()}`;
+
+                const [res, printRes] = await Promise.all([
+                    fetch(statusUrl, { redirect: 'follow', cache: 'no-store' }),
+                    fetch(printUrl, { redirect: 'follow', cache: 'no-store' }).catch(() => null)
+                ]);
                 const data = await res.json();
+                if (printRes) {
+                    try {
+                        const printData = await printRes.json();
+                        if (printData && printData.subjectAssessmentsMap) {
+                            currentSubjectAssessmentsMap = printData.subjectAssessmentsMap;
+                        }
+                    } catch (ignore) {}
+                }
 
                 if (data.status === 'success' || data.success === true) {
+                    const effectiveDate = targetDate || data.sinceDate || document.getElementById('linePushSinceDate')?.value || '';
                     if (Array.isArray(data.subjectsMeta) && data.subjectsMeta.length > 0) {
                         subjectPushCountMap = {};
                         data.subjectsMeta.forEach(s => {
                             const validName = cleanSubjectDisplayName(s.name, s.sheetName);
                             s.name = validName;
-                            subjectPushCountMap[validName] = (typeof s.defaultCount === 'number') ? s.defaultCount : 0;
+                            const verifiedCount = computeVerifiedNonBlankUpdateCount(s, effectiveDate);
+                            s.defaultCount = verifiedCount;
+                            subjectPushCountMap[validName] = verifiedCount;
                         });
                         renderSubjectCounters();
                         updateLinePushMessagePreview();
@@ -3649,7 +3780,7 @@ function testGitHubConnection() {
                             const summaryParts = data.subjectsMeta.map(s => `${s.name} ${subjectPushCountMap[s.name] || 0}項`).join('、');
                             const modInfo = data.spreadsheetLastUpdated ? `（試算表最後異動：${data.spreadsheetLastUpdated}）` : '';
                             statusTip.className = 'text-[11px] font-bold text-emerald-800 flex items-center gap-1 block';
-                            statusTip.innerHTML = `<span>✅ 已抓取試算表更新時間生成：<b>${summaryParts}</b> ${modInfo}</span>`;
+                            statusTip.innerHTML = `<span>✅ 已抓取試算表更新時間生成（已排除空白欄）：<b>${summaryParts}</b> ${modInfo}</span>`;
                         }
                     } else {
                         if (statusTip) {
@@ -4043,8 +4174,22 @@ function testGitHubConnection() {
                 const sep = apiUrl.includes('?') ? '&' : '?';
                 const initialSinceDate = document.getElementById('linePushSinceDate')?.value || '';
                 const url = `${apiUrl}${sep}action=getLineStatus&key=${encodeURIComponent(teacherKey)}${initialSinceDate ? `&sinceDate=${encodeURIComponent(initialSinceDate)}` : ''}&nocache=1&t=${Date.now()}`;
-                const res = await fetch(url, { redirect: 'follow', cache: 'no-store' });
+                const needAssessmentsMap = !currentSubjectAssessmentsMap || Object.keys(currentSubjectAssessmentsMap).length === 0;
+                const printUrl = `${apiUrl}${sep}action=getStudentsForPrint&key=${encodeURIComponent(teacherKey)}&nocache=1&v=8&t=${Date.now()}`;
+
+                const [res, printRes] = await Promise.all([
+                    fetch(url, { redirect: 'follow', cache: 'no-store' }),
+                    needAssessmentsMap ? fetch(printUrl, { redirect: 'follow', cache: 'no-store' }).catch(() => null) : Promise.resolve(null)
+                ]);
                 const data = await res.json();
+                if (printRes) {
+                    try {
+                        const printData = await printRes.json();
+                        if (printData && printData.subjectAssessmentsMap) {
+                            currentSubjectAssessmentsMap = printData.subjectAssessmentsMap;
+                        }
+                    } catch (ignore) {}
+                }
 
                 if (data.code === 'AUTH_FAILED') {
                     if (tokenBadge) { tokenBadge.textContent = 'PIN 驗證失敗'; tokenBadge.className = 'inline-block px-2 py-0.5 rounded-md font-extrabold text-[11px] bg-rose-100 text-rose-700'; }
@@ -4074,12 +4219,15 @@ function testGitHubConnection() {
                     }
                 }
 
+                const effectiveSinceDate = (dateInput && dateInput.value) || data.sinceDate || currentLastPushDate || '';
                 if (Array.isArray(data.subjectsMeta)) {
                     subjectPushCountMap = {};
                     data.subjectsMeta.forEach(s => {
                         const validName = cleanSubjectDisplayName(s.name, s.sheetName);
                         s.name = validName;
-                        subjectPushCountMap[validName] = (typeof s.defaultCount === 'number') ? s.defaultCount : 0;
+                        const verifiedCount = computeVerifiedNonBlankUpdateCount(s, effectiveSinceDate);
+                        s.defaultCount = verifiedCount;
+                        subjectPushCountMap[validName] = verifiedCount;
                     });
                 }
                 initSubjectCounters(data.subjectsMeta, true);
@@ -4089,7 +4237,7 @@ function testGitHubConnection() {
                     const summaryParts = data.subjectsMeta.map(s => `${s.name} ${subjectPushCountMap[s.name] || 0}項`).join('、');
                     const modInfo = data.spreadsheetLastUpdated ? `（試算表最後異動：${data.spreadsheetLastUpdated}）` : '';
                     statusTip.className = 'text-[11px] font-bold text-emerald-800 flex items-center gap-1 block';
-                    statusTip.innerHTML = `<span>✅ 已抓取試算表更新時間生成：<b>${summaryParts}</b> ${modInfo}</span>`;
+                    statusTip.innerHTML = `<span>✅ 已抓取試算表更新時間生成（已排除空白欄）：<b>${summaryParts}</b> ${modInfo}</span>`;
                 }
 
                 // 更新個別綁定字典

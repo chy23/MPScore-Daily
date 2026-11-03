@@ -1528,13 +1528,17 @@ function parseDailySubjectSheet(sheet) {
   var subjectAssessments = [];
   for (var k = 0; k < itemCols.length; k++) {
     var cIdx = itemCols[k].colIdx;
-    colClassAvgs[cIdx] = colCounts[cIdx] > 0 ? Number((colSums[cIdx] / colCounts[cIdx]).toFixed(1)) : null;
+    var validScoreCnt = colCounts[cIdx] || 0;
+    itemCols[k].scoredCount = validScoreCnt;
+    itemCols[k].hasScores = validScoreCnt > 0;
+    colClassAvgs[cIdx] = validScoreCnt > 0 ? Number((colSums[cIdx] / validScoreCnt).toFixed(1)) : null;
     colDifficulties[cIdx] = computeTestDifficultyIndex_(colScoresList[cIdx]);
-    if (colCounts[cIdx] > 0 && colDifficulties[cIdx]) {
+    if (validScoreCnt > 0 && colDifficulties[cIdx]) {
       subjectAssessments.push({
         colIdx: itemCols[k].colIdx + 1,
         name: itemCols[k].title,
         date: itemCols[k].date,
+        scoredCount: validScoreCnt,
         unit: itemCols[k].unitCode || '平時',
         assessmentType: itemCols[k].assessmentType,
         category: itemCols[k].pillarKey,
@@ -3242,12 +3246,35 @@ function generateStudentScoreSummary_(studentToken, studentSeat, studentName, op
           var stSubj = parsed.studentMap[sSeat] || parsed.studentMap['NAME_' + studentName];
           var count = 0;
 
-          var colsToScan = (parsed.itemCols && parsed.itemCols.length > 0) ? parsed.itemCols : (parsed.assessments || []);
+          // 僅採計「實際已登錄成績（非空白）」之欄位，空白成績欄位絕不計入更新數量！
+          var rawCols = (parsed.itemCols && parsed.itemCols.length > 0) ? parsed.itemCols : (parsed.assessments || []);
+          var colsToScan = rawCols.filter(function(cItem) {
+            if (cItem.scoredCount !== undefined) return cItem.scoredCount > 0;
+            if (cItem.hasScores !== undefined) return Boolean(cItem.hasScores);
+            if (cItem.classAvg !== undefined && cItem.classAvg !== null) return true;
+            return false;
+          });
+
+          // 若該學生在此科目有特定紀錄，建立該生已取得非空白成績之項目對照
+          var studentScoredMap = null;
+          if (stSubj && Array.isArray(stSubj.items)) {
+            studentScoredMap = {};
+            for (var si = 0; si < stSubj.items.length; si++) {
+              var sIt = stSubj.items[si];
+              if (sIt && (sIt.score !== null && sIt.score !== undefined && sIt.score !== '')) {
+                studentScoredMap[sIt.name || sIt.title] = true;
+              }
+            }
+          }
 
           if (sinceDateStr && colsToScan.length > 0) {
             for (var a = 0; a < colsToScan.length; a++) {
               var aItem = colsToScan[a];
-              var aDate = extractDateFromTitle_(aItem.date) || extractDateFromTitle_(aItem.title || aItem.name);
+              var itemNameKey = aItem.title || aItem.name || '';
+              if (studentScoredMap && itemNameKey && !studentScoredMap[itemNameKey]) {
+                continue;
+              }
+              var aDate = extractDateFromTitle_(aItem.date) || extractDateFromTitle_(itemNameKey);
               if (aDate) {
                 var aDateStr = Utilities.formatDate(aDate, Session.getScriptTimeZone() || 'Asia/Taipei', 'yyyy-MM-dd');
                 if (aDateStr >= sinceDateStr) {
@@ -3260,14 +3287,12 @@ function generateStudentScoreSummary_(studentToken, studentSeat, studentName, op
           if (count === 0 && !sinceDateStr) {
             if (stSubj && stSubj.totalScoresCount > 0) {
               count = stSubj.totalScoresCount;
-            } else {
-              count = 1;
             }
           }
 
-          if (count > 0 || !sinceDateStr) {
+          if (count > 0) {
             var subjName = parsed.subjectShortName || parsed.sheetName || sh.getName();
-            summaryLines.push('• ' + subjName + '：有（ ' + (count > 0 ? count : 1) + ' ）項成績更新');
+            summaryLines.push('• ' + subjName + '：有（ ' + count + ' ）項成績更新');
           }
         }
       }
@@ -3510,11 +3535,19 @@ function getLinePushStatus_(params) {
       if (isSystemSheet(sh.getName())) continue;
       var parsed = parseDailySubjectSheet(sh);
       if (parsed) {
-        var colsToScan = (parsed.itemCols && parsed.itemCols.length > 0) ? parsed.itemCols : (parsed.assessments || []);
+        // 僅掃描「實際已登錄成績（非空白）」之評量欄位！若該欄學生分數全為空白，絕不計入成績更新數量
+        var rawCols = (parsed.itemCols && parsed.itemCols.length > 0) ? parsed.itemCols : (parsed.assessments || []);
+        var colsToScan = rawCols.filter(function(cItem) {
+          if (cItem.scoredCount !== undefined) return cItem.scoredCount > 0;
+          if (cItem.hasScores !== undefined) return Boolean(cItem.hasScores);
+          if (cItem.classAvg !== undefined && cItem.classAvg !== null) return true;
+          return false;
+        });
         var updatedCount = 0;
         var latestColDateStr = '';
+        var hasAnyColDate = false;
 
-        // 遍歷所有評量欄位，抓取試算表的更新時間
+        // 遍歷所有「非空白」評量欄位，抓取試算表的更新時間
         for (var aIdx = 0; aIdx < colsToScan.length; aIdx++) {
           var item = colsToScan[aIdx];
           var colIdx1 = item.colIdx !== undefined ? (item.colIdx + 1) : (aIdx + 3);
@@ -3585,6 +3618,7 @@ function getLinePushStatus_(params) {
           }
 
           if (colDate) {
+            hasAnyColDate = true;
             colDateStr = Utilities.formatDate(colDate, Session.getScriptTimeZone() || 'Asia/Taipei', 'yyyy-MM-dd');
             if (!latestColDateStr || colDateStr > latestColDateStr) {
               latestColDateStr = colDateStr;
@@ -3601,8 +3635,8 @@ function getLinePushStatus_(params) {
           }
         }
 
-        // 若該科目有評量，但欄位標題無日期：檢驗試算表檔案最後修改時間 (ssLastUpdatedStr)
-        if (updatedCount === 0 && colsToScan.length > 0) {
+        // 僅當該科目有非空白評量，且所有欄位皆無標註日期（傳統無日期表頭）時，才檢驗試算表檔案最後修改時間
+        if (updatedCount === 0 && colsToScan.length > 0 && !hasAnyColDate) {
           if (ssLastUpdatedStr && targetSinceDate) {
             var fileDateStr = ssLastUpdatedStr.split(' ')[0];
             if (fileDateStr >= targetSinceDate) {
@@ -3619,6 +3653,7 @@ function getLinePushStatus_(params) {
           name: cleanSubjName,
           sheetName: sh.getName(),
           totalAssessments: colsToScan.length,
+          scoredAssessmentsCount: colsToScan.length,
           defaultCount: updatedCount,
           latestUpdate: latestColDateStr || (ssLastUpdatedStr ? ssLastUpdatedStr.split(' ')[0] : '')
         });
