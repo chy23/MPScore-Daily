@@ -1111,6 +1111,16 @@
                             <button type="button" onclick="setRosterViewFilter('viewed')" id="btnFilterViewed" class="px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 cursor-pointer">🟢 僅看已閱覽</button>
                         </div>
 
+                        <!-- 快速複製全班家長端連結按鈕 -->
+                        <button type="button" onclick="copyAllStudentParentLinks()" class="min-h-[32px] px-3 py-1 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-black text-xs shadow-2xs transition flex items-center gap-1 cursor-pointer" title="一鍵複製全班所有學生的家長端專屬連結清冊（可直接貼入 Excel / Google 試算表或記事本）">
+                            <span>🔗 複製全班家長連結</span>
+                        </button>
+
+                        <!-- 匯出全班家長端連結 CSV 按鈕 -->
+                        <button type="button" onclick="exportAllStudentParentLinksCsv()" class="min-h-[32px] px-3 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-2xs transition flex items-center gap-1 cursor-pointer" title="下載包含座號、姓名、查詢代碼與家長端專屬連結的 CSV 試算表檔">
+                            <span>📥 下載連結 CSV</span>
+                        </button>
+
                         <!-- 快速複製未閱覽名單按鈕 -->
                         <button type="button" onclick="copyUnviewedStudentList()" class="min-h-[32px] px-3 py-1 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs shadow-2xs transition flex items-center gap-1 cursor-pointer" title="複製尚未閱覽的座號清單，方便貼至聯絡簿或班級群組提醒">
                             <span>📋 複製未閱覽名單</span>
@@ -3536,6 +3546,64 @@ function testGitHubConnection() {
             });
         }
 
+        function copySingleStudentParentLink(token, name, seatNo) {
+            const url = buildParentPortalUrl(token);
+            const label = `${seatNo ? seatNo + '號 ' : ''}${name || ''}`.trim();
+            navigator.clipboard.writeText(url).then(() => {
+                alert(`🔗 已複製【${label}】的家長端專屬連結！\n\n${url}\n\n可直接貼給該生家長查看。`);
+            }).catch(() => {
+                prompt(`請複製【${label}】的家長端專屬連結：`, url);
+            });
+        }
+
+        function copyAllStudentParentLinks() {
+            if (!currentRoster || currentRoster.length === 0) {
+                alert('⚠️ 請先於上方 STEP 3 連線試算表並載入學生名單！');
+                return;
+            }
+            const header = ['班級', '座號', '姓名', '專屬代碼', '家長端專屬連結'].join('\t');
+            const rows = currentRoster.map(st => {
+                const url = buildParentPortalUrl(st.token);
+                return [st.className || '本班', st.seatNo || '', st.name || '', st.token || '', url].join('\t');
+            });
+            const tsvText = [header, ...rows].join('\n');
+
+            navigator.clipboard.writeText(tsvText).then(() => {
+                alert(
+                    `🔗 已成功複製全班 ${currentRoster.length} 位學生的「家長端專屬連結清冊」！\n\n` +
+                    `• 格式：班級 ｜ 座號 ｜ 姓名 ｜ 專屬代碼 ｜ 家長端專屬連結\n` +
+                    `• 您現在可以直接在 Google 試算表、Excel 或記事本按 Ctrl+V / Cmd+V 貼上！`
+                );
+            }).catch(() => {
+                prompt('請全選並複製全班家長端連結：', tsvText);
+            });
+        }
+
+        function exportAllStudentParentLinksCsv() {
+            if (!currentRoster || currentRoster.length === 0) {
+                alert('⚠️ 請先於上方 STEP 3 連線試算表並載入學生名單！');
+                return;
+            }
+            const escapeCsv = val => `"${String(val ?? '').replace(/"/g, '""')}"`;
+            const header = ['班級', '座號', '姓名', '專屬查詢代碼', '家長端專屬連結'].map(escapeCsv).join(',');
+            const rows = currentRoster.map(st => {
+                const url = buildParentPortalUrl(st.token);
+                return [st.className || '本班', st.seatNo || '', st.name || '', st.token || '', url].map(escapeCsv).join(',');
+            });
+            const csvContent = '\uFEFF' + [header, ...rows].join('\r\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const downloadUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const className = (currentRoster[0] && currentRoster[0].className) ? currentRoster[0].className : '全班';
+            const dateStr = new Date().toISOString().split('T')[0];
+            a.href = downloadUrl;
+            a.download = `MPScore-Daily_${className}_家長端專屬連結清冊_${dateStr}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(downloadUrl);
+        }
+
         function openAccessLogModal() {
             updateRosterViewStats();
             renderAccessLogsTable();
@@ -5061,6 +5129,10 @@ function testGitHubConnection() {
                         </td>
                         <td class="py-3 px-3 text-right whitespace-nowrap">
                             <div class="flex items-center justify-end gap-1.5">
+                                <button type="button" onclick="copySingleStudentParentLink('${st.token}', '${st.name}', '${st.seatNo}')" class="min-h-[34px] px-2.5 py-1.5 rounded-xl bg-white hover:bg-sky-50 text-sky-800 border border-sky-200 font-bold text-xs shadow-2xs transition flex items-center gap-1 active:scale-95 cursor-pointer" title="複製 ${st.seatNo}號 ${st.name} 的家長端正式專屬連結">
+                                    <span>🔗</span>
+                                    <span class="hidden xl:inline">連結</span>
+                                </button>
                                 <button type="button" onclick="openParentPhoneSimulator('${st.token}')" class="min-h-[34px] px-3 py-1.5 rounded-xl bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-700 hover:to-teal-700 text-white font-black text-xs shadow-xs transition flex items-center gap-1 active:scale-95 cursor-pointer" title="在手機即時畫面中模擬 ${st.name} 的家長端（不計入閱覽紀錄）">
                                     <span>📱</span>
                                     <span>手機模擬</span>
