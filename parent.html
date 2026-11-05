@@ -531,6 +531,27 @@
                 </div>
             </section>
 
+            <!-- LINE 官方帳號一秒綁定通知橫幅 -->
+            <div id="lineBindBanner" class="hidden rounded-2xl p-4 border border-emerald-300 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fade-up">
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white flex items-center justify-center text-2xl font-bold flex-shrink-0 shadow-sm">
+                        💬
+                    </div>
+                    <div>
+                        <div class="text-sm font-black text-emerald-950 flex items-center gap-1.5">
+                            <span>開啟 LINE 平時成績即時推播通知</span>
+                            <span class="text-[10px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-full font-extrabold">免打字</span>
+                        </div>
+                        <div class="text-xs text-emerald-800 mt-0.5 leading-relaxed">
+                            老師登錄最新評量成績時即刻通知，點擊一秒跳轉至官方 LINE 自動綁定！
+                        </div>
+                    </div>
+                </div>
+                <a id="btnLineBindDeepLink" href="#" target="_blank" class="w-full sm:w-auto min-h-[44px] flex items-center justify-center text-center flex-shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-xs font-black shadow-sm transition active:scale-95 cursor-pointer">
+                    一秒綁定 LINE
+                </a>
+            </div>
+
             <!-- 2. 科目切換橫向膠囊列 (Subject Switcher：米藍、米綠相間，使用行動裝置友善「點選」用語) -->
             <section class="space-y-3">
                 <div class="flex items-center justify-between px-1">
@@ -1857,6 +1878,9 @@
             } else {
                 adviceSec.classList.add('hidden');
             }
+
+            // 5. 檢查 School LINE Hub 家長綁定狀態，未綁定時顯示溫柔引導橫幅與彈窗
+            checkStudentLineBinding(st);
         }
 
         function renderSubjectTabs(filteredSubjs) {
@@ -3911,6 +3935,104 @@
             document.getElementById('errorDesc').textContent = desc;
         }
 
+        // ==========================================
+        // 💬 School LINE Hub 家長綁定與深層跳轉邏輯
+        // ==========================================
+        const SCHOOL_LINE_HUB_URL = "https://script.google.com/macros/s/AKfycby4yrSdmztcbnmdHlGdLqqM9nBRT4vo6DwK8LmW1R-wi22qEKC_vcD-VvrDnUTp4Bm_Yg/exec";
+
+        async function checkStudentLineBinding(student) {
+            if (!student) return;
+            const token = (student.token || '').toString().trim().toUpperCase();
+            if (!token) return;
+
+            window._currentStudentToken = token;
+            const urlParams = new URLSearchParams(window.location.search);
+            const isLineUA = typeof navigator !== 'undefined' && navigator.userAgent && /Line\//i.test(navigator.userAgent);
+            const isAlreadyBoundCache = localStorage.getItem('mpdaily_line_bound_' + token) === '1' || urlParams.get('lb') === '1' || isLineUA;
+
+            const banner = document.getElementById('lineBindBanner');
+
+            // 呼叫 School LINE Hub 檢查此學生是否已綁定 LINE
+            let isBound = isAlreadyBoundCache;
+            let deepLink = '';
+
+            try {
+                const res = await fetch(`${SCHOOL_LINE_HUB_URL}?action=check_student_binding&token=${encodeURIComponent(token)}&t=${Date.now()}`);
+                const data = await res.json();
+                if (data && data.status === 'success') {
+                    isBound = Boolean(data.isBound);
+                    deepLink = data.bindUrl || '';
+                    if (isBound) {
+                        try { localStorage.setItem('mpdaily_line_bound_' + token, '1'); } catch (e) {}
+                    } else {
+                        try { localStorage.removeItem('mpdaily_line_bound_' + token); } catch (e) {}
+                    }
+                }
+            } catch (err) {
+                console.warn('School LINE Hub 連線檢查略過:', err);
+            }
+
+            if (!isBound && deepLink) {
+                if (banner) {
+                    banner.classList.remove('hidden');
+                    const btnLink = document.getElementById('btnLineBindDeepLink');
+                    if (btnLink) {
+                        btnLink.href = deepLink;
+                        btnLink.onclick = () => {
+                            try {
+                                localStorage.setItem('mpdaily_line_prompted_' + token, '1');
+                                localStorage.setItem('mpdaily_line_bound_' + token, '1');
+                            } catch (e) {}
+                            setTimeout(() => { if (banner) banner.classList.add('hidden'); }, 1200);
+                        };
+                    }
+                }
+
+                // 首次進入時主動彈出 Apple HIG 提醒 Modal
+                const promptedKey = 'mpdaily_line_prompted_' + token;
+                if (!localStorage.getItem(promptedKey)) {
+                    showLineBindPromptModal(deepLink, student);
+                }
+            } else {
+                if (banner) banner.classList.add('hidden');
+                hideLineBindPromptModal();
+            }
+        }
+
+        function showLineBindPromptModal(deepLink, student) {
+            const modal = document.getElementById('lineBindPromptModal');
+            const nameEl = document.getElementById('promptModalStudentName');
+            const btn = document.getElementById('btnPromptModalBind');
+            if (!modal) return;
+            if (nameEl && student) nameEl.textContent = student.name || '孩子';
+            if (btn) {
+                btn.href = deepLink;
+                btn.onclick = () => {
+                    if (student && student.token) {
+                        try {
+                            localStorage.setItem('mpdaily_line_prompted_' + student.token, '1');
+                            localStorage.setItem('mpdaily_line_bound_' + student.token, '1');
+                        } catch (e) {}
+                    }
+                    dismissLineBindPrompt();
+                };
+            }
+            modal.style.display = 'flex';
+        }
+
+        function dismissLineBindPrompt() {
+            const modal = document.getElementById('lineBindPromptModal');
+            if (modal) modal.style.display = 'none';
+            if (window._currentStudentToken) {
+                try { localStorage.setItem('mpdaily_line_prompted_' + window._currentStudentToken, '1'); } catch (e) {}
+            }
+        }
+
+        function hideLineBindPromptModal() {
+            const modal = document.getElementById('lineBindPromptModal');
+            if (modal) modal.style.display = 'none';
+        }
+
         // 初始化啟動：有參數則直接讀取試算表；無參數時優先記憶雲端試算表連線並開放直接查詢自己小孩
         window.addEventListener('DOMContentLoaded', () => {
             parseUrlDisplayConfig();
@@ -3938,6 +4060,49 @@
             }
         });
     </script>
+
+    <!-- LINE 官方帳號每日自動提醒綁定詢問 Modal (Apple HIG Style) -->
+    <div id="lineBindPromptModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all duration-300" style="display: none;">
+        <div class="bg-white/95 backdrop-blur-2xl rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl border border-emerald-100 flex flex-col items-center animate-fade-up">
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white flex items-center justify-center text-3xl mb-3 shadow-md shadow-emerald-500/20">
+                💬
+            </div>
+            <h3 class="text-lg font-black text-slate-900 mb-1">
+                開啟 LINE 平時成績即時通知？
+            </h3>
+            <div class="text-xs text-emerald-800 font-bold mb-3">
+                為 <span id="promptModalStudentName" class="text-emerald-900 underline font-black">孩子</span> 開啟學習歷程通知
+            </div>
+            
+            <p class="text-xs text-slate-600 leading-relaxed mb-4 text-left bg-emerald-50/80 p-3.5 rounded-2xl border border-emerald-100">
+                親愛的家長您好！綁定班級 LINE 官方帳號後，老師發布最新<strong>平時評量成績與學習手札</strong>時，系統將自動傳送即時推播，讓您第一時間掌握學習成果！
+            </p>
+            
+            <div class="w-full space-y-2 mb-5 text-left text-xs">
+                <div class="flex items-center gap-2">
+                    <span class="text-emerald-600 font-bold flex-shrink-0">⚡️ 免手動打字</span>
+                    <span class="text-slate-500">一秒自動帶入孩子專屬查詢代碼</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-emerald-600 font-bold flex-shrink-0">📊 成績即時推播</span>
+                    <span class="text-slate-500">國語、數學各科成績登錄主動通知</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-emerald-600 font-bold flex-shrink-0">🔒 隱私安全保護</span>
+                    <span class="text-slate-500">僅發送您孩子的個人專屬評量表現</span>
+                </div>
+            </div>
+
+            <div class="w-full flex flex-col gap-2">
+                <a id="btnPromptModalBind" href="#" target="_blank" class="w-full min-h-[44px] flex items-center justify-center text-center bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-xl shadow-md shadow-emerald-600/20 transition-all active:scale-95 cursor-pointer">
+                    一秒前往 LINE 綁定 (推薦)
+                </a>
+                <button type="button" onclick="dismissLineBindPrompt()" class="w-full min-h-[40px] flex items-center justify-center text-center text-slate-500 hover:text-slate-700 text-xs font-bold transition-all active:scale-95 cursor-pointer">
+                    稍後再說
+                </button>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

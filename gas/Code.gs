@@ -2144,18 +2144,7 @@ function recordParentAccessLog_(ss, sSheet, student, rowIdx, clientDevice) {
   }
   cache.put(debounceKey, '1', 180);
 
-  // 3. 更新【學生名冊】該生之最後閱覽時間與累積次數
-  var currentCount = 0;
-  try {
-    var rawCount = sSheet.getRange(rowIdx, 7).getValue();
-    currentCount = parseInt(rawCount || '0', 10);
-    if (isNaN(currentCount)) currentCount = 0;
-  } catch (e) {}
-
-  sSheet.getRange(rowIdx, 6).setValue(nowStr).setHorizontalAlignment('center');
-  sSheet.getRange(rowIdx, 7).setValue(currentCount + 1).setHorizontalAlignment('center');
-
-  // 4. 寫入【家長閱覽紀錄】專屬日誌分頁
+  // 3. 寫入【家長閱覽紀錄】專屬日誌分頁
   var logSheet = ss.getSheetByName('家長閱覽紀錄');
   if (!logSheet) {
     logSheet = ss.insertSheet('家長閱覽紀錄');
@@ -2189,16 +2178,33 @@ function recordParentAccessLog_(ss, sSheet, student, rowIdx, clientDevice) {
       logSheet.deleteRows(1002, logSheet.getLastRow() - 1001);
     } catch (ignore) {}
   }
+
+  // 4. 以【家長閱覽紀錄】實際剩餘紀錄列數作為唯一基準，同步更新【學生名冊】該生之最後閱覽時間與累積次數
+  var actualCount = 1;
+  try {
+    var logStats = getStudentAccessStatsFromLogSheet_(ss);
+    var stTok = (student.token || '').toString().trim().toUpperCase();
+    var stSeatNameKey = normalizeSeatNumber(student.seatNo) + '_' + (student.name || '').toString().trim();
+    var matchedStat = (stTok && logStats.byToken[stTok]) || logStats.bySeatName[stSeatNameKey];
+    if (matchedStat && typeof matchedStat.count === 'number') {
+      actualCount = matchedStat.count;
+    }
+  } catch (e) {}
+
+  sSheet.getRange(rowIdx, 6).setValue(nowStr).setHorizontalAlignment('center');
+  sSheet.getRange(rowIdx, 7).setValue(actualCount).setHorizontalAlignment('center');
 }
 
 /**
- * 讀取最新家長閱覽紀錄明細（供教師端即時儀表板與日誌明細視窗使用）
+ * 讀取最新家長閱覽紀錄明細（供教師端即時儀表板與日誌明細視窗使用，自動略過空白列）
  */
 function getRecentAccessLogs_(ss, maxCount) {
   var logSheet = ss.getSheetByName('家長閱覽紀錄');
   if (!logSheet || logSheet.getLastRow() <= 1) return [];
-  var limit = Math.min(maxCount || 50, logSheet.getLastRow() - 1);
-  var values = logSheet.getRange(2, 1, limit, 6).getValues();
+  var totalRows = logSheet.getLastRow() - 1;
+  var limit = maxCount || 50;
+  var scanRows = Math.min(Math.max(limit * 2, 200), totalRows);
+  var values = logSheet.getRange(2, 1, scanRows, 6).getValues();
   var logs = [];
   var tz = Session.getScriptTimeZone() || 'Asia/Taipei';
   for (var i = 0; i < values.length; i++) {
@@ -2209,27 +2215,44 @@ function getRecentAccessLogs_(ss, maxCount) {
     } else if (rawTime) {
       timeStr = rawTime.toString().trim();
     }
+    var cls = (values[i][1] || '').toString().trim();
+    var seat = (values[i][2] || '').toString().trim();
+    var name = (values[i][3] || '').toString().trim();
+    var tok = (values[i][4] || '').toString().trim();
+    var dev = (values[i][5] || '').toString().trim();
+    // 若老師在試算表中清除儲存格內容留下空白列，自動略過不計入
+    if (!timeStr && !tok && !name && !seat) continue;
+    if (!tok && !name && !seat) continue;
     logs.push({
       time: timeStr,
-      className: (values[i][1] || '').toString().trim(),
-      seatNo: (values[i][2] || '').toString().trim(),
-      name: (values[i][3] || '').toString().trim(),
-      token: (values[i][4] || '').toString().trim(),
-      device: (values[i][5] || '').toString().trim()
+      className: cls,
+      seatNo: seat,
+      name: name,
+      token: tok,
+      device: dev
     });
+    if (logs.length >= limit) break;
   }
   return logs;
 }
 
 /**
- * 讀取各學生專屬之近 10 次家長瀏覽時間紀錄對照表
+ * 從【家長閱覽紀錄】分頁即時計算每位學生的「實際有效閱覽總次數」、「最後閱覽時間」與「近 10 次瀏覽明細」
+ * 當老師在試算表【家長閱覽紀錄】手動刪除整列或清空儲存格時，系統會自動以此分頁剩餘紀錄為準，並回寫同步【學生名冊】
  */
-function getStudentAccessHistoryMap_(ss) {
+function getStudentAccessStatsFromLogSheet_(ss) {
   var logSheet = ss.getSheetByName('家長閱覽紀錄');
-  if (!logSheet || logSheet.getLastRow() <= 1) return {};
-  var numRows = Math.min(1000, logSheet.getLastRow() - 1);
+  if (!logSheet) {
+    return { hasLogSheet: false, byToken: {}, bySeatName: {} };
+  }
+  var lastRow = logSheet.getLastRow();
+  if (lastRow <= 1) {
+    return { hasLogSheet: true, byToken: {}, bySeatName: {} };
+  }
+  var numRows = Math.min(2000, lastRow - 1);
   var data = logSheet.getRange(2, 1, numRows, 6).getValues();
-  var map = {};
+  var byToken = {};
+  var bySeatName = {};
   var tz = Session.getScriptTimeZone() || 'Asia/Taipei';
 
   for (var i = 0; i < data.length; i++) {
@@ -2240,13 +2263,62 @@ function getStudentAccessHistoryMap_(ss) {
     } else if (rawTime) {
       timeStr = rawTime.toString().trim();
     }
+    var seat = normalizeSeatNumber(data[i][2]);
+    var name = (data[i][3] || '').toString().trim();
     var tok = (data[i][4] || '').toString().trim().toUpperCase();
     var dev = (data[i][5] || '').toString().trim() || '行動裝置';
-    if (!tok) continue;
-    if (!map[tok]) map[tok] = [];
-    if (map[tok].length < 10) {
-      map[tok].push({ time: timeStr, device: dev });
+
+    // 略過空白列或無學生識別資訊之列
+    if (!timeStr && !tok && !name && !seat) continue;
+    if (!tok && !seat && !name) continue;
+
+    var entry = { time: timeStr, device: dev };
+
+    if (tok) {
+      if (!byToken[tok]) {
+        byToken[tok] = { count: 0, lastViewedAt: '', recentViews: [] };
+      }
+      byToken[tok].count++;
+      if (!byToken[tok].lastViewedAt && timeStr) {
+        byToken[tok].lastViewedAt = timeStr;
+      }
+      if (byToken[tok].recentViews.length < 10) {
+        byToken[tok].recentViews.push(entry);
+      }
     }
+
+    if (seat || name) {
+      var snKey = (seat || '') + '_' + (name || '');
+      if (!bySeatName[snKey]) {
+        bySeatName[snKey] = { count: 0, lastViewedAt: '', recentViews: [] };
+      }
+      bySeatName[snKey].count++;
+      if (!bySeatName[snKey].lastViewedAt && timeStr) {
+        bySeatName[snKey].lastViewedAt = timeStr;
+      }
+      if (bySeatName[snKey].recentViews.length < 10) {
+        bySeatName[snKey].recentViews.push(entry);
+      }
+    }
+  }
+
+  return {
+    hasLogSheet: true,
+    byToken: byToken,
+    bySeatName: bySeatName
+  };
+}
+
+/**
+ * 讀取各學生專屬之近 10 次家長瀏覽時間紀錄對照表（向下相容輔助函式）
+ */
+function getStudentAccessHistoryMap_(ss) {
+  var stats = getStudentAccessStatsFromLogSheet_(ss);
+  var map = {};
+  var keys = Object.keys(stats.byToken || {});
+  for (var i = 0; i < keys.length; i++) {
+    var k = keys[i];
+    map[k] = stats.byToken[k].recentViews || [];
   }
   return map;
 }
@@ -2264,29 +2336,53 @@ function getStudentListForTeacher() {
   var sData = sSheet.getDataRange().getValues();
   var students = [];
   var tz = Session.getScriptTimeZone() || 'Asia/Taipei';
-  var historyMap = getStudentAccessHistoryMap_(ss);
+  var logStats = getStudentAccessStatsFromLogSheet_(ss);
+  var hasOutOfSyncRosterStats = false;
+  var rosterFGUpdates = [];
 
   for (var r = 1; r < sData.length; r++) {
     var cls = (sData[r][0] || '本班').toString().trim();
     var seat = normalizeSeatNumber(sData[r][1]);
     var name = (sData[r][2] || '').toString().trim();
     var token = (sData[r][3] || '').toString().trim();
-    var lastViewedAt = '';
+    var sheetLastViewedAt = '';
     var rawTime = sData[r][5];
     if (rawTime instanceof Date) {
-      lastViewedAt = Utilities.formatDate(rawTime, tz, 'yyyy-MM-dd HH:mm');
+      sheetLastViewedAt = Utilities.formatDate(rawTime, tz, 'yyyy-MM-dd HH:mm');
     } else if (rawTime) {
-      lastViewedAt = rawTime.toString().trim();
+      sheetLastViewedAt = rawTime.toString().trim();
     }
     var rawCount = sData[r][6];
-    var viewCount = parseInt(rawCount || '0', 10) || 0;
-    if (!seat && !name) continue;
+    var sheetViewCount = parseInt(rawCount || '0', 10) || 0;
 
     var studentToken = token.toUpperCase();
-    var recentViews = historyMap[studentToken] || [];
-    if (recentViews.length === 0 && lastViewedAt) {
+    var seatNameKey = (seat || '') + '_' + (name || '');
+    var lastViewedAt = sheetLastViewedAt;
+    var viewCount = sheetViewCount;
+    var recentViews = [];
+
+    if (logStats.hasLogSheet) {
+      // 以【家長閱覽紀錄】分頁的實際剩餘紀錄列作為唯一真實基準（刪除紀錄列即自動扣除次數）
+      var matchedLogStat = (studentToken && logStats.byToken[studentToken]) || logStats.bySeatName[seatNameKey];
+      if (matchedLogStat) {
+        viewCount = matchedLogStat.count;
+        lastViewedAt = matchedLogStat.lastViewedAt || '';
+        recentViews = matchedLogStat.recentViews || [];
+      } else {
+        viewCount = 0;
+        lastViewedAt = '';
+        recentViews = [];
+      }
+      if (sheetLastViewedAt !== lastViewedAt || sheetViewCount !== viewCount) {
+        hasOutOfSyncRosterStats = true;
+      }
+    } else if (lastViewedAt) {
       recentViews = [{ time: lastViewedAt, device: '行動裝置' }];
     }
+
+    rosterFGUpdates.push([lastViewedAt, viewCount]);
+
+    if (!seat && !name) continue;
 
     students.push({
       className: cls,
@@ -2301,6 +2397,13 @@ function getStudentListForTeacher() {
       subjects: [],
       subjectStats: {}
     });
+  }
+
+  // 若老師手動於【家長閱覽紀錄】分頁刪除紀錄列，自動將重新核算後的「最後閱覽時間(F欄)」與「累積閱覽次數(G欄)」批次同步回寫至【學生名冊】
+  if (hasOutOfSyncRosterStats && rosterFGUpdates.length > 0) {
+    try {
+      sSheet.getRange(2, 6, rosterFGUpdates.length, 2).setValues(rosterFGUpdates).setHorizontalAlignment('center');
+    } catch (syncErr) {}
   }
 
   var sheets = ss.getSheets();
