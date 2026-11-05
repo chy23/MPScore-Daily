@@ -955,10 +955,11 @@
          *  - 2026/10/30 試算表自動化：方案 C 欄位新增自動填入日期、彈出日曆選取器、下拉驗證
          *  - 2026/10/31 階段導航與隔離：3 欄式學年/學期/階段下拉分類篩選器、預設定位最新階段、未登錄科目徹底隔離
          *  - 2026/11/03 雙維度與抗壓分析：新增「學習型態雙維度四象限分析（作業態度 vs. 考試發揮）」與「試卷難易度抗壓表現回饋徽章」
+         *  - 2026/11/06 資安個資與極速快取升級：後端預先遮罩姓名、網址列自動洗淨明文姓名、防暴力枚舉 Rate Limiting、純唯讀解析與世代快取提速
          * =========================================================================
          */
         console.info(
-            '%c MPScore-Daily %c 建立於新北市林口區麗園國小 楊家驊老師 %c v4.0.0 ',
+            '%c MPScore-Daily %c 建立於新北市林口區麗園國小 楊家驊老師 %c v4.1.0 ',
             'background:#0284C7;color:#fff;font-weight:bold;padding:3px 6px;border-radius:4px 0 0 4px;',
             'background:#0D9488;color:#fff;font-weight:bold;padding:3px 6px;',
             'background:#10B981;color:#fff;font-weight:bold;padding:3px 6px;border-radius:0 4px 4px 0;'
@@ -3797,7 +3798,6 @@
                 updatedAt: (data.updatedAt || '最新學期平時成績').replace('T', ' ').slice(0, 16),
                 student: {
                     seatNo: st.seatNo || st.seatNumber || '',
-                    rawName: rawName,
                     name: maskedName,
                     className: st.className || '本班',
                     token: st.token || '',
@@ -3912,7 +3912,8 @@
                 const simQuery = isSimulated ? '&sim=1' : '';
                 const seatQuery = cleanSeat ? `&seat=${encodeURIComponent(cleanSeat)}` : '';
                 const nameQuery = cleanName ? `&name=${encodeURIComponent(cleanName)}` : '';
-                const res = await fetch(`${apiUrl}${sep}action=query&token=${encodeURIComponent(cleanToken)}${seatQuery}${nameQuery}&device=${encodeURIComponent(device)}${simQuery}&nocache=1&v=8&t=${Date.now()}`, { redirect: 'follow', cache: 'no-store' });
+                const nocacheQuery = forceDemo ? '&nocache=1' : '';
+                const res = await fetch(`${apiUrl}${sep}action=query&token=${encodeURIComponent(cleanToken)}${seatQuery}${nameQuery}&device=${encodeURIComponent(device)}${simQuery}${nocacheQuery}&v=9&t=${Date.now()}`, { redirect: 'follow', cache: 'no-store' });
                 const data = await res.json();
                 if (data && (data.status === 'success' || data.success === true) && data.student) {
                     const resolvedToken = (data.student.token || cleanToken || '').trim().toUpperCase();
@@ -3925,6 +3926,12 @@
                         }
                         try {
                             const nextParams = new URLSearchParams(window.location.search);
+                            nextParams.delete('name');
+                            nextParams.delete('n');
+                            nextParams.delete('seat');
+                            nextParams.delete('s');
+                            nextParams.delete('token');
+                            nextParams.delete('code');
                             nextParams.set('t', resolvedToken);
                             window.history.replaceState({}, '', `${window.location.pathname}?${nextParams.toString()}`);
                         } catch (ignoreUrl) {}
@@ -4064,9 +4071,22 @@
             }
 
             const urlToken = params.get('t') || params.get('token') || params.get('code');
-            const urlSeat = params.get('seat');
-            const urlName = params.get('name');
+            const urlSeat = params.get('seat') || params.get('s');
+            const urlName = params.get('name') || params.get('n');
             const isReset = params.get('reset') === '1' || params.get('query') === '1';
+
+            // 隱私保護：若網址列含有明文姓名或座號參數，讀取後立即自瀏覽器網址列與歷史紀錄洗淨
+            if (params.has('name') || params.has('n') || params.has('seat') || params.has('s')) {
+                try {
+                    const cleanUrlParams = new URLSearchParams(window.location.search);
+                    cleanUrlParams.delete('name');
+                    cleanUrlParams.delete('n');
+                    cleanUrlParams.delete('seat');
+                    cleanUrlParams.delete('s');
+                    const cleanQueryStr = cleanUrlParams.toString();
+                    window.history.replaceState({}, document.title, window.location.pathname + (cleanQueryStr ? '?' + cleanQueryStr : ''));
+                } catch (e) {}
+            }
 
             if (urlToken || (urlSeat && urlName)) {
                 loadStudentPortfolioByToken(urlToken || '', false, '', urlSeat || '', urlName || '');

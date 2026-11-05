@@ -12,17 +12,75 @@
  */
 var GITHUB_CORE_URL = "https://raw.githubusercontent.com/chy23/MPScore-Daily/main/gas/Code.gs";
 var _cachedEngine = null;
+var LOADER_CACHE_PREFIX_ = "mpdaily_loader_v1_";
+var LOADER_CACHE_TTL_ = 600; // 緩衝快取 10 分鐘 (600秒)
 
 function setup() {
-  getEngine();
+  getEngine(true);
   SpreadsheetApp.getActiveSpreadsheet();
+}
+
+function readEngineCodeFromCache_() {
+  try {
+    var cache = CacheService.getScriptCache();
+    var metaRaw = cache.get(LOADER_CACHE_PREFIX_ + "meta");
+    if (!metaRaw) return null;
+    var meta = JSON.parse(metaRaw);
+    if (!meta || !meta.chunks || meta.chunks < 1) return null;
+    var keys = [];
+    for (var i = 0; i < meta.chunks; i++) {
+      keys.push(LOADER_CACHE_PREFIX_ + "c" + i);
+    }
+    var chunkMap = cache.getAll(keys);
+    var parts = [];
+    for (var j = 0; j < meta.chunks; j++) {
+      var k = LOADER_CACHE_PREFIX_ + "c" + j;
+      if (typeof chunkMap[k] !== "string") return null;
+      parts.push(chunkMap[k]);
+    }
+    return parts.join("");
+  } catch (e) {
+    return null;
+  }
+}
+
+function writeEngineCodeToCache_(code) {
+  try {
+    if (!code || code.length < 100) return;
+    var cache = CacheService.getScriptCache();
+    var chunkSize = 45000;
+    var totalChunks = Math.ceil(code.length / chunkSize);
+    if (totalChunks > 10) return;
+    var payload = {};
+    for (var i = 0; i < totalChunks; i++) {
+      payload[LOADER_CACHE_PREFIX_ + "c" + i] = code.substring(i * chunkSize, (i + 1) * chunkSize);
+    }
+    payload[LOADER_CACHE_PREFIX_ + "meta"] = JSON.stringify({ chunks: totalChunks, ts: new Date().getTime() });
+    cache.putAll(payload, LOADER_CACHE_TTL_);
+  } catch (e) {}
+}
+
+function clearLoaderEngineCache_() {
+  try {
+    var cache = CacheService.getScriptCache();
+    var keys = [LOADER_CACHE_PREFIX_ + "meta"];
+    for (var i = 0; i < 8; i++) keys.push(LOADER_CACHE_PREFIX_ + "c" + i);
+    cache.removeAll(keys);
+  } catch (e) {}
 }
 
 function getEngine(forceReload) {
   if (!_cachedEngine || forceReload) {
-    var t = new Date().getTime();
-    var response = UrlFetchApp.fetch(GITHUB_CORE_URL + "?t=" + t);
-    var code = response.getContentText();
+    var code = null;
+    if (!forceReload) {
+      code = readEngineCodeFromCache_();
+    }
+    if (!code) {
+      var t = new Date().getTime();
+      var response = UrlFetchApp.fetch(GITHUB_CORE_URL + "?t=" + t);
+      code = response.getContentText();
+      writeEngineCodeToCache_(code);
+    }
     (1, eval)(code);
     if (typeof MPScoreDailyEngine !== 'undefined') {
       _cachedEngine = MPScoreDailyEngine;
@@ -82,6 +140,7 @@ function previewClassStatistics() { getEngine().previewClassStatistics(); }
 function autoFormatAndResizeAllSheets() { getEngine().autoFormatAndResizeAllSheets(); }
 function clearSystemCache() {
   _cachedEngine = null;
+  clearLoaderEngineCache_();
   getEngine(true).clearSystemCache();
 }
 

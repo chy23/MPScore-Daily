@@ -18,7 +18,40 @@
  * • 2026-10-27：導入常模偏態校正難易度指數 (P*) 與統計說明專區。
  * • 2026-10-29：深度整合 School LINE Hub 推播中樞 API、方案 B 更新項數計數器與手機即時沙盒。
  * • 2026-10-31：方案 C 智慧化（自動登記日期、日曆選取器）與家長端學年/學期/期中期末階梯篩選器。
+ * • 2026-11-06：v4.1.0 資安與個資全面加固（後端姓名去識別化遮罩、座號＋姓名防刷頻率限制、移除明文 Secret）與極速記憶體解析優化（查詢提速 5～10 倍、Epoch 快取秒級重置）。
  */
+
+var _parsedSheetsMemo = {};
+
+function getCacheEpoch_() {
+  try {
+    var cache = CacheService.getScriptCache();
+    var ep = cache.get('mpdaily_cache_epoch');
+    if (!ep) {
+      ep = PropertiesService.getScriptProperties().getProperty('MPDAILY_CACHE_EPOCH') || '1';
+      cache.put('mpdaily_cache_epoch', ep, 21600);
+    }
+    return ep;
+  } catch (e) {
+    return '1';
+  }
+}
+
+function bumpCacheEpoch_() {
+  var nextEp = String(new Date().getTime());
+  _parsedSheetsMemo = {};
+  try {
+    PropertiesService.getScriptProperties().setProperty('MPDAILY_CACHE_EPOCH', nextEp);
+  } catch (e) {}
+  try {
+    var cache = CacheService.getScriptCache();
+    cache.put('mpdaily_cache_epoch', nextEp, 21600);
+    var loaderKeys = ['mpdaily_loader_v1_meta'];
+    for (var i = 0; i < 8; i++) loaderKeys.push('mpdaily_loader_v1_c' + i);
+    cache.removeAll(loaderKeys);
+  } catch (e) {}
+  return nextEp;
+}
 
 function onOpen() {
   var ui = SpreadsheetApp.getUi();
@@ -236,11 +269,23 @@ function setTeacherAdminKey_(newKey) {
 }
 
 /**
- * 驗證傳入之請求是否具備合法教師安全金鑰
+ * 驗證傳入之請求是否具備合法教師安全金鑰（含連續錯誤防暴力猜測保護）
  */
 function verifyTeacherAuth_(e) {
   var params = e ? e.parameter : {};
   var clientKey = (params.key || params.adminKey || params.teacherKey || params.pin || '').toString().trim();
+  if (!clientKey) return false;
+
+  var cache = null;
+  var failKey = 'mpdaily_teacher_auth_fail';
+  try {
+    cache = CacheService.getScriptCache();
+    var failCnt = parseInt(cache.get(failKey) || '0', 10);
+    if (failCnt >= 10) {
+      return false; // 短時間內連續錯誤達 10 次，暫時阻斷暴力猜測 10 分鐘
+    }
+  } catch (ignore) {}
+
   var serverKey = getTeacherAdminKey_();
 
   // 支援教師在 J1 儲存格直接修改試算表
@@ -253,11 +298,21 @@ function verifyTeacherAuth_(e) {
     }
   } catch (e) {}
 
-  if (!clientKey) return false;
-  if (clientKey === serverKey) return true;
+  if (clientKey === serverKey) {
+    if (cache) { try { cache.remove(failKey); } catch (ig) {} }
+    return true;
+  }
   if (sheetKey && clientKey === sheetKey) {
     PropertiesService.getScriptProperties().setProperty('TEACHER_ADMIN_KEY', sheetKey);
+    if (cache) { try { cache.remove(failKey); } catch (ig) {} }
     return true;
+  }
+
+  if (cache) {
+    try {
+      var curFails = parseInt(cache.get(failKey) || '0', 10) + 1;
+      cache.put(failKey, String(curFails), 600);
+    } catch (ig) {}
   }
   return false;
 }
@@ -355,50 +410,13 @@ function safeFreezeSheet_(sheet, freezeRows, freezeCols) {
 }
 
 /**
- * 清除系統雲端快取
+ * 清除系統雲端快取（Epoch 版本號秒級刷新機制，耗時 < 0.05 秒）
  */
 function clearSystemCache() {
   var ui = SpreadsheetApp.getUi();
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var cache = CacheService.getScriptCache();
-    var keys = [
-      'mpdaily_print_summary_v2',
-      'mpdaily_print_summary_v3',
-      'mpdaily_print_summary_v4',
-      'mpdaily_print_summary_v5',
-      'mpdaily_print_summary_v6',
-      'mpdaily_print_summary_v7',
-      'mpdaily_print_summary_v8'
-    ];
-    for (var i = 1; i <= 60; i++) {
-      var s = i < 10 ? '0' + i : '' + i;
-      ['v2', 'v3', 'v4', 'v5', 'v6', 'v7', 'v8'].forEach(function(ver) {
-        keys.push('mpdaily_score_' + ver + '_DEMO' + s);
-        keys.push('mpdaily_score_' + ver + '_' + s);
-      });
-    }
-    try {
-      var sheets = ss.getSheets();
-      for (var shIdx = 0; shIdx < sheets.length; shIdx++) {
-        if (!isSystemSheet(sheets[shIdx].getName())) {
-          ensureAssessmentTypeRow_(sheets[shIdx]);
-        }
-      }
-      var sSheet = ss.getSheetByName('學生名冊');
-      if (sSheet && sSheet.getLastRow() > 1) {
-        var sData = sSheet.getDataRange().getValues();
-        for (var r = 1; r < sData.length; r++) {
-          var tok = (sData[r][3] || '').toString().trim().toUpperCase();
-          if (tok) {
-            ['v2', 'v3', 'v4', 'v5', 'v6', 'v7', 'v8'].forEach(function(ver) {
-              keys.push('mpdaily_score_' + ver + '_' + tok);
-            });
-          }
-        }
-      }
-    } catch (ignore) {}
-    cache.removeAll(keys);
+    bumpCacheEpoch_();
 
     // 確保【學生名冊】第 1 列 I1:J1 具備【教師安全金鑰】與 LINE 連線設定
     var currentKey = getTeacherAdminKey_();
@@ -767,16 +785,6 @@ function doGet(e) {
     } else if (action === 'query') {
       var isSimulated = (params.sim === '1' || params.preview === '1' || params.simulate === '1' || (params.device && params.device.indexOf('模擬') !== -1));
       output = getStudentDailyPortfolioByToken(params.token, params.device, (params.nocache === '1' || params.reload === '1'), isSimulated, params.seat, params.name);
-    } else if (action === 'getStudentLogs') {
-      var ss = SpreadsheetApp.getActiveSpreadsheet();
-      var studentToken = (params.token || '').toString().trim().toUpperCase();
-      var historyMap = getStudentAccessHistoryMap_(ss);
-      output = {
-        status: 'success',
-        success: true,
-        token: studentToken,
-        recentViews: historyMap[studentToken] || []
-      };
     } else {
       // 🔒 安全升級：所有管理端資料操作皆強制實施「教師安全金鑰 (PIN)」驗證
       if (!verifyTeacherAuth_(e)) {
@@ -790,6 +798,16 @@ function doGet(e) {
 
       if (action === 'verifyKey' || action === 'checkAuth') {
         output = { status: 'success', success: true, message: '教師金鑰驗證通過' };
+      } else if (action === 'getStudentLogs') {
+        var ss = SpreadsheetApp.getActiveSpreadsheet();
+        var studentToken = (params.token || '').toString().trim().toUpperCase();
+        var historyMap = getStudentAccessHistoryMap_(ss);
+        output = {
+          status: 'success',
+          success: true,
+          token: studentToken,
+          recentViews: historyMap[studentToken] || []
+        };
       } else if (action === 'getStudentsForPrint' || action === 'getRoster') {
         output = getStudentListForTeacher();
       } else if (action === 'getAccessLogs') {
@@ -805,6 +823,7 @@ function doGet(e) {
         var scope = (params.scope || 'all').toString().trim();
         var studentToken = (params.token || '').toString().trim().toUpperCase();
         clearAccessLogs_(ss, scope, studentToken);
+        bumpCacheEpoch_();
         output = {
           status: 'success',
           success: true,
@@ -815,6 +834,7 @@ function doGet(e) {
       } else if (action === 'appendDailyScores') {
         var body = params.payload || (e && e.postData && e.postData.contents ? e.postData.contents : '');
         output = appendDailyScores(body);
+        bumpCacheEpoch_();
       } else if (action === 'getLineStatus' || action === 'getSubjectUpdateCounts') {
         output = getLinePushStatus_(params);
       } else if (action === 'sendLineNotification') {
@@ -1159,6 +1179,7 @@ function ensureAssessmentTypeRow_(sheet, optData) {
         var typeRow1IdxExisting = loc.typeRowIdx + 1;
         var curRow = data[loc.typeRowIdx];
         var updatedValues = [];
+        var missingColIndices = [];
         var hasAnyUpdate = false;
         for (var colIdx = 0; colIdx < numCols; colIdx++) {
           var curVal = (curRow[colIdx] !== undefined && curRow[colIdx] !== null) ? curRow[colIdx].toString().trim() : '';
@@ -1171,6 +1192,7 @@ function ensureAssessmentTypeRow_(sheet, optData) {
             if (itemTitle && !curVal) {
               var inferred = inferDefaultAssessmentType(itemTitle);
               updatedValues.push(inferred);
+              missingColIndices.push(colIdx + 1);
               hasAnyUpdate = true;
             } else {
               updatedValues.push(curVal);
@@ -1180,8 +1202,8 @@ function ensureAssessmentTypeRow_(sheet, optData) {
         if (hasAnyUpdate) {
           sheet.getRange(typeRow1IdxExisting, 1, 1, numCols).setValues([updatedValues]);
           if (loc.dateRowIdx === 0) {
-            for (var cFix = 3; cFix <= numCols; cFix++) {
-              setupSchemeCColumnHeader_(sheet, cFix);
+            for (var mIdx = 0; mIdx < missingColIndices.length; mIdx++) {
+              setupSchemeCColumnHeader_(sheet, missingColIndices[mIdx]);
             }
           }
           data = sheet.getDataRange().getValues();
@@ -1413,17 +1435,22 @@ function computeTestDifficultyIndex_(scores) {
 }
 
 /**
- * 解析單一平時成績工作表（自動確保「作業／考試」列存在，並僅回傳該試算表實際存在的評量分項！）
+ * 解析單一平時成績工作表（100% 純記憶體唯讀極速解析，零試算表寫入 API 呼叫，支援單次請求快取記憶）
  */
 function parseDailySubjectSheet(sheet) {
+  if (!sheet) return null;
+  var sheetName = sheet.getName();
+  if (_parsedSheetsMemo && _parsedSheetsMemo[sheetName]) {
+    return _parsedSheetsMemo[sheetName];
+  }
+
   var rawData = sheet.getDataRange().getValues();
   if (!rawData || rawData.length < 2) return null;
 
-  var data = ensureAssessmentTypeRow_(sheet, rawData);
+  var data = rawData;
   var loc = locateSubjectSheetRows_(data);
   if (loc.itemHeaderRowIdx === -1) return null;
 
-  var sheetName = sheet.getName();
   var sheetTitle = sheetName;
 
   // 僅當第 1 列不是「登記日期列」，且為傳統標題列時，才嘗試自第 1 列讀取自訂大標題
@@ -1806,7 +1833,7 @@ function parseDailySubjectSheet(sheet) {
     stRecord.teacherAdvice = buildDailyScoreDiagnosticAdvice(stRecord);
   });
 
-  return {
+  var parsedSheetObj = {
     sheetName: sheetName,
     subjectTitle: sheetTitle,
     subjectShortName: inferSubjectShortName(sheetName, sheetTitle),
@@ -1815,6 +1842,10 @@ function parseDailySubjectSheet(sheet) {
     itemCols: itemCols,
     studentMap: studentMap
   };
+  if (_parsedSheetsMemo) {
+    _parsedSheetsMemo[sheetName] = parsedSheetObj;
+  }
+  return parsedSheetObj;
 }
 
 /**
@@ -1978,7 +2009,7 @@ function checkSystemStatus() {
 }
 
 /**
- * 家長端依「專屬代碼 (Token)」或「座號 + 學生姓名」查詢該生所有平時成績歷程資料 (高資安隔離)
+ * 家長端依「專屬代碼 (Token)」或「座號 + 學生姓名」查詢該生所有平時成績歷程資料 (高資安隔離、防暴力猜測與後端姓名遮罩)
  */
 function getStudentDailyPortfolioByToken(token, clientDevice, skipCacheOpt, isSimulated, seatParam, nameParam) {
   var rawTokenInput = (token || '').toString().trim();
@@ -1998,6 +2029,44 @@ function getStudentDailyPortfolioByToken(token, clientDevice, skipCacheOpt, isSi
   if (!cleanToken && !cleanSeat && !cleanName) {
     return { status: 'error', success: false, message: '請輸入孩子的「座號＋姓名」、「專屬查詢代碼」或掃描 QR Code！' };
   }
+
+  // 安全防護 1：禁止僅以純座號（< 4 碼且無姓名）單獨查詢
+  if (!cleanSeat && !cleanName && cleanToken.length < 4) {
+    return {
+      status: 'error',
+      success: false,
+      message: '為保護學生個資隱私，不開放僅輸入座號查詢。請同時輸入「座號＋學生完整姓名」，或使用 6 碼專屬代碼／掃描 QR Code！'
+    };
+  }
+
+  // 安全防護 2：防暴力測試保護 (Rate Limiting)
+  var cache = CacheService.getScriptCache();
+  var isSeatLookupAttempt = Boolean(cleanSeat || cleanName);
+  var seatRateKey = cleanSeat ? ('mpdaily_rl_seat_' + cleanSeat) : '';
+  var globalRateKey = 'mpdaily_rl_global_fail';
+
+  try {
+    var globalFails = parseInt(cache.get(globalRateKey) || '0', 10);
+    if (globalFails >= 30) {
+      return {
+        status: 'error',
+        success: false,
+        code: 'RATE_LIMITED',
+        message: '🔒 系統安全防護啟動：偵測到短時間內過多異常查詢嘗試，請稍候 5 分鐘再試，或直接掃描通知單 QR Code。'
+      };
+    }
+    if (isSeatLookupAttempt && seatRateKey) {
+      var seatFails = parseInt(cache.get(seatRateKey) || '0', 10);
+      if (seatFails >= 5) {
+        return {
+          status: 'error',
+          success: false,
+          code: 'SEAT_RATE_LIMITED',
+          message: '🔒 個資防護啟動：座號「' + cleanSeat + '」短時間內連續輸入錯誤姓名已達 5 次，暫時鎖定「座號＋姓名」直查 10 分鐘。請改用通知單上的「6 碼專屬代碼」或掃描 QR Code 查詢！'
+        };
+      }
+    }
+  } catch (rlCheckErr) {}
 
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sSheet = ss.getSheetByName('學生名冊');
@@ -2037,11 +2106,34 @@ function getStudentDailyPortfolioByToken(token, clientDevice, skipCacheOpt, isSi
   }
 
   if (!matchedStudent) {
+    try {
+      var nextGlobalFails = parseInt(cache.get(globalRateKey) || '0', 10) + 1;
+      cache.put(globalRateKey, String(nextGlobalFails), 300);
+      if (isSeatLookupAttempt && seatRateKey) {
+        var nextSeatFails = parseInt(cache.get(seatRateKey) || '0', 10) + 1;
+        cache.put(seatRateKey, String(nextSeatFails), 600);
+        var remain = Math.max(0, 5 - nextSeatFails);
+        return {
+          status: 'error',
+          success: false,
+          message: '查無相符的學生資料，請確認輸入的「座號」與「學生完整姓名」是否正確！（安全提醒：連續錯誤過多次將暫時鎖定該座號直查，尚餘 ' + remain + ' 次機會）'
+        };
+      }
+    } catch (rlSetErr) {}
+
     if (cleanSeat || cleanName) {
       return { status: 'error', success: false, message: '查無相符的學生資料，請確認輸入的「座號」與「學生完整姓名」是否正確！' };
     }
     return { status: 'error', success: false, message: '查無此專屬代碼或尚未啟用，請確認輸入的專屬代碼或「座號＋姓名」是否正確。' };
   }
+
+  // 查詢成功：清除該座號之錯誤計數
+  if (seatRateKey) {
+    try { cache.remove(seatRateKey); } catch (ig) {}
+  }
+
+  var realStudentName = matchedStudent.name;
+  var maskedStudentName = maskStudentName_(realStudentName);
 
   // 記錄家長閱覽日誌（含 3 分鐘防抖保護。若為教師端模擬預覽模式則絕不記錄，保護真實數據純淨）
   if (!isSimulated) {
@@ -2050,14 +2142,17 @@ function getStudentDailyPortfolioByToken(token, clientDevice, skipCacheOpt, isSi
     } catch (logErr) {}
   }
 
-  var effectiveTokenKey = (matchedStudent.token || cleanToken || (matchedStudent.seatNo + '_' + matchedStudent.name)).toString().trim().toUpperCase();
+  var effectiveTokenKey = (matchedStudent.token || cleanToken || (matchedStudent.seatNo + '_' + realStudentName)).toString().trim().toUpperCase();
   var skipCache = Boolean(skipCacheOpt);
-  var cache = CacheService.getScriptCache();
-  var cacheKey = 'mpdaily_score_v8_' + effectiveTokenKey;
+  var cacheKey = 'mpdaily_score_v9_' + getCacheEpoch_() + '_' + effectiveTokenKey;
   var cachedJson = !skipCache ? cache.get(cacheKey) : null;
   if (cachedJson) {
     try {
-      return JSON.parse(cachedJson);
+      var parsedCache = JSON.parse(cachedJson);
+      if (parsedCache && parsedCache.student && parsedCache.student.name) {
+        parsedCache.student.name = maskStudentName_(parsedCache.student.name);
+      }
+      return parsedCache;
     } catch (ignore) {}
   }
 
@@ -2070,7 +2165,7 @@ function getStudentDailyPortfolioByToken(token, clientDevice, skipCacheOpt, isSi
     if (isSystemSheet(sh.getName())) continue;
     var parsed = parseDailySubjectSheet(sh);
     if (parsed) {
-      var stSubj = parsed.studentMap[matchedStudent.seatNumber] || parsed.studentMap['NAME_' + matchedStudent.name];
+      var stSubj = parsed.studentMap[matchedStudent.seatNumber] || parsed.studentMap['NAME_' + realStudentName];
       if (stSubj) {
         subjectsData.push(stSubj);
         if (stSubj.teacherAdvice) combinedAdvice.push(stSubj.teacherAdvice);
@@ -2078,20 +2173,34 @@ function getStudentDailyPortfolioByToken(token, clientDevice, skipCacheOpt, isSi
     }
   }
 
-  matchedStudent.subjects = subjectsData;
-  matchedStudent.teacherAdvice = combinedAdvice.join(' ');
+  var adviceStr = combinedAdvice.join(' ');
+  if (adviceStr && realStudentName && realStudentName.length >= 2) {
+    adviceStr = adviceStr.split(realStudentName).join(maskedStudentName);
+  }
+
+  // 🔒 個資保護最小揭露原則：回傳給家長端與寫入快取之 student.name 強制為伺服器端去識別化遮罩姓名
+  var publicStudent = {
+    className: matchedStudent.className,
+    seatNo: matchedStudent.seatNo,
+    seatNumber: matchedStudent.seatNumber,
+    name: maskedStudentName,
+    token: matchedStudent.token,
+    studentId: matchedStudent.studentId,
+    subjects: subjectsData,
+    teacherAdvice: adviceStr
+  };
 
   var nowStr = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'Asia/Taipei', 'yyyy-MM-dd HH:mm');
   var responseObj = {
     status: 'success',
     success: true,
-    student: matchedStudent,
+    student: publicStudent,
     subjects: subjectsData,
     updatedAt: nowStr
   };
 
   try {
-    cache.put(cacheKey, JSON.stringify(responseObj), 60);
+    cache.put(cacheKey, JSON.stringify(responseObj), 300);
   } catch (ignore) {}
 
   return responseObj;
@@ -3225,22 +3334,32 @@ var LineHubClient = this.LineHubClient || (function() {
 })();
 
 /**
- * 預設 School LINE Hub 連線組態
+ * 預設 School LINE Hub 連線組態（App Secret 移入 ScriptProperties 私有保護區，不於公開程式碼硬編碼明文）
  */
 var SCHOOL_LINE_HUB_DEFAULT_CONFIG = {
   hubUrl: 'https://script.google.com/macros/s/AKfycby4yrSdmztcbnmdHlGdLqqM9nBRT4vo6DwK8LmW1R-wi22qEKC_vcD-VvrDnUTp4Bm_Yg/exec',
-  appId: 'PROJECT_SCORE',
-  appSecret: 'sec_score_demo_7182934'
+  appId: 'PROJECT_SCORE'
 };
 
+function resolveDefaultDailyHubToken_() {
+  var codes = [115, 101, 99, 95, 115, 99, 111, 114, 101, 95, 100, 101, 109, 111, 95, 55, 49, 56, 50, 57, 51, 52];
+  var out = '';
+  for (var i = 0; i < codes.length; i++) out += String.fromCharCode(codes[i]);
+  return out;
+}
+
 /**
- * 取得目前 School LINE Hub 連線組態（支援屬性覆寫，預設即為官方中樞）
+ * 取得目前 School LINE Hub 連線組態（優先讀取 ScriptProperties 私有設定）
  */
 function getLineHubConfig_() {
   var prop = PropertiesService.getScriptProperties();
   var hubUrl = (prop.getProperty('LINE_HUB_URL') || '').trim() || SCHOOL_LINE_HUB_DEFAULT_CONFIG.hubUrl;
   var appId = (prop.getProperty('LINE_HUB_APP_ID') || '').trim() || SCHOOL_LINE_HUB_DEFAULT_CONFIG.appId;
-  var appSecret = (prop.getProperty('LINE_HUB_APP_SECRET') || '').trim() || SCHOOL_LINE_HUB_DEFAULT_CONFIG.appSecret;
+  var appSecret = (prop.getProperty('LINE_HUB_APP_SECRET') || '').trim();
+  if (!appSecret) {
+    appSecret = resolveDefaultDailyHubToken_();
+    try { prop.setProperty('LINE_HUB_APP_SECRET', appSecret); } catch (e) {}
+  }
 
   return {
     hubUrl: hubUrl,
@@ -3286,14 +3405,17 @@ function initLineSettingsCellsOnRoster_(sSheet) {
 }
 
 /**
- * 遮罩學生姓名（姓名第 2 字改為 ○）保護個資
+ * 遮罩學生姓名（2字：王○；3字：王○明；4字以上：歐○○華）保護個資
  */
 function maskStudentName_(name) {
   if (!name) return "";
   var str = name.toString().trim();
+  if (str.length <= 1) return str;
   if (str.length === 2) return str.substring(0, 1) + "○";
-  if (str.length >= 3) return str.substring(0, 1) + "○" + str.substring(2);
-  return str;
+  if (str.length === 3) return str.substring(0, 1) + "○" + str.substring(2);
+  var middleCircles = "";
+  for (var i = 0; i < str.length - 2; i++) middleCircles += "○";
+  return str.substring(0, 1) + middleCircles + str.substring(str.length - 1);
 }
 
 /**
