@@ -3939,6 +3939,7 @@
         // 💬 School LINE Hub 家長綁定與深層跳轉邏輯
         // ==========================================
         const SCHOOL_LINE_HUB_URL = "https://script.google.com/macros/s/AKfycby4yrSdmztcbnmdHlGdLqqM9nBRT4vo6DwK8LmW1R-wi22qEKC_vcD-VvrDnUTp4Bm_Yg/exec";
+        const DEFAULT_LINE_BOT_ID = "@289cifiw"; // 林口區麗園國小專用 LINE 官方帳號 ID
 
         async function checkStudentLineBinding(student) {
             if (!student) return;
@@ -3947,29 +3948,35 @@
 
             window._currentStudentToken = token;
             const urlParams = new URLSearchParams(window.location.search);
-            const isLineUA = typeof navigator !== 'undefined' && navigator.userAgent && /Line\//i.test(navigator.userAgent);
-            const isAlreadyBoundCache = localStorage.getItem('mpdaily_line_bound_' + token) === '1' || urlParams.get('lb') === '1' || isLineUA;
+            
+            // 預設深層跳轉連結（Direct Deep Link）
+            let deepLink = `https://line.me/R/oaMessage/${encodeURIComponent(DEFAULT_LINE_BOT_ID)}/?${encodeURIComponent(token)}`;
+
+            // 檢查本地快取（是否已記錄綁定或由網址參數指定）
+            let isBound = localStorage.getItem('mpdaily_line_bound_' + token) === '1' || urlParams.get('lb') === '1';
 
             const banner = document.getElementById('lineBindBanner');
 
-            // 呼叫 School LINE Hub 檢查此學生是否已綁定 LINE
-            let isBound = isAlreadyBoundCache;
-            let deepLink = '';
-
+            // 嘗試呼叫 School LINE Hub 即時檢查此學生是否已綁定 LINE
             try {
                 const res = await fetch(`${SCHOOL_LINE_HUB_URL}?action=check_student_binding&token=${encodeURIComponent(token)}&t=${Date.now()}`);
-                const data = await res.json();
-                if (data && data.status === 'success') {
-                    isBound = Boolean(data.isBound);
-                    deepLink = data.bindUrl || '';
-                    if (isBound) {
-                        try { localStorage.setItem('mpdaily_line_bound_' + token, '1'); } catch (e) {}
-                    } else {
-                        try { localStorage.removeItem('mpdaily_line_bound_' + token); } catch (e) {}
+                const text = await res.text();
+                try {
+                    const data = JSON.parse(text);
+                    if (data && data.status === 'success') {
+                        isBound = Boolean(data.isBound);
+                        if (data.bindUrl) deepLink = data.bindUrl;
+                        if (isBound) {
+                            try { localStorage.setItem('mpdaily_line_bound_' + token, '1'); } catch (e) {}
+                        } else {
+                            try { localStorage.removeItem('mpdaily_line_bound_' + token); } catch (e) {}
+                        }
                     }
+                } catch(parseErr) {
+                    // 若 GAS 尚未發布新版本而回傳 HTML，安全沿用 DEFAULT_LINE_BOT_ID 產生的 deepLink
                 }
             } catch (err) {
-                console.warn('School LINE Hub 連線檢查略過:', err);
+                console.warn('School LINE Hub 連線檢查略過，使用本機預設:', err);
             }
 
             if (!isBound && deepLink) {
@@ -3988,7 +3995,7 @@
                     }
                 }
 
-                // 首次進入時主動彈出 Apple HIG 提醒 Modal
+                // 首次進入或未完成綁定時彈出 Apple HIG 提醒 Modal
                 const promptedKey = 'mpdaily_line_prompted_' + token;
                 if (!localStorage.getItem(promptedKey)) {
                     showLineBindPromptModal(deepLink, student);
