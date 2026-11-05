@@ -1569,6 +1569,17 @@
             return `${chars[0]}${'○'.repeat(chars.length - 2)}${chars[chars.length - 1]}`;
         }
 
+        // XSS 資安防禦跳脫字元輔助函式
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         // =========================================================================
         // 學年、學期與評量階段智慧篩選器 (支援 115-1, 115-2, 期中, 期末並自動顯示最新)
         // =========================================================================
@@ -3294,7 +3305,7 @@
                     <tr class="${rowBg} transition">
                         <td class="py-3 px-4 whitespace-nowrap">
                             <div class="flex items-center gap-2">
-                                <span class="font-extrabold text-slate-800 text-sm">${item.name}</span>
+                                <span class="font-extrabold text-slate-800 text-sm">${escapeHtml(item.name)}</span>
                                 ${typeBadge}
                             </div>
                         </td>
@@ -3449,7 +3460,7 @@
                             <div class="space-y-1.5 min-w-0 flex-1">
                                 <div class="flex items-center gap-1.5 flex-wrap">
                                     <span class="text-sm shrink-0">${item.categoryIcon || '📊'}</span>
-                                    <span class="font-extrabold text-slate-800 text-sm break-words">${item.name}</span>
+                                    <span class="font-extrabold text-slate-800 text-sm break-words">${escapeHtml(item.name)}</span>
                                     ${typeBadgeHtml}
                                 </div>
                                 <div class="flex items-center gap-1.5 text-xs text-slate-600 font-mono flex-wrap">
