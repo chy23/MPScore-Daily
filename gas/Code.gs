@@ -757,7 +757,8 @@ function formatDailySubjectSheet(sheet, titleText, headers, rowsData) {
  */
 function doGet(e) {
   var params = e ? e.parameter : {};
-  var action = params.action || (params.token ? 'query' : 'ping');
+  var hasQueryParams = Boolean(params.token || params.seat || params.name);
+  var action = params.action || (hasQueryParams ? 'query' : 'ping');
   var output = {};
 
   try {
@@ -765,7 +766,7 @@ function doGet(e) {
       output = checkSystemStatus();
     } else if (action === 'query') {
       var isSimulated = (params.sim === '1' || params.preview === '1' || params.simulate === '1' || (params.device && params.device.indexOf('模擬') !== -1));
-      output = getStudentDailyPortfolioByToken(params.token, params.device, (params.nocache === '1' || params.reload === '1'), isSimulated);
+      output = getStudentDailyPortfolioByToken(params.token, params.device, (params.nocache === '1' || params.reload === '1'), isSimulated, params.seat, params.name);
     } else if (action === 'getStudentLogs') {
       var ss = SpreadsheetApp.getActiveSpreadsheet();
       var studentToken = (params.token || '').toString().trim().toUpperCase();
@@ -1977,12 +1978,25 @@ function checkSystemStatus() {
 }
 
 /**
- * 家長端依 Token 查詢該生所有平時成績歷程資料 (高資安隔離)
+ * 家長端依「專屬代碼 (Token)」或「座號 + 學生姓名」查詢該生所有平時成績歷程資料 (高資安隔離)
  */
-function getStudentDailyPortfolioByToken(token, clientDevice, skipCacheOpt, isSimulated) {
-  var cleanToken = (token || '').toString().trim().toUpperCase();
-  if (!cleanToken) {
-    return { status: 'error', success: false, message: '請掃描有效的專屬 QR Code！' };
+function getStudentDailyPortfolioByToken(token, clientDevice, skipCacheOpt, isSimulated, seatParam, nameParam) {
+  var rawTokenInput = (token || '').toString().trim();
+  var cleanToken = rawTokenInput.toUpperCase();
+  var cleanSeat = normalizeSeatNumber(seatParam || '');
+  var cleanName = (nameParam || '').toString().trim().replace(/[\s\u3000]+/g, '');
+
+  // 若家長在單一輸入框輸入「01 王小華」或「1號王小華」，自動拆解座號與姓名
+  if (!cleanSeat && !cleanName && rawTokenInput) {
+    var comboMatch = rawTokenInput.match(/^(\d{1,2})\s*號?\s+(.+)$/) || rawTokenInput.match(/^(\d{1,2})\s*號\s*(.+)$/);
+    if (comboMatch) {
+      cleanSeat = normalizeSeatNumber(comboMatch[1]);
+      cleanName = comboMatch[2].trim().replace(/[\s\u3000]+/g, '');
+    }
+  }
+
+  if (!cleanToken && !cleanSeat && !cleanName) {
+    return { status: 'error', success: false, message: '請輸入孩子的「座號＋姓名」、「專屬查詢代碼」或掃描 QR Code！' };
   }
 
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1997,17 +2011,25 @@ function getStudentDailyPortfolioByToken(token, clientDevice, skipCacheOpt, isSi
 
   for (var r = 1; r < sData.length; r++) {
     var rowTok = (sData[r][3] || '').toString().trim().toUpperCase();
+    var rowSeat = normalizeSeatNumber(sData[r][1]);
+    var rowName = (sData[r][2] || '').toString().trim();
+    var cleanRowName = rowName.replace(/[\s\u3000]+/g, '');
     var enabled = sData[r][4] !== false && sData[r][4].toString().toUpperCase() !== 'FALSE';
-    if (rowTok === cleanToken && enabled) {
+    if (!enabled) continue;
+
+    var isTokenMatch = (cleanToken && rowTok && rowTok === cleanToken);
+    var isSeatAndNameMatch = (cleanSeat && cleanName && rowSeat === cleanSeat && cleanRowName === cleanName);
+    var isTokenAsNameAndSeatMatch = (!isTokenMatch && cleanSeat && rawTokenInput && rowSeat === cleanSeat && cleanRowName === rawTokenInput.replace(/[\s\u3000]+/g, ''));
+
+    if (isTokenMatch || isSeatAndNameMatch || isTokenAsNameAndSeatMatch) {
       var cls = (sData[r][0] || '本班').toString().trim();
-      var seat = normalizeSeatNumber(sData[r][1]);
       matchedStudent = {
         className: cls,
-        seatNo: seat,
-        seatNumber: seat,
-        name: (sData[r][2] || '').toString().trim(),
+        seatNo: rowSeat,
+        seatNumber: rowSeat,
+        name: rowName,
         token: (sData[r][3] || '').toString().trim(),
-        studentId: cls + '-' + seat
+        studentId: cls + '-' + rowSeat
       };
       matchedRowIdx = r + 1; // 1-based row index in spreadsheet
       break;
@@ -2015,7 +2037,10 @@ function getStudentDailyPortfolioByToken(token, clientDevice, skipCacheOpt, isSi
   }
 
   if (!matchedStudent) {
-    return { status: 'error', success: false, message: '查無此專屬代碼或尚未啟用，請確認通知單上的 QR Code 是否正確。' };
+    if (cleanSeat || cleanName) {
+      return { status: 'error', success: false, message: '查無相符的學生資料，請確認輸入的「座號」與「學生完整姓名」是否正確！' };
+    }
+    return { status: 'error', success: false, message: '查無此專屬代碼或尚未啟用，請確認輸入的專屬代碼或「座號＋姓名」是否正確。' };
   }
 
   // 記錄家長閱覽日誌（含 3 分鐘防抖保護。若為教師端模擬預覽模式則絕不記錄，保護真實數據純淨）
@@ -2025,9 +2050,10 @@ function getStudentDailyPortfolioByToken(token, clientDevice, skipCacheOpt, isSi
     } catch (logErr) {}
   }
 
+  var effectiveTokenKey = (matchedStudent.token || cleanToken || (matchedStudent.seatNo + '_' + matchedStudent.name)).toString().trim().toUpperCase();
   var skipCache = Boolean(skipCacheOpt);
   var cache = CacheService.getScriptCache();
-  var cacheKey = 'mpdaily_score_v8_' + cleanToken;
+  var cacheKey = 'mpdaily_score_v8_' + effectiveTokenKey;
   var cachedJson = !skipCache ? cache.get(cacheKey) : null;
   if (cachedJson) {
     try {

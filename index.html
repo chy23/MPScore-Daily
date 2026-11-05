@@ -2738,8 +2738,41 @@
 
             <!-- Body -->
             <div class="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4 bg-[#F7FAFC]">
-                <!-- 格式切換與一鍵複製面板 -->
+                <!-- 🌟 方案 A：全班共用單一查詢總連結（家長點開後可自行輸入「座號＋姓名」或「專屬代碼」查詢自己小孩） -->
+                <div class="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50/80 to-sky-50 border-2 border-emerald-300 shadow-xs space-y-2.5">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div class="space-y-0.5">
+                            <div class="inline-flex items-center gap-1.5 text-[11px] font-black text-emerald-900 bg-emerald-100/90 px-2.5 py-0.5 rounded-full border border-emerald-300">
+                                <span>🌟</span> 推薦方案 A：全班共用「家長自助查詢自己小孩」單一總連結
+                            </div>
+                            <div class="text-xs sm:text-sm font-black text-slate-800 mt-1">
+                                只要將這 1 個網址貼到班級群組，家長點進去輸入「孩子座號＋姓名」或「專屬代碼」就能直接查自己小孩！
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <button type="button" onclick="copySharedParentPortalUrl()"
+                                class="min-h-[38px] px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-sm transition flex items-center gap-1.5 active:scale-95 cursor-pointer">
+                                <span>📋</span>
+                                <span>一鍵複製「全班共用查詢總連結」</span>
+                            </button>
+                            <a id="sharedParentPortalOpenBtn" href="parent.html" target="_blank"
+                                class="min-h-[38px] px-3 py-2 rounded-xl bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-300 font-bold text-xs flex items-center gap-1 transition">
+                                <span>↗</span>
+                                <span>開啟預覽</span>
+                            </a>
+                        </div>
+                    </div>
+                    <input id="sharedParentPortalUrlInput" type="text" readonly onclick="this.select()"
+                        class="w-full px-3 py-2 rounded-xl bg-white border border-emerald-300 font-mono text-xs font-bold text-slate-800 select-all focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <div id="sharedParentUrlCopyStatus" class="hidden text-xs font-extrabold text-emerald-800 bg-white/90 border border-emerald-300 px-3 py-1.5 rounded-xl"></div>
+                </div>
+
+                <!-- 👨‍👩‍👧 方案 B：每位學生「一對一直達專屬連結」清冊（點開免輸入直接看到該生畫面） -->
                 <div class="p-4 rounded-2xl bg-white border border-sky-200 shadow-2xs space-y-3">
+                    <div class="text-xs font-black text-sky-900 flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                        <span>👨‍👩‍👧</span>
+                        <span>方案 B：全班每位學生「一對一直達專屬連結」清冊（點開免輸入，直接顯示該生平時成績）</span>
+                    </div>
                     <div class="flex flex-wrap items-center justify-between gap-2">
                         <div class="flex items-center gap-1.5 flex-wrap text-xs">
                             <span class="font-black text-slate-800">📋 選擇複製格式：</span>
@@ -3695,10 +3728,61 @@ function testGitHubConnection() {
             renderAllParentLinksModalContent();
         }
 
+        function buildSharedParentPortalUrl() {
+            const base = getParentPortalBaseUrl();
+            const cfgMask = computeWebConfigBitmask();
+            const customApi = document.getElementById('apiUrlInput')?.value.trim() || localStorage.getItem('mpdaily_api_url') || '';
+            const defaultApi = (window.MPSCORE_DAILY_CONFIG?.apiUrl || (typeof CONFIG !== 'undefined' ? CONFIG.API_URL : '') || '').trim();
+            const queryParts = [];
+
+            if (cfgMask !== 31) {
+                queryParts.push(`c=${cfgMask}`);
+            }
+
+            if (customApi && customApi !== defaultApi) {
+                const gasMatch = customApi.match(/https:\/\/script\.google\.com\/macros\/s\/([a-zA-Z0-9_\-]+)\/exec/);
+                if (gasMatch) {
+                    queryParts.push(`g=${encodeURIComponent(gasMatch[1])}`);
+                } else {
+                    queryParts.push(`api=${encodeURIComponent(customApi)}`);
+                }
+            }
+
+            return queryParts.length > 0 ? `${base}?${queryParts.join('&')}` : base;
+        }
+
+        function copySharedParentPortalUrl() {
+            const sharedUrl = buildSharedParentPortalUrl();
+            const inputEl = document.getElementById('sharedParentPortalUrlInput');
+            const statusEl = document.getElementById('sharedParentUrlCopyStatus');
+            if (inputEl) {
+                inputEl.value = sharedUrl;
+                inputEl.select();
+            }
+            navigator.clipboard.writeText(sharedUrl).then(() => {
+                if (statusEl) {
+                    statusEl.textContent = '✅ 已成功複製「全班家長共用查詢總連結」！貼給家長後，家長輸入自己孩子的「座號＋姓名」或「專屬代碼」即可直接查詢！';
+                    statusEl.classList.remove('hidden');
+                }
+            }).catch(() => {
+                document.execCommand('copy');
+                if (statusEl) {
+                    statusEl.textContent = '✅ 已複製全班共用查詢總連結！';
+                    statusEl.classList.remove('hidden');
+                }
+            });
+        }
+
         function renderAllParentLinksModalContent() {
             const badge = document.getElementById('parentLinksCountBadge');
             const textarea = document.getElementById('allParentLinksTextarea');
             const tbody = document.getElementById('allParentLinksTableBody');
+            const sharedInput = document.getElementById('sharedParentPortalUrlInput');
+            const sharedOpenBtn = document.getElementById('sharedParentPortalOpenBtn');
+            const sharedUrl = buildSharedParentPortalUrl();
+
+            if (sharedInput) sharedInput.value = sharedUrl;
+            if (sharedOpenBtn) sharedOpenBtn.href = `${sharedUrl}${sharedUrl.includes('?') ? '&' : '?'}query=1`;
 
             if (!currentRoster || currentRoster.length === 0) {
                 if (badge) badge.textContent = '尚未載入名冊';
