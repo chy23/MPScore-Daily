@@ -2784,22 +2784,22 @@
 
             <!-- Body -->
             <div class="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4 bg-[#F7FAFC]">
-                <!-- 🌟 方案 A：全班共用單一查詢總連結（家長點開後可自行輸入「座號＋姓名」或「專屬代碼」查詢自己小孩） -->
+                <!-- 🌟 方案 A：全班共用單一 QR Code 掃描入口連結（家長點開後可直接開啟相機掃描小卡 QR Code） -->
                 <div class="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50/80 to-sky-50 border-2 border-emerald-300 shadow-xs space-y-2.5">
                     <div class="flex flex-wrap items-center justify-between gap-2">
                         <div class="space-y-0.5">
                             <div class="inline-flex items-center gap-1.5 text-[11px] font-black text-emerald-900 bg-emerald-100/90 px-2.5 py-0.5 rounded-full border border-emerald-300">
-                                <span>🌟</span> 推薦方案 A：全班共用「家長自助查詢自己小孩」單一總連結
+                                <span>🌟</span> 全班共用「家長端 QR Code 掃描入口」連結
                             </div>
                             <div class="text-xs sm:text-sm font-black text-slate-800 mt-1">
-                                只要將這 1 個網址貼到班級群組，家長點進去輸入「孩子座號＋姓名」或「專屬代碼」就能直接查自己小孩！
+                                將此網址發布至班級群組，家長點開後可直接透過手機相機或相簿照片掃描通知小卡 QR Code！
                             </div>
                         </div>
                         <div class="flex items-center gap-2 shrink-0">
                             <button type="button" onclick="copySharedParentPortalUrl()"
                                 class="min-h-[38px] px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-sm transition flex items-center gap-1.5 active:scale-95 cursor-pointer">
                                 <span>📋</span>
-                                <span>一鍵複製「全班共用查詢總連結」</span>
+                                <span>一鍵複製「全班 QR 掃描入口連結」</span>
                             </button>
                             <a id="sharedParentPortalOpenBtn" href="parent.html" target="_blank"
                                 class="min-h-[38px] px-3 py-2 rounded-xl bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-300 font-bold text-xs flex items-center gap-1 transition">
@@ -3867,7 +3867,7 @@ function testGitHubConnection() {
             }
             navigator.clipboard.writeText(sharedUrl).then(() => {
                 if (statusEl) {
-                    statusEl.textContent = '✅ 已成功複製「全班家長共用查詢總連結」！貼給家長後，家長輸入自己孩子的「座號＋姓名」或「專屬代碼」即可直接查詢！';
+                    statusEl.textContent = '✅ 已成功複製「全班家長端 QR Code 掃描入口連結」！家長點開後可直接掃描通知小卡 QR Code。';
                     statusEl.classList.remove('hidden');
                 }
             }).catch(() => {
